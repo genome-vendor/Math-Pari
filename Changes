@@ -72,3 +72,7 @@ after 0.8:
 after 0.91:
 	Chip recognition code from PARI2.0alpha0 added;
 	Builds on Solaris, gives illegal instruction trap in t/Testout.t:32;
+after 0.92:
+	Fix the failure on Solaris via aliasing shifts() to pari_shifts()
+	(was dynalinking with libnls instead).
+

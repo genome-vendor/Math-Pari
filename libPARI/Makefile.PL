@@ -145,6 +145,8 @@ if ($Config{cc} eq 'gcc') {
   $mycflags="";
 } 
 
+$mycflags .= ' -Dshifts=pari_shifts'; # Conflict with libnsl
+
 if ($machine eq 'alpha') {
   $mycflags .= " -DLONG_IS_64BIT";
 } elsif ($Config{osname} eq 'solaris') {

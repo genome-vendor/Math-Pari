@@ -1,3 +1,7 @@
+#include <pari.h>
+#include <language/anal.h>
+#include <gp/gp.h>			/* init_opts */
+
 #define PERL_POLLUTE			/* We use older varnames */
 
 #ifdef __cplusplus
@@ -20,10 +24,6 @@ extern "C" {
 #ifdef warner
 #  undef warner
 #endif
-
-#include <pari.h>
-#include <language/anal.h>
-#include <gp/gp.h>			/* init_opts */
 
 /* 	$Id: Pari.xs,v 1.7 1995/01/23 18:50:58 ilya Exp ilya $	 */
 /* dFUNCTION should be the last declaration! */
@@ -137,6 +137,18 @@ long offStack;
 #  define onStack_dec
 #  define offStack_inc
 #endif /* !defined DEBUG_PARI */
+
+#define pari_version_exp() PARI_VERSION_EXP
+
+#if PARI_VERSION_EXP >= 2000018
+
+GEN
+_gbitneg(GEN g)
+{
+    return gbitneg(g,-1);
+}
+
+#endif	/* PARI_VERSION_EXP >= 2000018 */ 
 
 void
 make_PariAV(SV *sv)
@@ -2437,6 +2449,23 @@ loadPari(name)
 		       func=(void (*)(void*)) gand;
 		   } 
 		   break;
+#if PARI_VERSION_EXP >= 2000018
+	       case 'b':
+		   if (strEQ(name,"_gbitand")) {
+		       valence=299;
+		       func=(void (*)(void*)) gbitand;
+		   } else if (strEQ(name,"_gbitor")) {
+		       valence=299;
+		       func=(void (*)(void*)) gbitor;
+		   } else if (strEQ(name,"_gbitxor")) {
+		       valence=299;
+		       func=(void (*)(void*)) gbitxor;
+		   } else if (strEQ(name,"_gbitneg")) {
+		       valence=199;
+		       func=(void (*)(void*)) _gbitneg;
+		   } 
+		   break;
+#endif
 	       case 'c':
 		   if (strEQ(name,"_gcmp")) {
 		       valence=209;
@@ -2591,7 +2620,7 @@ loadPari(name)
 	 croak("Do not know how to work with Pari control structure `%s'",
 	       olds);
        } else if (func) {
-	 void (*subaddr)(CV*);
+	 XS((*subaddr));
 	 char* file = __FILE__, *proto = NULL;
 	 char subname[276]="Math::Pari::";
 	 char buf[64], *s, *s1;
@@ -2932,3 +2961,6 @@ setseriesprecision(digits=0)
 void
 int_set_term_ftable(a)
     IV a
+
+long
+pari_version_exp()

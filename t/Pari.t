@@ -315,5 +315,35 @@ $mat = PARImat [[1,2,3]];
 eval {$mat->[0] = [56,67]};
 test("$mat" eq "[56;67]");	# 88
 
+if (Math::Pari::pari_version_exp >= 2000018) {
+  $vi = PARI 6;
+  $v  = PARI 5;
+  test(($vi & $v) eq 4);	# 89
+  test(($vi | $v) eq 7);	# 90
+  test(($vi ^ $v) eq 3);	# 91
+  test((~$vi) eq -7);		# 92
+} else {
+  for (1..4) {
+    test(1 eq 1);
+  }
+}
 
-sub last {88}
+my $ow;
+BEGIN {
+  $ow = $^W;
+  $^W = 1;
+}
+
+# check warnings with double import
+package xx;
+use Math::Pari 'centerlift';
+package yy;
+use Math::Pari 'centerlift';
+
+package main;
+
+BEGIN {
+  $^W = $ow;
+}
+
+sub last {92}

@@ -203,3 +203,28 @@ Files=15,  Tests=1378, 108 secs (86.46 cusr  3.82 csys = 90.28 cpu)
 2.001702:
 	Update for new 'E' key of the interface string.
 	Do not consider CVS as a test.
+
+2.001800:
+	Support overloaded binary constants, as in 0b1101.
+	Support overloaded bitwise operations | & ^ ~ .
+
+2.001801:
+	->import() could only be called once due to caching of
+	@EXPORT_OK by Exporter.  Thanks to
+	thumper@bsi.menlo-park.ca.us for detecting the reason.
+
+2.001802:
+	hex() can return a float in newer perls, so overloaded hex
+	constants would not work.  Thanks to
+	thumper@bsi.menlo-park.ca.us for detecting the reason.
+
+2.001803:
+	Exporting the same symbol several times (e.g., to different
+	packages) gave spurious warnings.
+
+	Problems to fix yet: ++ floatifies; pari2iv() has a
+	32-bit upper bound on 64-bit perls; problems with refcounting
+	of array elements and Mod().
+
+2.001804:
+	Some declarations needed to be changed for multi-threading compile.

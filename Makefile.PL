@@ -109,10 +109,10 @@ opendir TESTS, $paritests
 closedir TESTS or die "Cannot find tests (close): $!";
 $sou = 'test_eng/ex.t';
 next if -e $targ and -M $targ <= -M $sou;
-if (not -e "$sou-" or -M "$sou-" > -M $sou) {
+#if (not -e "$sou-" or -M "$sou-" > -M $sou) {
   system "$^X -pe 's,CHANGE_ME,$paridir,' $sou > $sou- "
     and die "Could not run test converter: $! $?";
-}
+#}
 $sou = "$sou-";
 for $test (@tests) {
   next if $test =~ /^\.\.?$/;
@@ -220,10 +220,10 @@ EOP
     print "Non-interactive session, autofetching...\n"
   }
 
-  print "Getting PARI from ftp://$host/$dir\n";
+  print "Getting PARI from ftp://$host$dir\n";
 
   eval { require Net::FTP }
-    or die "You do not have Net::Ftp installing, cannot download, exiting...";
+    or die "You do not have Net::Ftp installed, cannot download, exiting...";
 
   $ftp = Net::FTP->new($host) or die "Cannot create FTP object: $!";
   $ftp->login("anonymous","Math::Pari@") or die "Cannot login anonymously: $!";
@@ -232,17 +232,22 @@ EOP
   @lst = $ftp->ls() or die "Cannot list: $!";
   #print "list = `@lst'\n";
 
+  $match = 'pari.*(\d+\.\d+\.\d+).*\.t(ar\.)?gz$';
+  $c = 0;
   for $file (@lst) {
-    next unless $file =~ /pari.*(\d+\.\d+\.\d+).*\.t(ar\.)?gz$/;
+    next unless $file =~ /$match/o;
+    $c++;
     $version = $1;
     if ($file =~ /alpha/) {
       $alpha{$version} = $file;
     } elsif ($file =~ /beta/) { 
       $beta{$version} = $file;
     } else {
-      $gamma{$version} = $file;
+      $golden{$version} = $file;
     }
   }
+  die "Did not find any file matching /$match/ via FTP"
+    unless $c;
 
   sub fmt_version {sprintf "%03d%03d%03d", split /\./, shift}
 

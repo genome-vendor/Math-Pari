@@ -23,4 +23,5 @@ patches/diff_pari_gnuplot_aa
 patches/diff_pari_highlevel_hash_011a
 patches/diff_pari_ret_proto_2011
 patches/patches_round1
+patches/patches_round1_short
 patches/patch_pari_round0

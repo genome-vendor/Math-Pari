@@ -134,3 +134,7 @@ after 2.0011_01:
 
 All tests successful, 1 test skipped, plus 156 subtests skipped.
 Files=15,  Tests=1377, 121 wallclock secs ( 0.00 cusr +  0.00 csys =  0.00 CPU)
+
+after 2.001102:
+        Patching was still busted.
+	Use the copy of tar.gz in the current directory if present.

@@ -6,7 +6,10 @@
 # The manual file can compressed. Sometimes you need to change the
 # name of the compression program in the %compress = ... statement below.
 #
+
+# $parifile="f:/pari/doc/usersch3.tex.gz";
 $parifile="/opt/src/pari-1.39/doc/usersch3.tex.gz";
+
 die "Usage: $0 functionName\n" unless @ARGV==1;
 $help=shift;
 %transl=(
@@ -19,11 +22,11 @@ $help=shift;
 	 '%',  '\%',
 	 'min',  'max',
 	 'log',  'ln',
-	);
-%compress = ('.gz', 'zcat',
-	     '.z', 'zcat',
-	     '.Z', 'zcat',
-	    );
+);
+%compress = ('.gz', 'gzip -cd',
+	   '.z', 'gzip -cd',
+	   '.Z', 'zcat',
+	  );
 if    ($transl{$help}) {$help=$transl{$help}}
 if ($help =~ /^[<>=!]=?|[|&]{1,2}$/) 
       {$help='comparison and \ref{boolean operators}'}
@@ -55,8 +58,10 @@ if (eof(DOC)) {
   }
 }
 if ($pipe) {
-  # Would get 'illegal seek' otherwise?
-  1 while <DOC>;
+  if ($^O eq 'os2') {
+    # Would get 'illegal seek' otherwise?
+    1 while <DOC>;
+  }
   close(DOC) || die "Cannot close pipe `$pipe $parifile': $!, stopped";
 } else {
   close(DOC) || die "Cannot close file $parifile: $!, stopped";

@@ -4,7 +4,9 @@ Pari.xs
 MANIFEST
 Makefile.PL
 README
+chap3_to_pod
 parifonc.pl
+libPARI.pod
 libPARI/Buglist
 libPARI/Changes
 libPARI/Changes1.31-1.35
@@ -40,8 +42,8 @@ libPARI/bibli1.c
 libPARI/bibli2.c
 libPARI/buch1.c
 libPARI/buch2.c
-libPARI/deb
 libPARI/dummy.c
+libPARI/dynamic_build
 libPARI/elliptic.c
 libPARI/erreurs.h
 libPARI/errmessages.c
@@ -65,7 +67,6 @@ libPARI/gphelp
 libPARI/helpmessages.c
 libPARI/hppa.s
 libPARI/i386.c
-libPARI/i386.s
 libPARI/init.c
 libPARI/makeomf.cmd
 libPARI/mp.ami

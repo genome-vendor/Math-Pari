@@ -1,0 +1,123 @@
+#!/usr/bin/perl -w
+#
+# Please correct the above line to the actual location of perl on your
+# system, and the line below to the location of PARI manual, ch. 3.
+#
+# The manual file can compressed. Sometimes you need to change the
+# name of the compression program in the %compress = ... statement below.
+#
+
+$version = $1, shift @ARGV if @ARGV and $ARGV[0] =~ /^-v=(.*)$/;
+
+$parifile = shift || "f:/pari/doc/usersch3.tex.gz";
+# $parifile="/opt/src/pari-1.39/doc/usersch3.tex.gz";
+
+die "Usage: $0 [-v=version-of-pari] pari-chapter3-filename\n"
+  unless -f $parifile;
+
+#%transl=(
+#	 '\\', '\backslash',
+#	 '^',  '\hat{}',
+#	 '!',  'fact',
+#	 '~',  'trans',
+#	 '_',  'conj',
+#	 '-',  '\+',
+#	 '%',  '\%',
+#	 'min',  'max',
+#	 'log',  'ln',
+#);
+%compress = ('.gz', 'gzip -cd',
+	   '.z', 'gzip -cd',
+	   '.Z', 'zcat',
+	  );
+
+#print $help;
+foreach $suffix (keys %compress) {
+  ($patt = $suffix) =~ s/(\W)/\\$1/;
+  if ($parifile =~ /$patt$/) {
+    $pipe = $compress{$suffix};
+    last;
+  }
+}
+if ($pipe) {
+  open(DOC,"$pipe $parifile |") || 
+    die "Cannot open pipe $pipe from $parifile: $!, stopped";
+} else {
+  open(DOC,$parifile) || die "Cannot find file $parifile: $!, stopped";
+}
+$/='';				# Paragraph mode
+# %table = qw(`a ? "a ? "u ? "o ? 'e ?);
+
+while (<DOC>) {
+  # last if /\\subsec[\\{}ref]*[\\\${]$help[}\\\$]/o;
+  s/\\chapter\s*{(.*)}/\n\n=head1 NAME\n\n$1\n\n=head1 DESCRIPTION\n\n/;
+  s/\\section\s*{(.*)}/\n\n=head1 $1\n\n/;
+  # Try to delimit by :
+  s/\\subsec(?:ref)?\s*{(([^{}]+(?=[{}])|{[^{}]+})+)}([^\n:]*):\s*/\n\n=head2 $1$3\n\n/;
+  s/\\subsubsec(?:ref)?\s*{(([^{}]+(?=[{}])|{[^{}]+})+)}([^\n:]*):\s*/\n\n=item $1$3\n\n/;
+  # Try to delimit by ' '
+  s/\\subsec(?:ref)?\s*{(([^{}]+(?=[{}])|{[^{}]+})+)}(\S*)\s+/\n\n=head2 $1$3\n\n/;
+  s/\\subsec(?:ref|title)?\s*{(([^{}]+(?=[{}])|{[^{}]*})+)}:?\s*/\n\n=head2 $1\n\n/;
+  &TeXprint;
+}
+if ($pipe) {
+  if ($^O eq 'os2') {
+    # Would get 'illegal seek' otherwise?
+    1 while <DOC>;
+  }
+  close(DOC) || die "Cannot close pipe `$pipe $parifile': $!, stopped";
+} else {
+  close(DOC) || die "Cannot close file $parifile: $!, stopped";
+}
+
+sub TeXprint {
+  # frac{}{} ???  \s?ref ???  \tec ???
+  s/\\([% &\/|])/$1/g;
+  s/\\c?dots\b/.../g;
+  s/\\cdot\b/ . /g;
+  s/\\mid\b/ | /g;
+  s/(\\string)?\\_/_/g;
+  s/\\(hat\b|\^)(\{(\\\s+)?\})?/^/g;
+  s/(^|[^\\])~/$1 /g;
+  s/\\,/ /g;
+  s/\\enspace(\b|(?=[\d_]))/ /g;
+  s/\\~(\{(\\\s*)?\})?/~/g;
+  s/\\tilde(\{\\\s+\})?/~/g;
+  s/\\(equiv|approx|simeq)(\b|(?=[\d_]))/ ~ /g;
+  s/\\neq(\b|(?=[\d_]))/!=/g;
+  s/([A-Z])\</$1 < /g;
+  s/\>/E<gt>/g;
+  s/\\leq?(\b|(?=[\d_]))/E<lt>=/g;
+  s/\\geq?(\b|(?=[\d_]))/E<gt>=/g;
+  s/\\\$/F<dollar>/g;
+  s/\$\\bf\b\s*([^\$]+)\$/C<B<$1>>/g;
+  s/\$+([^\$]+)\$+/C<$1>/g;
+  s/\\(s?ref|tec){\s*([^{}]*)}/I<$2>/g;	# XXXX X<>?
+  s/\\text{\s*([^{}]*)}/$1/g;
+  s/{\\tt\b\s*([^{}]*)}/C<$1>/g;
+  s/{\\bf\b\s*(([^{}]+(?=[{}])|{[^{}]+})+)}/B<$1>/g;
+  s/\\Bbb\b\s*(\w)/B<I<$1>>/g;
+  s/\\Z(\b|(?=[\d_]))/B<I<Z>>/g;
+  s/\\teb{\s*([^{}]*)}/$1/g;
+  s/{\\(sl|it)\b\s*([^{}]*)}/I<$1>/g;
+  #s/\\(subsec(ref)?|smallskip|sl|sref[ a-z]*|bf|ref|Bbb|text|tt|\|)[ \t]*//g;
+  s/\\backslash\s*(\b|(?=[\d_]))/\\/g;
+  s/\\(log|sin|cos|lim|tan|mod|sqrt|exp|ln|det)(\b|(?=[\d_]))/ F<$1> /g;
+  s/\\bmod\b/ mod /g;
+  s/\\TeX\{\}/TeX/g;
+  s/\\(small|big)skip(\b|(?=[\d_]))/\n\n/g;
+  s/\\pm(\b|(?=[\d_]))/F<+->/g;
+  s/\\(left|right)(\b|(?=[\d_]))//g;
+  s/\\(quad|vfill|eject)(\b|(?=[\d_]))/    /g;
+  s/(^|\s)\{(\w+)\}/$1$2/g;
+  s/\\([{}])/$1/g;
+  s/\\(Alpha | Beta | Chi | Delta | Epsilon | Phi | Gamma
+       | Eta | Iota | vartheta | Kappa | Lambda | Mu | Nu | Omicron
+       | Pi | Theta | Rho | Sigma | Tau | Ypsilon | varsigma | Omega
+       | Xi | Psi | Zeta | alpha | beta | chi | delta | varepsilon | phi | gamma
+       | eta | iota | varphi | kappa | lambda | mu | nu | omicron
+       | pi | theta | rho | sigma | tau | ypsilon | varpi | omega
+       | xi | psi | zeta) (\b|(?=[\d_]|[A-Z]<))/F<$1>/xg;
+  s/\\vers(\b|(?=[\d_]))/$version/ if defined $version;
+  print;
+}

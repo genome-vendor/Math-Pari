@@ -22,7 +22,7 @@ T_PariMat
 T_bool
 	$var = SvTRUE($arg)
 T_PariVar
-	$var = findVariable((char *)SvPV($arg,na))
+	$var = bindVariable($arg)
 T_PariExpr
 	if (SvROK($arg) && SvTYPE(SvRV($arg)) == SVt_PVCV) {
 	  $var = ((char*)&(SvRV($arg)->sv_flags)) + LSB_in_U32;

@@ -4,6 +4,39 @@ use Config '%Config';
 # modified by Babecool 23.7.1993
 # Created by Ilya Zakharevich <ilya@math.ohio-state.edu>
 
+%Versions = (
+	     sun3	   => ["version68k.c",'sparc$(OBJ_EXT)'],
+	     sparcv7	   => ["versionsparcv7.c",'sparcv7$(OBJ_EXT)'],
+	     sparcv8micro  => ["versionsparcv8.c",'sparcv8micro$(SOL_UNDER)$(OBJ_EXT)'],
+	     sparcv8super  => ["versionsparcv8.c",'sparcv8super$(SOL_UNDER)$(OBJ_EXT)'],
+	     alpha	   => ["versionalpha.c",'alpha$(OBJ_EXT)'],
+	     hppa	   => ["versionhp.c",'hppa$(OBJ_EXT)'],
+	     i386	   => ["version386.c",'i386$(OBJ_EXT)'],
+	     port	   => ["versionport.c"],
+	    );
+@Chips = keys %Versions;
+
+@know_chip{@Chips} = (1) x @Chips;
+$chipre = join '|', @Chips;
+$chipre =~ s/\|port\b//;
+$chipre =~ s/\bi386\b/[xi]\d86/;
+
+if (not defined $machine and defined $common::machine) {
+  $machine = $common::machine;
+} elsif (not defined $machine and @ARGV and $ARGV[0] =~ /^machine=(.*)$/i) {
+  $machine = $1; shift;
+} elsif (not defined $machine 
+	 and $Config{myuname} 
+	 =~ /\b(sun3|sparcv7|sparcv8micro|sparcv8super|alpha|hppa|[ix]\d86)\b/) {
+  $machine = $1;  
+} elsif (not defined $machine) {
+  chomp($machine = `uname -m`);
+}
+$machine =~ s/[ix]\d86/i386/ if defined $machine;
+
+print "I think that your processor is of class `$machine'\n" 
+  if defined $machine;
+
 $solaris='';
 
 $libs="-lm";
@@ -18,7 +51,6 @@ while (defined ($_ = readdir DIR)) {
 }
 closedir DIR or die "Cannot closedir . : $!";
 
-
 if ($Config{osname} eq 'solaris') {
   @sc_dirs = </opt/SUNWspro/SC*>;
   die "Cannot find SUNWspro dirs, needed for -lsunmath" unless @sc_dirs;
@@ -26,27 +58,11 @@ if ($Config{osname} eq 'solaris') {
   $gccversioncflags=1;
   $solaris='-DSOLARIS';
   $sol_under = '_nounder';	# Need to filter
+} elsif ($Config{osname} eq 'sunos') {
+  # $machine = 'sparcv8super' if $Config{myuname} =~ /\bsun4m\b/o;
+  $mycflags .= ' -DULONG_NOT_DEFINED';
 }
 
-if ($Config{myuname} =~ /\bi386\b/) { # Do not use uname
-  $machine = 'i386';
-} else {
-  chomp($machine = `uname -m`);
-}
-
-%Versions = (
-	     sun3	   => ["version68k.c",'sparc$(OBJ_EXT)'],
-	     sparcv7	   => ["versionsparcv7.c",'sparcv7$(OBJ_EXT)'],
-	     sparcv8micro  => ["versionsparcv8.c",'sparcv8micro$(SOL_UNDER)$(OBJ_EXT)'],
-	     sparcv8super  => ["versionsparcv8.c",'sparcv8super$(SOL_UNDER)$(OBJ_EXT)'],
-	     alpha	   => ["versionalpha.c",'alpha$(OBJ_EXT)'],
-	     hppa	   => ["versionhp.c",'hppa$(OBJ_EXT)'],
-	     i386	   => ["version386.c",'i386$(OBJ_EXT)'],
-	     port	   => ["versionport.c"],
-	    );
-@Chips = keys %Versions;
-
-@know_chip{@Chips} = (1) x @Chips;
 
 unless (exists $know_chip{$machine}) {
   warn 
@@ -80,6 +96,8 @@ if ($machine eq 'alpha') {
   $add_ar_flags = '-p64';	# Need big library. 32 is OK without debugging
 } elsif ($Config{osname} eq 'port') {
   $mycflags .= " -D__HAS_NO_ASM__";
+} elsif ($Config{osname} eq 'linux') {
+  $define .= ' -DNOEXP2';
 }
 
 $mp_cflags = '';

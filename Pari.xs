@@ -67,6 +67,7 @@ extern "C" {
 #define GENmovedOffStack ((char*) 1) /* Just an atom. */
 #define GENfirstOnStack ((char*) 2) /* Just an atom. */
 #define GENheap NULL
+#define ifact mpfact
 
 typedef entree * PariVar;
 typedef char * PariExpr;
@@ -117,16 +118,21 @@ wrongT(SV *sv, char *file, int line)
   return NULL;				/* To pacify compiler. */
 }
 
-PariVar
-findVariable(char *s)
+HV *pariStash;				/* For quick id. */
+HV *pariEpStash;
+
+SV *
+PARIvar(char *s)
 {
   char *olds = s, *u, *v;
   long n;
+  SV *sv;
   GEN p1;
   entree *ep;
-  
+
   for (n = 0; isalnum(*s); s++) n = n << 1 ^ *s;
-  if (*s) goto junk;
+  if (*s || s == olds) 
+      croak("Bad PARI variable name \"%s\"", olds);
   if (n < 0) n = -n; n %= TBLSZ;
   for(ep = hashtable[n]; ep; ep = ep->next)
   {
@@ -134,7 +140,102 @@ findVariable(char *s)
     if (!*u && !*v) {
       if (EpVALENCE(ep) != 200)
 	croak("Got a function name instead of a variable");
-      return ep;
+      goto found;
+    }
+  }
+  ep = (entree *)malloc(sizeof(entree) + 7*BYTES_IN_LONG 
+			+ s - olds + 1);
+  ep->name = (char *)ep + sizeof(entree) + 7*BYTES_IN_LONG;
+  for (u = ep->name, v = olds; v < s;) *u++ = *v++; *u = 0;
+  ep->value = (void *)((char *)ep + sizeof(entree));
+  ep->code = ep->help = NULL;
+  ep->next = hashtable[n];
+  hashtable[n] = ep;
+  p1 = (GEN)ep->value;
+  if (nvar == MAXVAR) err(trucer1);
+  ep->valence = 200;
+  p1[0] = evaltyp(10)+evalpere(1)+evallg(4);
+  p1[1] = evalsigne(1)+evallgef(4)+evalvarn(nvar);
+  p1[2] = zero; p1[3] = un;
+  polx[nvar] = p1;
+  polvar[nvar+1] = (long)p1;
+  p1 += 4;
+  p1[0] = evaltyp(10)+evalpere(1)+evallg(3);
+  p1[1] = evalsigne(1)+evallgef(3)+evalvarn(nvar); p1[2] = un;
+  polun[nvar] = p1;
+  varentries[nvar++] = ep;
+  setlg(polvar, nvar+1);    
+
+  found:
+  sv = NEWSV(909,0);
+  sv_setref_pv(sv, "Math::Pari::Ep", (void*)ep);
+  return sv;
+}
+
+PariVar
+bindVariable(SV *sv)
+{
+    /* There may be 4 important cases:
+       a) we got a 'word' string, which we interpret as the name of
+          the variable to use;
+       b) It is a pari value, we ignore it;
+       c) it is a string containing junk, same as 'b';
+       d) It is an ep value => typo (same iterator in two loops).
+       In any case we localize the value.
+     */
+  char *s;
+  char *olds, *u, *v;
+  long n, override = 0;
+  GEN p1;
+  entree *ep;
+  char name[50];
+  SV *setsv = NULL;
+
+  if (!SvREADONLY(sv)) {
+      save_item(sv);			/* Localize it. */
+      override = 1;
+  }
+  if (SvROK(sv)) {
+      SV* tsv = SvRV(sv);
+      if (SvOBJECT(tsv)) {
+	  if (SvSTASH(tsv) == pariStash) {
+	      GEN x = (GEN)SvIV(tsv);
+	      if (typ(x)==10 		/* Polynomial. */
+		  && lgef(x)==4		/* 2 terms */
+		  && (gcmp0((GEN)x[2]))	/* Free */
+		  && (gcmp1((GEN)x[3]))) { /* Leading */
+		  s = varentries[ordvar[varn(x)]]->name;
+		  setsv = sv;
+		  goto repeat;
+	      }
+	      goto ignore;
+	  } else if (SvSTASH(tsv) == pariEpStash) {
+	      croak("Same iterator in embedded PARI loop construct");
+	  }
+      }
+  }
+  s = SvPV(sv,na);
+  repeat:
+  olds = s;
+  for (n = 0; isalnum(*s); s++) n = n << 1 ^ *s;
+  if (*s || s == olds) {
+      static int depth;
+
+    ignore:
+      SAVEINT(depth);
+      setsv = sv;			/* Change the value of sv. */
+      sprintf(name, "intiter%i",depth++);
+      s = name;
+      goto repeat;
+  }
+  if (n < 0) n = -n; n %= TBLSZ;
+  for(ep = hashtable[n]; ep; ep = ep->next)
+  {
+    for(u = ep->name, v = olds; (*u) && *u == *v; u++, v++);
+    if (!*u && !*v) {
+      if (EpVALENCE(ep) != 200)
+	croak("Got a function name instead of a variable");
+      goto found;
     }
   }
   ep = (entree *)malloc(sizeof(entree) + 7*BYTES_IN_LONG 
@@ -159,13 +260,12 @@ findVariable(char *s)
   polun[nvar] = p1;
   varentries[nvar++] = ep;
   setlg(polvar, nvar+1);
+
+  found:
+  if (setsv && override)
+      sv_setref_pv(setsv, "Math::Pari::Ep", (void*)ep);
   return ep;
- junk:
-  croak("Junk when expecting variable name");
-  return NULL;
 }
-
-
 
 static int
 not_here(char *s)
@@ -231,27 +331,33 @@ GEN
 sv2pari(SV* sv)
 {
   if (SvROK(sv)) {
-    if (sv_isa(sv, "Math::Pari")) {
-      IV tmp = SvIV((SV*)SvRV(sv));
-      return (GEN) tmp;
-    } else {
-      SV* tmp=SvRV(sv);
-      int type=SvTYPE(tmp);
-      if (type==SVt_PVAV) {
-	AV* av=(AV*) tmp;
-	I32 len=av_len(av);	/* Length-1 */
-	GEN ret=cgetg(len+2,17);
-	int i;
-	for (i=0;i<=len;i++) {
-	  SV** svp=av_fetch(av,i,0);
-	  if (!svp) croak("Internal error in perl2pari!");
-	  ret[i+1]=(long)sv2pari(*svp);
-	}
-	return ret;
-      } else {
-	return lisexpr(SvPV(sv,na));
+      SV* tsv = SvRV(sv);
+      if (SvOBJECT(tsv)) {
+	  if (SvSTASH(tsv) == pariStash) {
+	      IV tmp = SvIV(tsv);
+	      return (GEN) tmp;
+	  } else if (SvSTASH(tsv) == pariEpStash) {
+	      IV tmp = SvIV(tsv);
+	      return (GEN)(((entree*) tmp)->value);
+	  }
       }
-    }
+      {
+	  int type = SvTYPE(tsv);
+	  if (type==SVt_PVAV) {
+	      AV* av=(AV*) tsv;
+	      I32 len=av_len(av);	/* Length-1 */
+	      GEN ret=cgetg(len+2,17);
+	      int i;
+	      for (i=0;i<=len;i++) {
+		  SV** svp=av_fetch(av,i,0);
+		  if (!svp) croak("Internal error in perl2pari!");
+		  ret[i+1]=(long)sv2pari(*svp);
+	      }
+	      return ret;
+	  } else {
+	      return lisexpr(SvPV(sv,na)); /* For overloading */
+	  }
+      }
   }
   else if (SvIOKp(sv)) return stoi(SvIV(sv));
   else if (SvNOKp(sv)) return dbltor(SvNV(sv));
@@ -356,21 +462,51 @@ pari2mortalsv(GEN in, long oldavma)
     return sv;
 }
 
+static const 
+unsigned char defcode[] = "\06xD,0,G,D,0,G,D,0,G,D,0,G,D,0,G,D,0,G,";
+
 void
 installPerlFunction(SV* cv, char *name, I32 numargs, char *help)
 {
-    char *code;
+    unsigned char *code, *s;
+    I32 req = numargs, opt = 0;
 
+    if (numargs < 0 && SvPOK(cv) && (s = SvPV(cv,na))) {
+	/* Get number of arguments. */
+	req = opt = 0;
+	while (*s == '$')
+	    req++, s++;
+	if (*s == ';') 
+	    s++;
+	while (*s == '$')
+	    opt++, s++;
+	if (*s == '@') {
+	    opt += 6;			/* Max 6 optional arguments. */
+	    s++;
+	}
+	if (*s == 0) {			/* Got it! */
+	    numargs = req + opt;
+	}
+    }
+    
     if (numargs < 0) {		/* Variable number of arguments. */
 	/* Install something hairy with <= 6 args */
-	code = "xD,0,G,D,0,G,D,0,G,D,0,G,D,0,G,D,0,G,";
+	code = (char*)defcode;		/* Remove constness. */
+    } else if (numargs >= 256) {
+	croak("Import of Perl function with too many arguments");
     } else {
-	code = (char *)malloc(numargs + 2);
-	code[0] = 'x';
-	memset(code + 1, 'G', numargs);
-	code[numargs + 1] = '\0';
+	code = (char *)malloc(numargs*6 - req*5 + 3);
+	code[0] = numargs;
+	code[1] = 'x';
+	memset(code + 2, 'G', req);
+	s = code + 2 + req;
+	while (opt--) {
+	    strcpy(s, "D,0,G,");
+	    s += 6;
+	}
+	*s = '\0';
     }
-    installep((void*)SvREFCNT_inc(cv), name, 99, code, help); /* XXX Leak! */
+    installep((void*)SvREFCNT_inc(cv), name, 99, code + 1, help); /* XXX Leak! */
 }
 
 void
@@ -379,20 +515,45 @@ freePerlFunction(entree *ep)
     if (!ep->code || (*ep->code != 'x')) {
 	croak("Attempt to ask Perl to free PARI function not installed from Perl");
     }
+    if (ep->code != (char *)defcode + 1)
+	free(ep->code - 1);
+    if (ep->help)
+	free(ep->help);
     SvREFCNT_dec((SV*)ep->value);
+}
+
+long
+moveoffstack_newer_than(SV* sv)
+{
+  SV* sv1;
+  SV* nextsv;
+  long ret=0;
+  
+  for (sv1 = PariStack; sv1 != sv; sv1 = nextsv) {
+    ret++;
+    nextsv = (SV *) SvPVX(sv1);
+    SvPVX(sv1) = GENmovedOffStack; /* Mark as moved off stack. */
+    SvIVX(sv1) = (IV) gclone((GEN)SvIV(sv1));
+    onStack_dec;
+    offStack_inc;
+  }
+  PariStack = sv;
+  return ret;
 }
 
 GEN
 callPerlFunction(entree *ep, ...)
 {
     va_list args;
-    int numargs = strlen(ep->code) - 1;
+    char *s = ep->code;
+    int numargs = ep->code[-1];
     SV *cv = (SV*) ep->value;
     GEN res;
     int i;
     dSP;
     int count ;
     long oldavma = avma;
+    SV *oPariStack = PariStack;
 
     va_start(args, ep);
     ENTER ;
@@ -411,10 +572,17 @@ callPerlFunction(entree *ep, ...)
 	croak("Perl function exported into PARI did not return a value");
 
     res = sv2pari(POPs);
+    if (isonstack(res) && res < (GEN)oldavma) /* Will be cleared. */
+	res = gclone(res);
 
     PUTBACK ;
     FREETMPS ;
     LEAVE ;
+    /* Now PARI data created inside this subroutine sits above
+       oldavma, but the caller is going to unwind the stack: */
+    if (PariStack != oPariStack)
+	moveoffstack_newer_than(oPariStack);
+    
     return res;
 }
 
@@ -460,27 +628,10 @@ exprHandler_Perl(char *s)
     return res;
 }
 
-long
-moveoffstack_newer_than(SV* sv)
-{
-  SV* sv1;
-  SV* nextsv;
-  long ret=0;
-  
-  for (sv1 = PariStack; sv1 != sv; sv1 = nextsv) {
-    ret++;
-    nextsv = (SV *) SvPVX(sv1);
-    SvPVX(sv1) = GENmovedOffStack; /* Mark as moved off stack. */
-    SvIVX(sv1) = (IV) gclone((GEN)SvIV(sv1));
-    onStack_dec;
-    offStack_inc;
-  }
-  PariStack = sv;
-  return ret;
-}
-
 
 MODULE = Math::Pari PACKAGE = Math::Pari
+
+PROTOTYPES: ENABLE
 
 GEN
 sv2pari(sv)
@@ -1366,144 +1517,235 @@ loadPari(name)
        void (*unsupported)(void*) = (void (*)(void*)) not_here;
 
        if (*name=='g') {
-	 if (strEQ(name,"gneg")) {
-	   valence=1;
-	   func=(void (*)(void*)) gneg;
-	 } else if (strEQ(name,"gadd")) {
-	   valence=2;
-	   func=(void (*)(void*)) gadd;
-	 } else if (strEQ(name,"gsub")) {
-	   valence=2;
-	   func=(void (*)(void*)) gsub;
-	 } else if (strEQ(name,"gmul")) {
-	   valence=2;
-	   func=(void (*)(void*)) gmul;
-	 } else if (strEQ(name,"gdiv")) {
-	   valence=2;
-	   func=(void (*)(void*)) gdiv;
-	 } else if (strEQ(name,"gdivent")) {
-	   valence=299;
-	   func=(void (*)(void*)) gdivent;
-	 } else if (strEQ(name,"gmod")) {
-	   valence=2;
-	   func=(void (*)(void*)) gmod;
-	 } else if (strEQ(name,"gpui")) {
-	   valence=2;
-	   func=(void (*)(void*)) gpui;
-	 } else if (strEQ(name,"gle")) {
-	   valence=2;
-	   func=(void (*)(void*)) gle;
-	 } else if (strEQ(name,"gne")) {
-	   valence=2;
-	   func=(void (*)(void*)) gne;
-	 } else if (strEQ(name,"glt")) {
-	   valence=2;
-	   func=(void (*)(void*)) glt;
-	 } else if (strEQ(name,"gge")) {
-	   valence=2;
-	   func=(void (*)(void*)) gge;
-	 } else if (strEQ(name,"ggt")) {
-	   valence=2;
-	   func=(void (*)(void*)) ggt;
-	 } else if (strEQ(name,"geq")) {
-	   valence=2;
-	   func=(void (*)(void*)) geq;
-	 } else if (strEQ(name,"gor")) {
-	   valence=2;
-	   func=(void (*)(void*)) gor;
-	 } else if (strEQ(name,"gand")) {
-	   valence=2;
-	   func=(void (*)(void*)) gand;
-	 } else if (strEQ(name,"gcmp")) {
-	   valence=20;
-	   func=(void (*)(void*)) gcmp;
-	 } else if (strEQ(name,"gegal")) {
-	   valence=20;
-	   func=(void (*)(void*)) gegal;
-	 } else if (strEQ(name,"gcmp0")) {
-	   valence=10;
-	   func=(void (*)(void*)) gcmp0;
-	 } else if (strEQ(name,"gcmp1")) {
-	   valence=10;
-	   func=(void (*)(void*)) gcmp1;
-	 } else if (strEQ(name,"gcmp_1")) {
-	   valence=10;
-	   func=(void (*)(void*)) gcmp_1;
-	 }
+	   switch (name[1]) {
+	   case 'a':
+	       if (strEQ(name,"gadd")) {
+		   valence=2;
+		   func=(void (*)(void*)) gadd;
+	       } else if (strEQ(name,"gand")) {
+		   valence=2;
+		   func=(void (*)(void*)) gand;
+	       }
+	       break;
+	   case 'c':
+	       if (strEQ(name,"gcmp0")) {
+		   valence=10;
+		   func=(void (*)(void*)) gcmp0;
+	       } else if (strEQ(name,"gcmp1")) {
+		   valence=10;
+		   func=(void (*)(void*)) gcmp1;
+	       } else if (strEQ(name,"gcmp_1")) {
+		   valence=10;
+		   func=(void (*)(void*)) gcmp_1;
+	       } else if (strEQ(name,"gcmp")) {
+		   valence=20;
+		   func=(void (*)(void*)) gcmp;
+	       }
+	       break;
+	   case 'd':
+	       if (strEQ(name,"gdiv")) {
+		   valence=2;
+		   func=(void (*)(void*)) gdiv;
+	       } else if (strEQ(name,"gdivent")) {
+		   valence=2;
+		   func=(void (*)(void*)) gdivent;
+	       } else if (strEQ(name,"gdivround")) {
+		   valence=2;
+		   func=(void (*)(void*)) gdivround;
+	       }
+	       break;
+	   case 'e':
+	       if (strEQ(name,"geq")) {
+		   valence=2;
+		   func=(void (*)(void*)) geq;
+	       } else if (strEQ(name,"gegal")) {
+		   valence=20;
+		   func=(void (*)(void*)) gegal;
+	       }
+	       break;
+	   case 'g':
+	       if (strEQ(name,"gge")) {
+		   valence=2;
+		   func=(void (*)(void*)) gge;
+	       } else if (strEQ(name,"ggt")) {
+		   valence=2;
+		   func=(void (*)(void*)) ggt;
+	       } 
+	       break;
+	   case 'l':
+	       if (strEQ(name,"gle")) {
+		   valence=2;
+		   func=(void (*)(void*)) gle;
+	       } else if (strEQ(name,"glt")) {
+		   valence=2;
+		   func=(void (*)(void*)) glt;
+	       } 
+	       break;
+	   case 'm':
+	       if (strEQ(name,"gmul")) {
+		   valence=2;
+		   func=(void (*)(void*)) gmul;
+	       } else if (strEQ(name,"gmod")) {
+		   valence=2;
+		   func=(void (*)(void*)) gmod;
+	       } 
+	       break;
+	   case 'n':
+	       if (strEQ(name,"gneg")) {
+		   valence=1;
+		   func=(void (*)(void*)) gneg;
+	       } else if (strEQ(name,"gne")) {
+		   valence=2;
+		   func=(void (*)(void*)) gne;
+	       } 
+	       break;
+	   case 'o':
+	       if (strEQ(name,"gor")) {
+		   valence=2;
+		   func=(void (*)(void*)) gor;
+	       }
+	       break;
+	   case 'p':
+	       if (strEQ(name,"gpui")) {
+		   valence=2;
+		   func=(void (*)(void*)) gpui;
+	       }
+	       break;
+	   case 's':
+	       if (strEQ(name,"gsub")) {
+		   valence=2;
+		   func=(void (*)(void*)) gsub;
+	       }
+	       break;
+	   }
        } else if (*name=='_') {
-	 if (strEQ(name,"_gneg")) {
-	   valence=199;
-	   func=(void (*)(void*)) gneg;
-	 } else if (strEQ(name,"_gadd")) {
-	   valence=299;
-	   func=(void (*)(void*)) gadd;
-	 } else if (strEQ(name,"_gsub")) {
-	   valence=299;
-	   func=(void (*)(void*)) gsub;
-	 } else if (strEQ(name,"_gmul")) {
-	   valence=299;
-	   func=(void (*)(void*)) gmul;
-	 } else if (strEQ(name,"_gdiv")) {
-	   valence=299;
-	   func=(void (*)(void*)) gdiv;
-	 } else if (strEQ(name,"_gmod")) {
-	   valence=299;
-	   func=(void (*)(void*)) gmod;
-	 } else if (strEQ(name,"_gpui")) {
-	   valence=299;
-	   func=(void (*)(void*)) gpui;
-	 } else if (strEQ(name,"_gle")) {
-	   valence=2099;
-	   func=(void (*)(void*)) gle;
-	 } else if (strEQ(name,"_gne")) {
-	   valence=2099;
-	   func=(void (*)(void*)) gne;
-	 } else if (strEQ(name,"_glt")) {
-	   valence=2099;
-	   func=(void (*)(void*)) glt;
-	 } else if (strEQ(name,"_gge")) {
-	   valence=2099;
-	   func=(void (*)(void*)) gge;
-	 } else if (strEQ(name,"_ggt")) {
-	   valence=2099;
-	   func=(void (*)(void*)) ggt;
-	 } else if (strEQ(name,"_geq")) {
-	   valence=2099;
-	   func=(void (*)(void*)) geq;
-	 } else if (strEQ(name,"_gor")) {
-	   valence=2099;
-	   func=(void (*)(void*)) gor;
-	 } else if (strEQ(name,"_gand")) {
-	   valence=2099;
-	   func=(void (*)(void*)) gand;
-	 } else if (strEQ(name,"_gcmp")) {
-	   valence=209;
-	   func=(void (*)(void*)) gcmp;
-	 } else if (strEQ(name,"_lex")) {
-	   valence=209;
-	   func=(void (*)(void*)) lexcmp;
-	 } else if (strEQ(name,"_gcmp0")) {
-	   valence=109;
-	   func=(void (*)(void*)) gcmp0;
-	 } else if (strEQ(name,"_abs")) {
-	   valence=199;
-	   func=(void (*)(void*)) gabs;
-	 } else if (strEQ(name,"_sin")) {
-	   valence=199;
-	   func=(void (*)(void*)) gsin;
-	 } else if (strEQ(name,"_cos")) {
-	   valence=199;
-	   func=(void (*)(void*)) gcos;
-	 } else if (strEQ(name,"_exp")) {
-	   valence=199;
-	   func=(void (*)(void*)) gexp;
-	 } else if (strEQ(name,"_log")) {
-	   valence=199;
-	   func=(void (*)(void*)) glog;
-	 } else if (strEQ(name,"_sqrt")) {
-	   valence=199;
-	   func=(void (*)(void*)) gsqrt;
-	 }
+	   if (name[1] == 'g') {
+	       switch (name[2]) {
+	       case 'a':
+		   if (strEQ(name,"_gadd")) {
+		       valence=299;
+		       func=(void (*)(void*)) gadd;
+		   } else if (strEQ(name,"_gand")) {
+		       valence=2099;
+		       func=(void (*)(void*)) gand;
+		   } 
+		   break;
+	       case 'c':
+		   if (strEQ(name,"_gcmp")) {
+		       valence=209;
+		       func=(void (*)(void*)) gcmp;
+		   } else if (strEQ(name,"_gcmp0")) {
+		       valence=109;
+		       func=(void (*)(void*)) gcmp0;
+		   }
+		   break;
+	       case 'd':
+		   if (strEQ(name,"_gdiv")) {
+		       valence=299;
+		       func=(void (*)(void*)) gdiv;
+		   }
+		   break;
+	       case 'e':
+		   if (strEQ(name,"_geq")) {
+		       valence=2099;
+		       func=(void (*)(void*)) geq;
+		   }
+		   break;
+	       case 'g':
+		   if (strEQ(name,"_gge")) {
+		       valence=2099;
+		       func=(void (*)(void*)) gge;
+		   } else if (strEQ(name,"_ggt")) {
+		       valence=2099;
+		       func=(void (*)(void*)) ggt;
+		   }
+		   break;
+	       case 'l':
+		   if (strEQ(name,"_gle")) {
+		       valence=2099;
+		       func=(void (*)(void*)) gle;
+		   } else if (strEQ(name,"_glt")) {
+		       valence=2099;
+		       func=(void (*)(void*)) glt;
+		   }
+		   break;
+	       case 'm':
+		   if (strEQ(name,"_gmul")) {
+		       valence=299;
+		       func=(void (*)(void*)) gmul;
+		   } else if (strEQ(name,"_gmod")) {
+		       valence=299;
+		       func=(void (*)(void*)) gmod;
+		   }
+		   break;
+	       case 'n':
+		   if (strEQ(name,"_gneg")) {
+		       valence=199;
+		       func=(void (*)(void*)) gneg;
+		   } else if (strEQ(name,"_gne")) {
+		       valence=2099;
+		       func=(void (*)(void*)) gne;
+		   }
+		   break;
+	       case 'o':
+		   if (strEQ(name,"_gor")) {
+		       valence=2099;
+		       func=(void (*)(void*)) gor;
+		   }
+		   break;
+	       case 'p':
+		   if (strEQ(name,"_gpui")) {
+		       valence=299;
+		       func=(void (*)(void*)) gpui;
+		   }
+		   break;
+	       case 's':
+		   if (strEQ(name,"_gsub")) {
+		       valence=299;
+		       func=(void (*)(void*)) gsub;
+		   } 
+		   break;
+	       }
+	   } else {
+	       switch (name[1]) {
+	       case 'a':
+		   if (strEQ(name,"_abs")) {
+		       valence=199;
+		       func=(void (*)(void*)) gabs;
+		   } 
+		   break;
+	       case 'c':
+		   if (strEQ(name,"_cos")) {
+		       valence=199;
+		       func=(void (*)(void*)) gcos;
+		   } 
+		   break;
+	       case 'e':
+		   if (strEQ(name,"_exp")) {
+		       valence=199;
+		       func=(void (*)(void*)) gexp;
+		   } 
+		   break;
+	       case 'l':
+		   if (strEQ(name,"_lex")) {
+		       valence=209;
+		       func=(void (*)(void*)) lexcmp;
+		   } else if (strEQ(name,"_log")) {
+		       valence=199;
+		       func=(void (*)(void*)) glog;
+		   } 
+		   break;
+	       case 's':
+		   if (strEQ(name,"_sin")) {
+		       valence=199;
+		       func=(void (*)(void*)) gsin;
+		   } else if (strEQ(name,"_sqrt")) {
+		       valence=199;
+		       func=(void (*)(void*)) gsqrt;
+		   }
+		   break;
+	       }
+	   }
        }
        if (!func) {
 	 for (n = 0; *name; name++) n = n << 1 ^ *name;
@@ -1530,8 +1772,18 @@ loadPari(name)
 	       olds);
        } else if (func) {
 	 void (*subaddr)(CV*);
-	 char* file = __FILE__;
+	 char* file = __FILE__, *proto = NULL;
 	 char subname[276]="Math::Pari::";
+	 char buf[10];
+	 CV *protocv;
+	 
+	 strcpy(subname+12,"interface");
+	 sprintf(buf, "%d", valence);
+	 strcpy(subname+12+9,buf);
+	 protocv = perl_get_cv(subname, FALSE);
+	 if (protocv) {
+	     proto = SvPV((SV*)protocv,na);
+	 }
 	 
 	 strcpy(subname+12,olds);
 	 switch (valence) {
@@ -1577,6 +1829,8 @@ loadPari(name)
 			valence, olds);
 	 }
 	 RETVAL = newXS(subname,subaddr,file);
+	 if (proto)
+	     sv_setpv((SV*)RETVAL, proto);
 	 CvXSUBANY(RETVAL).any_dptr = func;
        } else {
 	 croak("Cannot load a Pari macro `%s'", olds);
@@ -1666,6 +1920,8 @@ BOOT:
    foreignExprSwitch = (char)SVt_PVCV;
    foreignExprHandler = &exprHandler_Perl;
    foreignFuncFree = &freePerlFunction;
+   pariStash = gv_stashpv("Math::Pari", TRUE);
+   pariEpStash = gv_stashpv("Math::Pari::Ep", TRUE);
 }
 
 void
@@ -1706,7 +1962,7 @@ DESTROY(rv)
 	     killbloc((GEN)SvIV(sv));
 	     break;
 	 default:		/* Still on stack */
-	     if (type != (char*)PariStack) { /* But not the newerst one. */
+	     if (type != (char*)PariStack) { /* But not the newest one. */
 		 howmany=moveoffstack_newer_than(sv);
 		 DEBUG_u( deb("%li items moved off stack\n", howmany) );
 	     }
@@ -1732,4 +1988,17 @@ pari_pprint(in)
 SV *
 pari_texprint(in)
     GEN in
+
+I32
+typ(in)
+    GEN in
+
+SV *
+PARIvar(in)
+    char *in
+
+GEN
+ifact(arg1)
+long	oldavma=avma;
+long	arg1
 

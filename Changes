@@ -9,3 +9,23 @@
 	DejaNews search: pari & math* &! leo* &! ftpadmin &! natarajan &! mutuel &! uucp &! ~g (muc.archive.* | soc.culture.* | sfnet.* | news.newuser*)	
 	Pari-die-handler was using die() instead of croak();
 	pari_print, pari_pprint and pari_texprint implemented;
+
+	New test "Testout":
+	168 tests of Testout report failure (not necessarily correctly ;-);
+	133 tests are skipped;
+
+after 0.5:
+	Prototypes added (121 not ok, 127 skipped);
+	gdivround, ifact added (122 not ok, 112 skipped);
+	Documentation brushed up;
+	Quickier switch inside loadPari;
+	Testout.t was transposing input/output matrices 
+	  (89 not ok, 106 skipped);
+	Testout.t: more filters (82 not ok, 109 skipped);
+	Chapter 3 of documentation converted to POD;
+	Problem with refcounting: when Perl code is called from PARI
+	 loop constructs, avma changes under Perl feet...  fixed;
+	Calculation of number of arguments of imported into Pari
+	 function was wrong;
+	Prototype of Perl function consulted when importing into PARI;
+	Documentation brushed up;

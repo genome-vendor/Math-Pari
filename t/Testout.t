@@ -1,4 +1,5 @@
 #! perl
+# 	$rcs = ' $Id: testout.t,v 1.2 1997/09/22 10:13:37 ilya Exp ilya $ ' ;	
 
 use Math::Pari qw(:DEFAULT pari_print :all);
 use vars qw($x $y $z $k $t $q $a $u $j $l $name $other);
@@ -67,7 +68,7 @@ while (<>) {
 sub format_matrix {
   my $in = shift;
   my @in = split /;/, $in;
-  'PARImat([[' . join('], [', @in) . ']])';
+  'PARImat_tr([[' . join('], [', @in) . ']])';
 }
 
 sub format_vvector {
@@ -77,6 +78,16 @@ sub format_vvector {
 }
 
 sub mformat {
+  return join("\t", @_) unless @_ > 1 and $_[0] =~ /^\[/;
+  @_ = grep {!/^$/} @_;
+  return join("\t", @_) if grep {!/^\s*\[.*\]\s*$/} @_;	# Not matrix
+  #return join("\t", @_) if grep {!/^\s*\([^,]*,\s*$/} @_; # Extra commas
+  map {s/^\s*\[(.*)\]\s*$/$1/} @_;
+  my @arr = map { join ', ', split } @_;
+  '[' . join('; ', @arr) . ']';
+}
+
+sub mformat_transp {
   return join("\t", @_) unless @_ > 1 and $_[0] =~ /^\[/;
   @_ = grep {!/^$/} @_;
   return join("\t", @_) if grep {!/^\s*\[.*\]\s*$/} @_;	# Not matrix
@@ -97,6 +108,10 @@ sub mformat {
 sub process_test {
   my ($in, $noans, $out) = @_;
   $c++;
+  # First a trivial processing:
+  $in =~ s/\b(\d+)\s*\\\s*(\d+)/ gdivent($1,$2)/g; # \
+  $in =~ s/\b(\d+)\s*\\\/\s*(\d+)/ gdivround($1,$2)/g;	# \/
+  $in =~ s/\b(\d+)\s*!/ ifact($1)/g; # !
   if ($in =~ /\\/) {		# \\ for division unsupported
     $c--;
     process_error($in, $out);
@@ -114,6 +129,10 @@ sub process_test {
     $in =~ s/\[([^\[\];]*)\]\s*~/format_vvector($1)/ge; # Vertical vector
     if ($in =~ /\[[^\]]*;/) { # Matrix
       print "# Skipping (matrix notation) `$in'\nok $c\n";
+      return;
+    } elsif ($in =~ /(^|[\(=])%/) {
+      print "# Skipping (history notation) `$in'\nok $c\n";
+      return;
     }
     if ($in !~ /\w\(/) {	# No function calls?
       # XXXX Primitive!
@@ -121,6 +140,11 @@ sub process_test {
       $in =~ s/(^|\G|\W)([-+]?\d+(\.\d*)?)(.?)/$1 PARI($2) $4/g;
       # Big integer constants:
       $in =~ s/\bPARI\((\d{10,})\)/PARI('$1')/g;
+    } else {
+      # Substitute big integer constants
+      $in =~ s/(^|\G|\W)(\d{10,}(?!\.\d*))(.?)/$1 PARI('$2') $3/g;
+      # Substitute division
+      $in =~ s/(^|[\(,])(\d+)\s*\/\s*(\d+)($|[\),])/$1 PARI($2)\/PARI($3) $4/g;
     }
     if ($in =~ /\bget(heap|stack)/) { # Meaningless
       print "# Skipping meaningless `$in'\nok $c\n";

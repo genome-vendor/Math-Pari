@@ -1,10 +1,13 @@
 =====>>> Highly experimental interface to version 2.0 <<<=======
 
-a) Should be installed inside pari-2.* source directory.
-b) Patches to pari (in `patches') should be applied.
-c) paricfg.h should be manually copied from pari-2,* build directory.
+a) Should be installed inside or near pari-2.* source directory.
+b) Patches to PARI (in `patches') should be applied.
+c) paricfg.h should be created beforehand in pari-2,* build directory
+	(run configure to do this).
 d) A lot of problems should be expected.
 e) Some tests should fail.
+f) We skip compatibility tests.
+
 
 What follows is the older README, good for the version 1.39.
 

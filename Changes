@@ -91,3 +91,11 @@ after 0.95_00:
 		out of 782).
 	Some more patches to PARI are required (in ./patches).
 	Still needs to be built as a subdirectory of the root of PARI tree.
+after 0.95_01:
+	Tests and paricfg.h are autocopied (but paricfg.h should be
+	created first by toplevel configure script!).
+	Skip compatibility tests.
+	Circa 80% of non-skipped tests is OK (110 fail, 764 skipped
+		out of 1381).
+	Look for PARI build directory nearby.
+	Autogenerate libPARI.pod.

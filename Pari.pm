@@ -457,7 +457,7 @@ C<gdivent(x,y)> and C<gdivround(x,y)> instead.
 
 =item C<~>
 
-There is no postfix C<~> Perl operator.  Use trans() instead.
+There is no postfix C<~> Perl operator.  Use mattranspose() instead.
 
 =item C<_>
 
@@ -599,7 +599,7 @@ PARI PARIcol PARImat PARIvar PARImat_tr
 @EXPORT_OK = qw(
   sv2pari sv2parimat pari2iv pari2nv pari2num pari2pv pari2bool loadPari _bool
   listPari pari_print pari_pprint pari_texprint O ifact gdivent gdivround
-  changevalue set_plot_fh link_gnuplot
+  changevalue set_plot_fh link_gnuplot setprecision
 );
 
 use subs qw(
@@ -698,7 +698,7 @@ sub AUTOLOAD {
 $initmem = $initmem || 4000000;		# How much memory for the stack
 $initprimes = $initprimes || 500000;	# Calculate primes up to this number
 
-$VERSION = 0.9501;
+$VERSION = 0.9502;
 
 bootstrap Math::Pari;
 
@@ -765,7 +765,7 @@ sub O ($;$) {
   Carp::croak("O(number**power) not implemented, use O(number,power) instead");
 }
 
-sub PARImat_tr {trans(PARImat(@_))}
+sub PARImat_tr {mattranspose(PARImat(@_))}
 sub string ($$) {
   PARI (qq'string($_[0],"$_[1]")');
 }

@@ -993,7 +993,7 @@ sub ep_in_version ($) {
   if ($v >= 2002002) {
     my $c;
 
-    for $c qw(26 62) {
+    for $c (qw(26 62)) {
       delete $expected_codes{$c};
     }
   }

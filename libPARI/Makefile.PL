@@ -136,9 +136,8 @@ if ($machine eq 'alpha') {
   $noexp2 = 1;
 }
 
-$mycflags .= " -D__HAS_NO_ASM__" if $machine eq 'port';
-
 if ($Config{gccversion}
+    and not $common::do_configure
     and not ($asmarch eq 'alpha'
 	     and $Config{gccversion} !~ /^(3\.)|(2\.95\.3.*)/)) {
   $mycflags .= " -DASMINLINE";

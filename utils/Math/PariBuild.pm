@@ -331,6 +331,8 @@ sub patches_for ($) {
 		 '2.1.4' =>  ['patches/diff_2.1.4_interface'],
 		 '2.1.5' =>  ['patches/diff_2.1.4_interface'],
 		 '2.2.2' =>  ['patches/diff_2.2.2_interface'],
+		 '2.1.6' =>  ['patches/diff_2.1.6_ploth64',
+			      'patches/diff_2.1.6_no-common'],
 		);
   print "Looking for patches for $v...\n";
   my @p = $patches{$v} ? @{$patches{$v}} : ();
@@ -598,7 +600,8 @@ EOP
 
 EOP
 
-  my $bits64 = (find_machine_architecture() eq 'alpha'
+  my $machine = find_machine_architecture();
+  my $bits64 = ($machine eq 'alpha'
 		or defined($Config{longsize}) and $Config{longsize} == 8);
   print F <<EOP if $bits64;
 #define LONG_IS_64BIT	1
@@ -618,6 +621,11 @@ EOP
 
   print F <<EOP;
 #define DL_DFLT_NAME	NULL
+
+EOP
+
+  print F <<EOP if $machine eq 'port';
+#define __HAS_NO_ASM__
 
 EOP
 

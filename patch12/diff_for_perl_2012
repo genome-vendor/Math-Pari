@@ -1,0 +1,48 @@
+--- pari-2.0.12.alpha/src/language/init.c~	Fri Nov  6 10:08:56 1998
++++ pari-2.0.12.alpha/src/language/init.c	Fri Nov  6 18:10:05 1998
+@@ -1357,7 +1357,7 @@ entree functions_basic[]={
+ {"factorff",3,(void*)factmod9,4,"GGG"},
+ {"factorial",99,(void*)mpfactr,4,"Lp"},
+ {"factorint",99,(void*)factorint,4,"GD0,L,"},
+-{"factormod",2,(void*)factormod0,4,"GGD0,L,"},
++{"factormod",25,(void*)factormod0,4,"GGD0,L,"},
+ {"factornf",2,(void*)polfnf,6,"GG"},
+ {"factorpadic",99,(void*)factorpadic0,7,"GGLD0,L,"},
+ {"ffinit",99,(void*)ffinit,4,"GLDn"},
+--- pari-2.0.12.alpha/src/test/32/nfields~	Wed Oct 21 11:37:41 1998
++++ pari-2.0.12.alpha/src/test/32/nfields	Fri Nov  6 18:05:50 1998
+@@ -1376,8 +1376,8 @@ x^5 - x^4 + 2*x^3 - 4*x^2 + x - 1
+ [x - 1, x^3 + 33*x - 1, x^3 - 363*x - 2663]~
+ ? polsubcyclo(31,5)
+ x^5 + x^4 - 12*x^3 - 21*x^2 + x + 5
+-? poltschirnhaus(x^5-x-1)
+-x^5 + 5*x^4 + 8*x^3 - 40*x^2 - 24*x + 1039
++? setrand(1);poltschirnhaus(x^5-x-1)
++x^5 - 10*x^4 + 38*x^3 - 119*x^2 + 45*x - 31
+ ? aa=rnfpseudobasis(nf2,p)
+ [[[1, 0, 0]~, [0, 0, 0]~, [0, 0, 0]~, [-2, 0, 0]~, [11, 0, 0]~; [0, 0, 0]~, 
+ [1, 0, 0]~, [0, 0, 0]~, [2, 0, 0]~, [-8, 0, 0]~; [0, 0, 0]~, [0, 0, 0]~, [1,
+--- pari-2.0.12.alpha/src/test/64/nfields~	Fri Nov  6 12:42:28 1998
++++ pari-2.0.12.alpha/src/test/64/nfields	Fri Nov  6 18:05:36 1998
+@@ -1376,8 +1376,8 @@ x^5 - x^4 + 2*x^3 - 4*x^2 + x - 1
+ [x - 1, x^3 + 33*x - 1, x^3 - 363*x - 2663]~
+ ? polsubcyclo(31,5)
+ x^5 + x^4 - 12*x^3 - 21*x^2 + x + 5
+-? poltschirnhaus(x^5-x-1)
+-x^5 + 5*x^4 + 8*x^3 - 40*x^2 - 24*x + 1039
++? setrand(1);poltschirnhaus(x^5-x-1)
++x^5 - 10*x^4 + 38*x^3 - 119*x^2 + 45*x - 31
+ ? aa=rnfpseudobasis(nf2,p)
+ [[[1, 0, 0]~, [0, 0, 0]~, [0, 0, 0]~, [-2, 0, 0]~, [11, 0, 0]~; [0, 0, 0]~, 
+ [1, 0, 0]~, [0, 0, 0]~, [2, 0, 0]~, [-8, 0, 0]~; [0, 0, 0]~, [0, 0, 0]~, [1,
+--- pari-2.0.12.alpha/src/test/in/nfields~	Mon Aug 31 14:36:34 1998
++++ pari-2.0.12.alpha/src/test/in/nfields	Fri Nov  6 18:03:58 1998
+@@ -157,7 +157,7 @@ polredabs(x^5-2*x^4-4*x^3-96*x^2-352*x-5
+ polredabs(x^5-2*x^4-4*x^3-96*x^2-352*x-568,1)
+ polredord(x^3-12*x+45*x-1)
+ polsubcyclo(31,5)
+-poltschirnhaus(x^5-x-1)
++setrand(1);poltschirnhaus(x^5-x-1)
+ \\
+ \\ rnfalgtobasis
+ aa=rnfpseudobasis(nf2,p)

@@ -238,6 +238,11 @@ EOP
       print qq(Latest $type is ${"latest_${type}_file"}\n);
     }
   }
+
+  # Special-case v2.0.12
+  if (!%golden and $latest_beta eq '2.0.11' and $latest_alpha eq '2.0.12') {
+    $best = 'alpha';		# It is tested!
+  }
   
   if ($best) {
     $file = $ {"latest_${best}_file"};
@@ -260,19 +265,20 @@ EOP
     system "cd $dir ; sh ./Configure"
       and die "Cannot configure: $!, exitcode=$?.\n";
     print "Configuration of PARI successful.\n";
-    if ($version eq '2.0.11') {	# Probably not needed for later versions
+    my %patches = ('2.0.11'
+		   => [qw(
+			 patch11/diff_pari_gnuplot_aa
+			 patch11/patch_pari_round0
+			 patch11/patches_round1_short
+			 patch11/diff_pari_fixed_interfaces_011
+			 patch11/diff_pari_highlevel_hash_011a
+			 patch11/diff_pari_ret_proto_2011)],
+		   '2.0.12' => ['patch12/diff_for_perl_2012']);
+    if ($patches{$version}) {
       print "Patching...\n";
-
-#			 patches_round1
-      foreach $patch (qw(
-			 diff_pari_gnuplot_aa
-			 patch_pari_round0
-			 patches_round1_short
-			 diff_pari_fixed_interfaces_011
-			 diff_pari_highlevel_hash_011a
-			 diff_pari_ret_proto_2011)) {
-	print  "cd $dir ; patch -p1 < ../patches/$patch\n";
-	system "cd $dir ; patch -p1 < ../patches/$patch";
+      foreach $patch (@{$patches{$version}}) {
+	print  "cd $dir ; patch -p1 < ../$patch\n";
+	system "cd $dir ; patch -p1 < ../$patch";
       }
       print "Finished patching...\n";
     }

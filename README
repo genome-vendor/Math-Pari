@@ -1,9 +1,10 @@
 =====>>> BETA level interface to version 2.0 <<<=======
 
 a) Should be installed inside or near pari-2.* source directory.
-b) Patches to PARI (in `patches') should be applied.
+b) Patches to PARI (in `patches11' or 'patch12' depending on the
+   version of PARI) should be applied (or may be done automatically).
 c) paricfg.h should be created beforehand in pari-2,* build directory
-	(run configure to do this).
+	(run configure to do this) (or may be done automatically).
 d) We skip "compatibility" tests, and do not support "compatibility" mode.
 
 ================================================================
@@ -31,24 +32,22 @@ well, access it as Math::libPARI:
 For long instructions to install Math::Pari see file INSTALL.  Short
 instructions work if you have PARI build directory, or have Net::FTP
 
-  a) Get the latest beta version of Math::Pari.  Note that CPAN.pm will
-     not autofetch beta versions of modules, so you need to fetch it
-     as a distribution if you want to use CPAN.pm, similar to
+  a) Get the latest version of Math::Pari similar to
 
 	perl -MCPAN -e shell
-	CPAN> d Math::Pari
-	CPAN> test ILYAZ/modules/Math-Pari-2.0011_03.tar.gz
+	CPAN> test Math::Pari
 
      or manually FTP the file, extract it, and try to build
 
-        tar -zxfv Math-Pari-2.0011_03.tar.gz
-	cd Math-Pari-2.0011_03
+        tar -zxfv Math-Pari-2.001200.tar.gz
+	cd Math-Pari-2.001200
 	perl Makefile.PL
 	make test
 
   b) If the necessary patches were not applied to the latest version
-     of PARI yet, you need to manually apply the patches (see INSTALL)
-     in the build directory after "make test" fails, and redo
+     of PARI yet, and the above step did not auto-apply the patches,
+     you need to manually apply the patches (see INSTALL) in the build
+     directory after "make test" fails, and redo
 
 	make test
 
@@ -68,5 +67,6 @@ after install, or
 
 before install.)
 
-The version 2.0011_00 was tested with OS/2 and Solaris.  It was tested
-with the patched version 2.0.11 of the PARI library.
+The version 2.001104 was tested with OS/2 and Solaris, the version
+2.001200 with Solaris.  It was tested with the patched versions
+2.0.11/2.0.12 of the PARI library.

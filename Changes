@@ -1,3 +1,5 @@
+(T: means the change to test suite)
+
 0.5:
 	Standalone installation, does not require that libPARI is installed;
 	use overload fixed;
@@ -10,18 +12,18 @@
 	Pari-die-handler was using die() instead of croak();
 	pari_print, pari_pprint and pari_texprint implemented;
 
-	New test "Testout":
-	168 tests of Testout report failure (not necessarily correctly ;-);
-	133 tests are skipped;
+	T: New test "Testout":
+	T: 168 tests of Testout report failure (not necessarily correctly ;-);
+	T: 133 tests are skipped;
 
 after 0.5:
 	Prototypes added (121 not ok, 127 skipped);
 	gdivround, ifact added (122 not ok, 112 skipped);
 	Documentation brushed up;
 	Quickier switch inside loadPari;
-	Testout.t was transposing input/output matrices 
+	T: Testout.t was transposing input/output matrices 
 	  (89 not ok, 106 skipped);
-	Testout.t: more filters (82 not ok, 109 skipped);
+	T: Testout.t: more filters (82 not ok, 109 skipped);
 	Chapter 3 of documentation converted to POD;
 	Problem with refcounting: when Perl code is called from PARI
 	 loop constructs, avma changes under Perl feet...  fixed;
@@ -32,12 +34,27 @@ after 0.5:
 
 after 0.6:
 	Emulated subroutines for missing interfaces added (77 not ok);
-	substitution 'fun(j=1)' to 'fun(j,1)' in testout (64 not ok);
+	T: substitution 'fun(j=1)' to 'fun(j,1)' in testout (64 not ok);
 	Better conversion of chapter3 (index entries created, literal blocks);
-	Enable tests with print (75 not ok, 106 skip);
-	Massage tests with loops (84 not ok, 78 skip);
-	Massage floats on output to 16 digits (69 not ok, 78 skip);
-	Massage complicated matrix output, +tiny changes (45 not ok, 76 skip);
-	Yet more misc massage (29 not ok - most truely so, 81 skip);
+	T: Enable tests with print (75 not ok, 106 skip);
+	T: Massage tests with loops (84 not ok, 78 skip);
+	T: Massage floats on output to 16 digits (69 not ok, 78 skip);
+	T: Massage complicated matrix output, +tiny changes (45 not ok, 76 sk);
+	T: Yet more misc massage (29 not ok - most truely so, 81 skip);
 	4 classes of problems: 
 	   ker(matrix), pari_print inside fordiv, changevar, taylor
+
+after 0.7:
+	T: settype was ok, so remove the code for skipping it (80 skip)
+	T: better filtering, print/multiline were busted (26 not ok, 73 skip);
+	changevar() added;
+	Access to vector elements via $v->[3] (0-based);
+	T: convert a[6] to $a->[-1+6]:  (34 not ok, 37 skip);
+	minor improvements to chap3_to_pod (for chapter 4 ;-);
+	T: transposition tests converted: (34 not ok, 31 skip);
+	sentinel introduced, does not fix anything...;
+	T: had a workaround for forprime() instead of forvec() (33/31);
+	T: various improvements... (17 not ok, but segfaults on exit);
+	matrix() could have been called with the same variable for two
+		iterators (4 not ok/30 skip, but segfaults on exit)
+	T: move failing tests to will_fail.t;

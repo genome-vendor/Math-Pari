@@ -111,4 +111,5 @@ libPARI/versionsparcv7.c
 libPARI/versionsparcv8.c
 t/Pari.t
 t/Testout.t
+t/will_fail.t
 typemap

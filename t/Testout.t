@@ -37,16 +37,16 @@ while (<>) {
   $_ = '';
   $_ = <> while defined and /^$/; # Before warnings
   $_ = <> while defined and /^\s*\*+\s*warning/i; # skip warnings
-  if (s/^\s*\*+\s*//) {		# error
-    process_error($in,$_);
+  if (s/^\s*\*+\s*(.*)//) {		# error
+    process_error($in,$_,$1);
     next;
   }
   defined or die "Can't find an answer";
   chomp;
-  process_test($in, 1, ''), redo if /^\?\s/; # Was a void 
+  process_test($in, 1, []), redo if /^\?\s/; # Was a void 
   s/^%\d+\s*=\s*// or die "Malformed answer: $_" unless $bad or $wasprint;
   if ($_ eq '' or $wasprint) {	# Answer is multiline
-    @ans = ();
+    @ans = $_ eq '' ? () : ($_) ;
     while (<>) {
       last if /^\?\s+/;
       next if /^$/;
@@ -109,12 +109,6 @@ sub mformat_transp {
   '[' . join('; ', @out) . ']';
 }
 
-sub massage_loops {
-  my $in = shift;
-  $in =~ s/(\b(?:sum\w*|prod\w*|v?vector|matrix|for\w+)\((?:[^()]+(?=[()])|\([^()]+\))+,)(([^(),]+(?=[()])|\([^()]+\))+)\)/$1 sub{$2})/g;
-  $in;
-}
-
 sub massage_floats {
   my $in = shift;
   $pre = shift || "16g";
@@ -123,37 +117,77 @@ sub massage_floats {
   $in;
 }
 
+sub o_format {
+  my ($var,$power) = @_;
+  return " PARI('O($var^$power)') " if defined $power;
+  return " PARI('O($var)') ";
+}
+
 sub process_test {
   my ($in, $noans, $out) = @_;
   my $doprint;
   $doprint = 1 if $noans eq 'print';
   $c++;
   # First a trivial processing:
-  $in =~ s/\b(\d+)\s*\\\s*(\d+)/ gdivent($1,$2)/g; # \
-  $in =~ s/\b(\d+)\s*\\\/\s*(\d+)/ gdivround($1,$2)/g;	# \/
+  $in =~ s/\b(\d+|[a-z]+\(\))\s*\\\s*(\d+(\^\d+)?)/ gdivent($1,$2)/g; # \
+  $in =~ s/\b(\d+)\s*\\\/\s*(\d+)/ gdivround($1,$2)/g; # \/
   $in =~ s/\b(\w+)\s*!/ ifact($1)/g; # !
   if ($in =~ /\\/) {		# \\ for division unsupported
     $c--;
-    process_error($in, $out);
+    process_error($in, $out, '\\');
   } elsif ($in =~ /^(\w+)\s*\([^()]*\)\s*=/ and 0) { # XXXX Not implemented yet
     $c--;
     process_definition($1, $in);    
-  } elsif ($in =~ /[!_\']/) { # Factorial
-      print "# Skipping (ifact/conj/deriv) `$in'\nok $c\n";
+  } elsif ($in =~ /[!_\']/) {	# Factorial
+    print "# Skipping (ifact/conj/deriv) `$in'\nok $c\n";
   } else {
     # work with "^", need to treat differently inside o()
     $in =~ s/\^/^^^/g;
-    $in =~ s/\bo\(([^()]*)\^\^\^([^()]*)\)/ PARI('O($1^$2)') /gi;
+    $in =~ s/\bo\(([^()^]*)(\^\^\^([^()]*))?\)/ o_format($1,$3) /gei;
     $in =~ s/\^\^\^/**/g;	# Now treat it outside of O()
     $in =~ s/\[([^\[\];]*;[^\[\]]*)\]/format_matrix($1)/ge; # Matrix
     $in =~ s/\[([^\[\];]*)\]\s*~/format_vvector($1)/ge; # Vertical vector
-    if ($in =~ /\[[^\]]*;/) { # Matrix
+    if ($in =~ /\[[^\]]*;/) {	# Matrix
       print "# Skipping (matrix notation) `$in'\nok $c\n";
       return;
     } elsif ($in =~ /(^|[\(=])%/) {
       print "# Skipping (history notation) `$in'\nok $c\n";
       return;
-    } elsif ($in =~ /~/) {
+    } elsif ($in =~ /
+		      (
+			\b 
+			( while | if | for | goto | label | changevar | forvec | forstep | gettime )
+			\b 
+		      |
+			\w+ \( \w+ \) = 
+		      |
+			\b 
+			(
+			  my _
+			)?
+			p? print \( 
+			( \[ | (1 ,)? PARImat )
+		      |
+			\b forprime .* \){4}
+		      )
+		    /x) {
+      # It is not clear why changevar gives a different answer in GP
+      print "# Skipping (converting '$1' needs additional work) `$in'\nok $c\n";
+      return;
+    } elsif ($in =~ / \b ( rnfdiscf | rnfpseudobasis | idealhermite2 | isideal ) \b /x) {
+      # Will result in segfault or wrong answer
+      print "# Skipping (would fail, checked in different place) `$in'\nok $c\n";
+      return;
+    } elsif ($in =~ /\bget(heap|stack)\b/) { # Meaningless
+      print "# Skipping meaningless `$in'\nok $c\n";
+      return;
+    } elsif ($in =~ /\b(nonesuch now)\b/) {
+      print "# Skipping (possibly FATAL $1) `$in'\nok $c\n";
+      return;
+    }
+    # Convert transposition
+    $in =~ s/(\w+(\([^()]*\))?|\[([^\[\]]+(?=[\[\]])|\[[^\[\]]*\])*\])~/trans($1)/g;
+    if ($in =~ /~/) {
       print "# Skipping (transpose notation) `$in'\nok $c\n";
       return;
     }
@@ -166,85 +200,163 @@ sub process_test {
     } else {
       # Substitute big integer constants
       $in =~ s/(^|\G|\W)(\d{10,}(?!\.\d*))(.?)/$1 PARI('$2') $3/g;
-      # Substitute division
-      $in =~ s/(^|[\(,\[])(\d+)\s*\/\s*(\d+)($|[\),\]])/$1 PARI($2)\/PARI($3) $4/g;
+      # Substitute division 
+	$in =~ s/(^|[\-\(,\[])(\d+)\s*\/\s*(\d+)(?=$|[\),\]])/$1 PARI($2)\/PARI($3) /g;
     }
     # Substitute i= in loop commands
-    if ($in !~ /\bif\(/) {
+    if ($in !~ /\bhermite\(/) {	# Special case, not loop
       $in =~ s/([\(,]\w+)=(?!=)/$1,/g;
     }
     # Substitute print
     $in =~ s/\b(|p|tex)print\(/ 'my_' . $1 . 'print(1,' /ge;
     $in =~ s/\b(|p|tex)print1\(/ 'my_' . $1 . 'print(0,'/ge;
     $in =~ s/\b(eval|shift|sort)\(/&$1\(/g; # eval($y)
-    if ($in =~ /\bget(heap|stack)\b/) { # Meaningless
-      print "# Skipping meaningless `$in'\nok $c\n";
-    } elsif ($in =~ /\b(settype)\b/) { # rndtoi test block in prod()
-      # Dies XXXXX
-      print "# Skipping (possibly FATAL $1) `$in'\nok $c\n";
-    } elsif ($in =~ /(\b(while|if|for)\b|\)\[|\w+\[|\w+\(\w+\)=)/) {
-      print "# Skipping (converting $1 needs additional work) `$in'\nok $c\n";
+    # Recognize variables
+    %seen_now = ();
+    $in =~ s/(^|[;(])(\w+)(\s*=\s*)/$seen_now{$2} = '$'; $1 . '$' . $2 . $3/ge; # Assignment
+    # Substitute variables (not before '^' - inside of 'o(x^17)'):
+    $in =~ s/(^|[^\$])\b([a-zA-Z]\w*)\b(?!\s*[(^])/($1 || '') . ($seen{$2} || $seen_now{$2} || '') . $2/ge;
+    # Die if did not substitute variables:
+    while ($in =~ /(^|[^\$])\b([a-zA-Z]\w*)\b(?!\s*[\{\(^])/g) {
+      print("# Skipping ($2 was not set) `$in'\nok $c\n"), return
+	unless $seen{$2} and $seen{$2} eq ' ' or $in =~ /\"/;
+      # Let us hope that lines which contain '"' do not contain unset vars
+    }
+    # Simplify for the following conversion:
+    $in =~ s/\brandom\(\)/random/g;
+    # Sub-ify sum,prod
+    1 while
+      $in =~ s/
+		(
+		  \b 
+		  (
+		    solve 
+		  |
+		    (?:
+		      post (?! plothraw \b)
+		    )?
+		    ploth \w* 
+		  |
+		    sum \w* 
+		  |
+		    prod \w* 
+		  |
+		    v? vector 
+		  |
+		    matrix 
+		  |
+		    intgen 
+		  |
+		    intnum 
+		  |
+		    intopen 
+		  |
+		    for 
+		    (?!
+		      vec 
+		    |
+		      step
+		    )
+		    \w+
+		  )
+		  \( 
+		  (?:
+		    [^()]+ 
+		    (?=
+		      [(,)]
+		    )
+		  |
+		    \( [^()]+ \)
+		  )+		# One level of parenths supported
+		  ,
+		)
+		(?!\s*sub\s*\{)	# Skip already converted...
+		(		# This follows after a comma on toplevel
+		  (?:
+		    [^(,)\[\]]+ 
+		    (?=
+		      [()\[\]]
+		    )
+		  |
+		    \(		# One level of parenths
+		    (?:
+		      [^()]+ 
+		      (?=
+			[()]
+		      )
+		    |
+		      \( [^()]+ \) # Second level of parenths
+		    )*
+		    \)
+		  |
+		    \[		# One level of brackets
+		    (?:
+		      [^\[\]]+ 
+		      (?=
+			[\[\]]
+		      )
+		    |
+		      \[ [^\[\]]+ \] # Second level of brackets
+		    )*
+		    \]
+		  )*		# Two levels of parenths supported
+		)
+		\)
+	      /$1 sub{$3}\)/xg;
+    # Convert 10*20 to integer
+    $in =~ s/(\d+)(?=\*\*\d)/ PARI($1) /g;
+    # Convert blah[3], blah()[3] to blah->[-1+3]
+    $in =~ s/([\w\)])\[/$1 -> [-1+/g;
+    # Workaround for &eval test:
+    $in =~ s/\$y=\$x;&eval\b(.*)/PARI('y=x');&eval$1;\$y=\$x/;
+    # Workaround for kill:
+    $in =~ s/^kill\(\$(\w+)\);/kill('$1');\$$1=PARIvar '$1';/;
+    print "# eval", ($noans ? "-noans" : '') ,": $in\n";
+    $printout = '';
+    my $have_floats = ($in =~ /\d+\.\d*|\d{10,}/ 
+		       or $in =~ /\b(zeta|bin|comprealraw|frac|lseriesell|powrealraw|legendre|suminf)\b/);
+    # Remove the value from texprint:
+    pop @$out if $in =~ /texprint/ and @$out == 2;
+    $res = eval "$in";
+    $rres = $res;
+    $rres = pari_print $res if defined $res and ref $res;
+    if ($doprint) {
+      $rout = join "\t", @$out, "";
     } else {
-      # Recognize variables
-      %seen_now = ();
-      $in =~ s/(^|[;(])(\w+)(\s*=\s*)/$seen_now{$2} = '$'; $1 . '$' . $2 . $3/ge; # Assignment
-      # Substitute variables (not before '^' - inside of 'o(x^17)'):
-      $in =~ s/(^|[^\$])\b([a-zA-Z]\w*)\b(?!\s*[(^])/($1 || '') . ($seen{$2} || $seen_now{$2} || '') . $2/ge;
-      # Die if did not substitute variables:
-      while ($in =~ /(^|[^\$])\b([a-zA-Z]\w*)\b(?!\s*[\{\(^])/g) {
-	print("# Skipping ($2 was not set) `$in'\nok $c\n"), return
-	  unless $seen{$2} and $seen{$2} eq ' ';
+      $rout = mformat @$out;
+      if (not $doprint and $rout =~ /\[.*[-+,]\s/) {
+	$rout =~ s/,* +/ /g;
+	$rres =~ s/,* +/ /g if defined $res;
       }
-      # Sub-ify sum,prod
-      $in =~ s/(\b(solve|(?:post)?ploth\w*|sum\w*|prod\w*|v?vector|matrix|intgen|intnum|intopen|for(?!prime|step)\w+)\((?:[^()]+(?=[(,)])|\([^()]+\))+,)((?:[^(,)]+(?=[()])|\((?:[^()]+(?=[()])|\([^()]+\))*\))*)\)/$1 sub{$3}\)/g;
-      # Convert 10*20 to integer
-      $in =~ s/(\d+)(?=\*\*\d)/ PARI($1) /g;
-      print "# eval", ($noans ? "-noans" : '') ,": $in\n";
-      $printout = '';
-      my $have_floats = ($in =~ /\d+\.\d*|\d{10,}/ 
-			 or $in =~ /\b(zeta|bin|comprealraw|frac|lseriesell|powrealraw|legendre|suminf)\b/);
-      # $in = massage_loops $in;
-      $res = eval "$in";
-      $rres = $res;
-      $rres = pari_print $res if defined $res and ref $res;
-      if ($doprint) {
-	$rout = join "\t", @$out, "";
+    }
+    if ($have_floats and ref $res) {
+      if ($in =~ /\b(zeta|bin|comprealraw|frac|lseriesell|powrealraw|legendre|suminf)\b/) {
+	$rres = massage_floats $rres, "14f";
+	$rout = massage_floats $rout, "14f";
       } else {
-	$rout = mformat @$out;
-	if (not $doprint and $rout =~ /\[.*[-+,]\s/) {
-	  $rout =~ s/,* +/ /g;
-	  $rres =~ s/,* +/ /g if defined $res;
-	}
+	$rres = massage_floats $rres;
+	$rout = massage_floats $rout;
       }
-      if ($have_floats and ref $res) {
-	if ($in =~ /\b(zeta|bin|comprealraw|frac|lseriesell|powrealraw|legendre|suminf)\b/) {
-	  $rres = massage_floats $rres, "14f";
-	  $rout = massage_floats $rout, "14f";
-	} else {
-	  $rres = massage_floats $rres;
-	  $rout = massage_floats $rout;
-	}
-      }
-      if ($@) {
-	print "not ok $c # in='$in', err='$@'\n";
-      } elsif (not $noans and (not defined $rres or $rres ne $rout)) {
-	print "not ok $c # in='$in'\n#    out='", $rres, 
-	"'\n# expect='$rout', type='", ref $res,"'\n";
-      } elsif ($doprint and $printout ne $rout) {
-	print "not ok $c # in='$in', printout='", $printout, 
-	"', expect='$rout', type='", ref $res,"'\n";
-      } else {
-	print "ok $c\n";
-	@seen{keys %seen_now} = values %seen_now;
-      }
+    }
+    if ($@) {
+      print "not ok $c # in='$in', err='$@'\n";
+    } elsif (not $noans and (not defined $rres or $rres ne $rout)) {
+      print "not ok $c # in='$in'\n#    out='", $rres, 
+      "'\n# expect='$rout', type='", ref $res,"'\n";
+    } elsif ($doprint and $printout ne $rout) {
+      print "not ok $c # in='$in', printout='", $printout, 
+      "', expect='$rout', type='", ref $res,"'\n";
+    } else {
+      print "ok $c\n";
+      @seen{keys %seen_now} = values %seen_now;
     }
   }
 }
 
 sub process_error {
-  my ($in, $out) = @_;
+  my ($in, $out, $error) = @_;
   $c++;
-  print("# Skipping error test $c: `$in'\nok $c\n");
+  print("# Skipping error($error) test $c: `$in'\nok $c\n");
 }
 
 sub process_definition {
@@ -281,19 +393,22 @@ sub process_multi {
 
 sub my_print {
   my $nl = shift;
-  $printout .= pari_print(@_);
+  @_ = map {(ref) ? (pari_print $_) : $_} @_;
+  $printout .= join '', @_;
   $printout .= "\t" if $nl;
 }
 
 sub my_pprint {
   my $nl = shift;
-  $printout .= pari_pprint(@_);
+  @_ = map {(ref) ? (pari_pprint $_) : $_} @_;
+  $printout .= join '', @_;
   $printout .= "\t" if $nl;
 }
 
 sub my_texprint {
   my $nl = shift;
-  $printout .= pari_texprint(@_);
+  @_ = map {(ref) ? (pari_texprint $_) : $_} @_;
+  $printout .= join '', @_;
   $printout .= "\t" if $nl;
 }
 

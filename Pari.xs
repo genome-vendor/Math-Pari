@@ -69,15 +69,22 @@ extern "C" {
 #define GENheap NULL
 #define ifact mpfact
 
-typedef entree * PariVar;
+typedef entree * PariVar;		/* For loop variables. */
+typedef entree * PariName;		/* For changevalue.  */
 typedef char * PariExpr;
+
+/* We make a "fake" PVAV, not enough entries.  */
 
 #define setSVpari(sv, in, oldavma) do {				\
     sv_setref_pv(sv, "Math::Pari", (void*)in);			\
+    if (typ(in) >= 17 && SvTYPE(SvRV(sv)) != SVt_PVAV) {	\
+	make_PariAV(sv);					\
+    }								\
     if (isonstack(in)) {					\
 	SvCUR(SvRV(sv)) = oldavma - bot;			\
 	SvPVX(SvRV(sv)) = (char*)PariStack;			\
 	PariStack = SvRV(sv);					\
+	perlavma = avma;					\
 	onStack_inc;						\
     }								\
     SVnum_inc;							\
@@ -85,6 +92,10 @@ typedef char * PariExpr;
 
 SV* PariStack;			/* PariStack keeps the latest SV that
 				 * keeps a GEN on stack. */
+long perlavma;				/* How much stack is needed
+					   for GENs in Perl variables. */
+long sentinel;				/* How much stack was used
+					   when Pari called Perl. */
 
 #ifdef DEBUG_PARI
 
@@ -106,6 +117,18 @@ long offStack;
 #  define offStack_inc
 #endif /* !defined DEBUG_PARI */
 
+void
+make_PariAV(SV *sv)
+{
+    AV *av = (AV*)SvRV(sv);
+    char *s = SvPVX(av);
+    IV i = SvIVX(av);
+    SvUPGRADE((SV*)av, SVt_PVAV);    
+    SvPVX(av)	= s;
+    SvIVX(av)	= i;
+    sv_magic((SV*)av, sv, 'P', Nullch, 0);
+}
+
 SV*
 wrongT(SV *sv, char *file, int line)
 {
@@ -121,7 +144,7 @@ wrongT(SV *sv, char *file, int line)
 HV *pariStash;				/* For quick id. */
 HV *pariEpStash;
 
-SV *
+static SV *
 PARIvar(char *s)
 {
   char *olds = s, *u, *v;
@@ -172,28 +195,25 @@ PARIvar(char *s)
   return sv;
 }
 
-PariVar
-bindVariable(SV *sv)
+static entree *
+findVariable(SV *sv, int generate)
 {
     /* There may be 4 important cases:
        a) we got a 'word' string, which we interpret as the name of
           the variable to use;
-       b) It is a pari value, we ignore it;
+       b1) It is a pari value containing a polynomial 0+1*v, we use it;
+       b2) It is other pari value, we ignore it;
        c) it is a string containing junk, same as 'b';
        d) It is an ep value => typo (same iterator in two loops).
        In any case we localize the value.
      */
   char *s;
   char *olds, *u, *v;
-  long n, override = 0;
+  long n;
   GEN p1;
   entree *ep;
   char name[50];
 
-  if (!SvREADONLY(sv)) {
-      save_item(sv);			/* Localize it. */
-      override = 1;
-  }
   if (SvROK(sv)) {
       SV* tsv = SvRV(sv);
       if (SvOBJECT(tsv)) {
@@ -208,7 +228,10 @@ bindVariable(SV *sv)
 	      }
 	      goto ignore;
 	  } else if (SvSTASH(tsv) == pariEpStash) {
-	      croak("Same iterator in embedded PARI loop construct");
+	      /* It is not good to croak: $v=PARIvar 'v'; vector(3,$v,'v'); */
+	      if (generate)
+		  /*croak("Same iterator in embedded PARI loop construct")*/;
+	      return (entree*) SvIV(tsv);
 	  }
       }
   }
@@ -222,6 +245,8 @@ bindVariable(SV *sv)
       static int depth;
 
     ignore:
+      if (!generate)
+	  croak("Bad PARI variable name specified");
       SAVEINT(depth);
       sprintf(name, "intiter%i",depth++);
       s = name;
@@ -234,7 +259,7 @@ bindVariable(SV *sv)
     if (!*u && !*v) {
       if (EpVALENCE(ep) != 200)
 	croak("Got a function name instead of a variable");
-      goto found;
+      return ep;
     }
   }
   ep = (entree *)malloc(sizeof(entree) + 7*BYTES_IN_LONG 
@@ -260,7 +285,33 @@ bindVariable(SV *sv)
   varentries[nvar++] = ep;
   setlg(polvar, nvar+1);
 
-  found:
+  return ep;
+}
+
+static PariVar
+bindVariable(SV *sv)
+{
+    /* There may be 4 important cases:
+       a) we got a 'word' string, which we interpret as the name of
+          the variable to use;
+       b1) It is a pari value containing a polynomial 0+1*v, we use it;
+       b2) It is other pari value, we ignore it;
+       c) it is a string containing junk, same as 'b';
+       d) It is an ep value => typo (same iterator in two loops).
+       In any case we localize the value.
+     */
+  char *s;
+  char *olds, *u, *v;
+  long n, override = 0;
+  GEN p1;
+  entree *ep;
+  char name[50];
+
+  if (!SvREADONLY(sv)) {
+      save_item(sv);			/* Localize it. */
+      override = 1;
+  }
+  ep = findVariable(sv, 1);
   if (override)
       sv_setref_pv(sv, "Math::Pari::Ep", (void*)ep);
   return ep;
@@ -558,6 +609,8 @@ callPerlFunction(entree *ep, ...)
     va_start(args, ep);
     ENTER ;
     SAVETMPS;
+    SAVEINT(sentinel);
+    sentinel = avma;
     PUSHMARK(sp);
     EXTEND(sp, numargs + 1);
     for (i = 0; i < numargs; i++) {
@@ -584,7 +637,7 @@ callPerlFunction(entree *ep, ...)
        can get the answer: */
     res = sv2pari(sv);			/* XXXX When to decrement the count? */
     /* We need to copy it back to stack, otherwise we cannot decrement
-     the count. */
+     the count.  XXXX not necessary! */
     avma -= taille(res)<<TWOPOTBYTES_IN_LONG;
     brutcopy(res, avma);
     SvREFCNT_dec(sv);
@@ -624,6 +677,8 @@ exprHandler_Perl(char *s)
     ENTER ;
     SAVETMPS;
     PUSHMARK(sp);
+    SAVEINT(sentinel);
+    sentinel = avma;
     count = perl_call_sv(cv, G_SCALAR);
 
     SPAGAIN;
@@ -649,6 +704,28 @@ exprHandler_Perl(char *s)
     return (GEN)avma;
 }
 
+
+static GEN
+Arr_FETCH(GEN g, I32 n) 
+{
+    I32 l = lg(g) - 1;
+
+    if (typ(g) < 17)
+	croak("Access to elements of not-a-vector");
+    if (n >= l || n < 0)
+	croak("Array index %i out of range", n);
+    return (GEN)g[n + 1];
+}
+
+MODULE = Math::Pari PACKAGE = Math::Pari PREFIX = Arr_
+
+PROTOTYPES: ENABLE
+
+GEN
+Arr_FETCH(g,n)
+    long	oldavma=avma;
+    GEN g
+    I32 n
 
 MODULE = Math::Pari PACKAGE = Math::Pari
 
@@ -1457,7 +1534,15 @@ PariExpr	arg3
  CODE:
   {
     dFUNCTION(GEN);
-
+# arg1 and arg2 may finish to be the same entree*, like after $x=$y=PARIvar 'x'
+    if (arg1 == arg2) {
+	if (ST(2) == ST(3)) 
+	    croak("Same iterator for a double loop");
+# ST(3) is localized now
+	sv_unref(ST(3));
+	arg2 = findVariable(ST(3),1);
+	sv_setref_pv(ST(3), "Math::Pari::Ep", (void*)arg2);
+    }
     if (!FUNCTION) {
       croak("XSUB call through interface did not provide *function");
     }
@@ -1943,6 +2028,7 @@ BOOT:
    foreignFuncFree = &freePerlFunction;
    pariStash = gv_stashpv("Math::Pari", TRUE);
    pariEpStash = gv_stashpv("Math::Pari::Ep", TRUE);
+   perlavma = sentinel = avma;
 }
 
 void
@@ -1991,7 +2077,12 @@ DESTROY(rv)
 /* case (IV)GENfirstOnStack: */
 	     /* Now sv is the newest one on stack. */
 	     onStack_dec;
-	     avma = oldavma;	/* Mark the space on stack as free. */
+	     perlavma = oldavma;
+	     if (oldavma > sentinel) {
+		 avma = sentinel;	/* Mark the space on stack as free. */
+	     } else {
+		 avma = oldavma;	/* Mark the space on stack as free. */
+	     }
 	     PariStack = (SV*)type; /* The same on the Perl/PARI side. */
 	 }
 	 SVnum_dec;
@@ -2023,3 +2114,7 @@ ifact(arg1)
 long	oldavma=avma;
 long	arg1
 
+void
+changevalue(name, val)
+    PariName name
+    GEN val

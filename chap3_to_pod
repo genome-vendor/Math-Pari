@@ -17,7 +17,7 @@ $version = $1, shift @ARGV if @ARGV and $ARGV[0] =~ /^-v=(.*)$/;
 $parifile = shift || "f:/pari/doc/usersch3.tex.gz";
 # $parifile="/opt/src/pari-1.39/doc/usersch3.tex.gz";
 
-die "Usage: $0 [-v=version-of-pari] pari-chapter3-filename\n"
+die "Usage: $0 [-v=version-of-pari] pari-chapter-filename\n"
   unless -f $parifile;
 
 #%transl=(
@@ -90,9 +90,9 @@ sub wrap_code {
 # sref is invisible reference
 # tec(a,b) is ref(a)tt(b)
 sub TeXprint {
-  # frac{}{} ???  \s?ref ???  \tec ???
+  # d?frac{}{} ???  bullet ???
   s/\\\///g;
-  s/\\([% &|])/$1/g;
+  s/\\([% &|\#])/$1/g;
   s/\\c?dots\b/.../g;
   s/\\cdot\b/ . /g;
   s/\\mid\b/ | /g;
@@ -118,6 +118,7 @@ sub TeXprint {
   s/\\ref{\s*([^{}]*)}/X<$1>$1/g;
   s/\\tec{\s*([^{}]*)}{\s*([^{}]*)}/X<$1>$1C<$2>/g;
   s/\\text{\s*([^{}]*)}/$1/g;
+  s/\{\\text\s*([^{}])}/$1/g;
   s/^{\\tt\s*\\obeylines\s*(([^{}]+(?=[{}])|{[^{}]*})+)}/wrap_code($1)/e;
   s/{\\tt\b\s*([^{}]*)}/C<$1>/g;
   s/{\\bf\b\s*(([^{}]+(?=[{}])|{[^{}]+})+)}/B<$1>/g;
@@ -126,14 +127,17 @@ sub TeXprint {
   s/\\teb{\s*([^{}]*)}/$1/g;
   s/{\\(sl|it)\b\s*([^{}]*)}/I<$2>/g;
   #s/\\(subsec(ref)?|smallskip|sl|sref[ a-z]*|bf|ref|Bbb|text|tt|\|)[ \t]*//g;
-  s/\\backslash\s*(\b|(?=[\d_]))/\\/g;
+  s/\\(backslash|bs)\s*(\b|(?=[\d_]))/\\/g;
   s/\\(log|sin|cos|lim|tan|mod|sqrt|exp|ln|det)(\b|(?=[\d_]))/ F<$1> /g;
   s/\\bmod\b/ mod /g;
   s/\\TeX\{\}/TeX/g;
   s/\\(small|big)skip(\b|(?=[\d_]))/\n\n/g;
   s/\\pm(\b|(?=[\d_]))/F<+->/g;
   s/\\(left|right)(\b|(?=[\d_]))//g;
-  s/\\(quad|vfill|eject)(\b|(?=[\d_]))/    /g;
+  s/\\(q?quad|vfill|eject|centerline)(\b|(?=[\d_]))/    /g;
+  s/\\obr(\b|(?=[\d_]))/\{/g;
+  s/\\cbr(\b|(?=[\d_]))/\}/g;
+  s/\\quo(\b|(?=[\d_]))/\"/g;
   s/(^|\s)\{(\w+)\}/$1$2/g;
   s/\\([{}])/$1/g;
   s/'(\W)'/'C<$1>'/g;

@@ -276,4 +276,21 @@ $res = Math::Pari::sum(7,$l,5,9,sub{'kk'**$l});
 #print "res = `$res'\n";
 test("$res" eq 'kk^9+kk^8+kk^7+kk^6+kk^5+7'); 		# 77
 
-sub last {77}
+$var = PARI 'var';
+$var1 = PARIvar 'var';
+
+Math::Pari::changevalue('var', 13);
+test(PARI('var') eq '13');	# 78
+
+PARI('var=12');
+test(PARI('var') eq '12');	# 79
+
+Math::Pari::changevalue($var1, 15);
+test(PARI('var') eq '15');	# 80
+test($var1 eq '15');		# 81
+
+Math::Pari::changevalue($var, 51);
+test(PARI('var') eq '51');	# 82
+
+
+sub last {82}

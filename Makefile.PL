@@ -16,22 +16,40 @@ unless (-t STDOUT) {		# Better reports if run with redirections
 
 $latmus = 'src/test/in/nfields';
 
+sub get_pari_version {
+  my $dir = shift;
+  my $v = "";
+  open(IN, "$dir/config/version") or return;
+  /(?:VersionMajor|VersionMinor|patch)='?(\d+(\.\d+)?)'?/
+    and $v .= "$1." while <IN>;
+  close(IN) or die "error closing '$dir/config/version'";
+  $v =~ s/\.$// or return;
+  return "pari-$v";
+}
+
 sub format_pari {
   my $dir = shift;
+  my $v;
+  $v = (get_pari_version $dir
+	or warn(<<EOW), $dir);
+Could not extract version from '$dir/config/version', using directory name...
+EOW
+  $dir =~ s,/pari$,/$v,;	# For CVS 'pari' directory
   $dir =~ s/(\d+)\.(\d+).(\d+)/sprintf('%03d%03d%03d',$1,$2,$3)/e;
   $dir;
 }
 
 unless (defined $paridir) {
   # Assume we are inside:
-  for $dir ('..', '../..') {
-    $paridir = $dir, last 
-      if -e "$dir/$latmus";
-  }
+#  for $dir ('..', '../..') {
+#    $paridir = $dir, last 
+#      if -e "$dir/$latmus";
+#  }
   unless (defined $paridir) {
     # Try to find alongside
-    for $dir ('.', '..', '../..') {
+    for $dir ('.', '..', '../..', '../../..') {
       @dirs = <$dir/pari-[234].*>;
+      @dirs = "$dir/pari" if not @dir and -d "$dir/pari";
       @dirs = grep -e "$_/$latmus", @dirs;
       last if @dirs;
     }
@@ -48,25 +66,27 @@ $paridir = get_pari() if !$paridir;
 if ($paridir) {
   $pari_version = format_pari($paridir);
   print <<EOP;
-Found PARI build directory in $paridir 
+Found GP/PARI build directory in $paridir 
      (formatted $pari_version).
 EOP
   $pari_version =~ s/.*pari-0+([0-9]*).*/$1/;
   $common::pari_version = $pari_version;
 } else {
-  die "Could not find PARI build directory, please edit Makefile.PL.\n";
+  die "Could not find GP/PARI build directory, please edit Makefile.PL.\n";
 }
 $common::main_paridir = $paridir;
 $os = $Config{osname};
 
-if (@ARGV and $ARGV[0] =~ /^machine=(.*)$/i) {
-  $common::machine = $1; shift;
-}
+grep {/^machine=(.*)$/i and $common::machine = $1} @ARGV;
+grep {/^configure$/i and $do_configure = 1} @ARGV;
+
+@ARGV = grep !/^(machine=|configure$)/i, @ARGV;
 
 #$define = "-Dshifts=pari_shifts -DDEBUG_PARI";
 $define = "-DPARI_VERSION_EXP=$pari_version -DDEBUG_PARI";
 #$libs = "-L$paridir -lpari -lgnuplot -lm";
-$libs = "-lgnuplot -lm";
+#$libs = "-lgnuplot -lm";
+$libs = "-lm";
 
 # Comment if your Pari is not c++, or your compiler is not gcc:
 # $cpp = "-x c++";
@@ -76,11 +96,12 @@ $noexp2 = '';			# Should be used for generation of paricfg.h
 if ($os eq "solaris") {
   # Below -R specifies the path to search for this file when the
   # program will run, -L the path to search when the program is linked
-  @sc_dirs = </opt/SUNWspro/SC*>;
+  @sc_dirs = '/opt/SUNWspro/lib' if -d '/opt/SUNWspro/lib';
+  @sc_dirs = </opt/SUNWspro/SC*/lib> unless @sc_dirs;
   if (@sc_dirs) {
-    $libs .= " -L$sc_dirs[-1]/lib -lsunmath -lm";
+    $libs .= " -R$sc_dirs[-1] -L$sc_dirs[-1] -lsunmath -lm";
   } else {
-    warn "Cannot find SUNWspro dirs, needed for -lsunmath, using NOEXP2.\n";
+    #warn "Cannot find SUNWspro dirs, needed for -lsunmath, using NOEXP2.\n";
     $noexp2 = 1;
   }
 } elsif ($os eq "os2") {
@@ -126,52 +147,100 @@ for $test (@tests) {
   }
   copy $sou, $targ or die "Cannot create test $test.t: $1";
 }
-$targ = 'libPARI.pod';
-if (not -e $targ
-    or -M $targ > -M "$paridir/doc/usersch3.tex"
-    or -M $targ > -M "paridoc_to_pod") {
-  if (-f $targ) {
-    chmod 0666, $targ;
-    unlink $targ;
+
+# We can't do what the commented chunk does: $paridir/doc/gphelp is
+# auto-generated, so its date is not relevant to anything.
+
+# $targ = 'libPARI/gphelp';
+# if (not -e $targ
+#     or -M $targ > -M "$paridir/doc/gphelp") {
+#   if (-f $targ) {
+#     chmod 0666, $targ;
+#     unlink $targ;
+#   }
+#   copy "$paridir/doc/gphelp", $targ;
+# }
+
+sub make_pod {
+  my ($targ, $how) = @_;
+  if (not -e $targ
+      or -M $targ > -M "$paridir/doc/usersch3.tex"
+      or -M $targ > -M "libPARI/gphelp") {
+    if (-f $targ) {
+      chmod 0666, $targ;
+      unlink $targ;
+    }
+    (system "$^X libPARI/gphelp $how $paridir/doc/usersch3.tex > tmp_pod "
+      and (warn("Errors when converting documentation: $?"), 0))
+      or rename 'tmp_pod', $targ;
   }
-  system "$^X paridoc_to_pod $paridir/doc/usersch3.tex > $targ "
-    and die "Errors when converting documentation: $! $?"
 }
+
+make_pod 'libPARI.pod', '-to_pod';
+make_pod 'libPARI.dumb.pod', '-to_dumb_pod';
 
 @paricfg = <$paridir/o.*/paricfg.h>;
 push @paricfg, <$paridir/O*/paricfg.h>;
 
-@paricfg = grep !/Odos/, @paricfg unless $^O =~ /dos|djgcc/i;
+# Reported to work with Win32 too
+@paricfg = grep !/Odos/, @paricfg unless $^O =~ /dos|djgcc|MSWin32/i;
 
-if (@paricfg > 1) {
-  warn "Found multiple paricfg.h: @paricfg.\n";
-  @paricfg = sort { -M $a <=> -M $b} @paricfg;
-  warn "Choosing newest paricfg.h: $paricfg[0].\n";
-} 
-if (@paricfg == 0) {
-  warn <<EOW;
-Did not find paricfg.h.  You will need to manually copy it to libPARI
-    directory from the PARI build directory.
-EOW
-} else {
-  copy $paricfg[0], 'libPARI/paricfg.h' 
-    or die "Could not copy $paricfg[0] to paricfg.h: $!"
-      if not -e 'libPARI/paricfg.h' or -M $paricfg[0] < -M 'libPARI/paricfg.h';
+# Probably not present in newer versions anymore...
+unshift @paricfg, "$paridir/win32/paricfg.h"
+  if $^O eq 'MSWin32' and -f "$paridir/win32/paricfg.h";
+
+if (not @paricfg and $do_configure) {
+  print  "cd $paridir ; sh ./Configure\n";
+  system "cd $paridir ; sh ./Configure"
+    and die "Cannot configure: $!, exitcode=$?.\n";
+  print "Configuration of GP/PARI successful.\n";
+  @paricfg = <$paridir/O*/paricfg.h>;
+
+  # Reported to work with Win32 too
+  @paricfg = grep !/Odos/, @paricfg unless $^O =~ /dos|djgcc|MSWin32/i;
 }
 
+if ($do_configure) {
+  if (@paricfg > 1) {
+    warn "Found multiple paricfg.h: @paricfg.\n";
+    @paricfg = sort { -M $a <=> -M $b} @paricfg;
+    warn "Choosing newest paricfg.h: $paricfg[0].\n";
+  }
+  if (@paricfg == 0) {
+    warn <<EOW;
+Did not find paricfg.h.  You may need to manually copy it to libPARI
+    directory from the GP/PARI build directory.
+    ...Now switching to creation of paricfg.h by Perl code.
+EOW
+    $do_configure = 0;
+  } else {
+    copy $paricfg[0], 'libPARI/paricfg.h' 
+      or die "Could not copy $paricfg[0] to paricfg.h: $!"
+	if not -e 'libPARI/paricfg.h' or -M $paricfg[0] < -M 'libPARI/paricfg.h';
+  }
+}
+
+my $have_ladd;
+write_configure() unless -r 'libPARI/paricfg.h';
+
 $define .= ' -Derr=pari_err'; # On linux it can get a wrong dynamic loading
+
+$define .= ' -DHAVE_LADD' if $have_ladd;
 
 # See lib/ExtUtils/MakeMaker.pm for details of how to influence
 # the contents of the Makefile being created.
 &WriteMakefile(
 	       LIBS	     =>  $libs,
-	       INC	     => "-I$parisrc/headers -I$parisrc -I./libPARI",
+	       INC	     => '-I$(PARI_DIR)/src/headers -I$(PARI_DIR)/src -I./libPARI',
 	       NAME	     => 'Math::Pari',
 	       MYEXTLIB	     => 'libPARI/libPARI$(LIB_EXT)',
 	       VERSION_FROM  => 'Pari.pm',
 	       DEFINE	     => $define,
 	       dist	     => {COMPRESS=>'gzip -9f', SUFFIX=>'gz'},
 	       clean	     => { FILES => 'pari.ps' },
+	       macro	     => { 
+				 PARI_DIR	  => $paridir,
+				},
 	      );
 
 
@@ -179,6 +248,15 @@ sub MY::postamble {
   '
 $(MYEXTLIB): libPARI/Makefile FORCE
 	cd libPARI && $(MAKE) $(PASTHRU)
+
+#libPARI/gphelp: $(PARI_DIR)/doc/gphelp
+#	$(CP) -f $(PARI_DIR)/doc/gphelp $@
+
+libPARI.pod: $(PARI_DIR)/doc/usersch3.tex libPARI/gphelp
+	$(PERL) libPARI/gphelp -to_pod $(PARI_DIR)/doc/usersch3.tex > pod_tmp && mv pod_tmp $@
+
+libPARI.dumb.pod: $(PARI_DIR)/doc/usersch3.tex libPARI/gphelp
+	$(PERL) libPARI/gphelp -to_dumb_pod $(PARI_DIR)/doc/usersch3.tex > pod_tmp && mv pod_tmp $@
 ';
 }
 
@@ -196,16 +274,82 @@ sub MY::const_config
  return $self->MM::const_config;
 }
 
+my $have_ulong;
+my $clk_tck_def;
+my $have_getrusage;
+
+sub scan_headers {
+  warn "Scanning header files...\n";
+  my $cmd = "$Config{cpprun} $Config{cppflags} utils/inc.h 2>&1";
+  open INC, "$cmd |" or warn("Error $! from: $cmd\n"), return;
+  $clk_tck_def = 1;
+  while (<INC>) {
+#    print;
+    
+    $have_ulong = 1, warn "...ulong\n" if /\btypedef\b.*\bulong\s*;/;
+    $clk_tck_def = 0, warn "...CLK_TCK not defined\n" if /y\s*=\s*CLK_TCK\b/;
+    $have_getrusage = 1, warn "...getrusage\n" if /\bgetrusage\s*\(/;
+    $have_ladd = 1, warn "...ladd\n" if /\bladd\b/;
+  }
+  close INC or warn "Note (probably harmless): Errors reading from pipe: '$!', exit=$?: $cmd\n"
+}
+
+sub write_configure {
+  scan_headers() or $clk_tck_def = 0;
+  warn "Creating libPARI/paricfg.h...\n";
+  open F, '> libPARI/paricfg.h' or die "open 'libPARI/paricfg.h' for write: $!";
+  print F <<EOP;
+#define UNIX
+#define GPDATADIR "/usr/local/lib/pari/galdata"
+#define GPMISCDIR "/usr/local/lib/pari"
+
+#define PARI_BYTE_ORDER    $Config{byteorder}
+#define NOEXP2	/* Otherwise elliptic.t:11 rounds differetly, and fails */
+
+EOP
+  if ($have_getrusage) {
+    print F <<EOP if $Config{d_times};
+#define USE_GETRUSAGE 1
+
+EOP
+  } else {
+    print F <<EOP if $Config{d_times};
+#define USE_TIMES 1
+
+EOP
+    print F <<EOP if $Config{d_times} and $Config{i_time} and !$clk_tck_def;
+/* Reported to be needed on some Linuxes: */
+#include <time.h>
+
+EOP
+    print F <<EOP if not $Config{d_times} and $Config{d_ftime};
+#define USE_FTIME 1
+
+EOP
+  }
+  print F <<EOP if $Config{dlsrc} eq 'dl_dlopen.xs';
+#define HAS_DLOPEN
+
+EOP
+
+  print F <<EOP unless $have_ulong;
+#define ULONG_NOT_DEFINED
+
+EOP
+
+  close F or die "close 'libPARI/paricfg.h' for write: $!";
+}
+
 sub get_pari {
   $host = 'megrez.math.u-bordeaux.fr';
   $dir  = '/pub/pari/unix/';
 
-  print "Did not find PARI build directory around.\n";
+  print "Did not find GP/PARI build directory around.\n";
 
   if (-t STDIN and (-t STDOUT or -p STDOUT)) { # Interactive
     $| = 1;
     $mess = <<EOP;
-Do you want to me to fetch PARI automatically?  
+Do you want to me to fetch GP/PARI automatically?  
 Make sure you have a large scrollback buffer to see the messages.
 Fetch? (y/n, press Enter)
 EOP
@@ -220,16 +364,17 @@ EOP
     print "Non-interactive session, autofetching...\n"
   }
 
-  print "Getting PARI from ftp://$host$dir\n";
+  print "Getting GP/PARI from ftp://$host$dir\n";
 
   eval { require Net::FTP }
     or die "You do not have Net::Ftp installed, cannot download, exiting...";
 
   $ftp = Net::FTP->new($host) or die "Cannot create FTP object: $!";
-  $ftp->login("anonymous","Math::Pari@") or die "Cannot login anonymously: $!";
-  $ftp->cwd($dir) or die "Cannot cwd: $!";
-  $ftp->binary() or die "Cannot switch to binary: $!";
-  @lst = $ftp->ls() or die "Cannot list: $!";
+  $ftp->login("anonymous","Math::Pari@")
+    or die "Cannot login anonymously (",$ftp->message(),"): $!";
+  $ftp->cwd($dir) or die "Cannot cwd (",$ftp->message(),"): $!";
+  $ftp->binary() or die "Cannot switch to binary (",$ftp->message(),"): $!";
+  @lst = $ftp->ls() or die "Cannot list (",$ftp->message(),"): $!";
   #print "list = `@lst'\n";
 
   $match = 'pari.*(\d+\.\d+\.\d+).*\.t(ar\.)?gz$';
@@ -277,19 +422,27 @@ EOP
       print qq(Well, I already have it, using the disk copy...\n);
     } else {
       print qq(Downloading...\n);
-      $ftp->get($file) or die "Cannot get: $!";
+      $ftp->get($file) or die "Cannot get (",$ftp->message(),"): $!";
       print qq(Downloaded...\n);
     }
     print qq(Extracting...\n);
-    print  "zcat $file | tar -xvf -\n";
-    system "zcat $file | tar -xvf -"
+    my $zcat = "gzip -dc";	# zcat may be the old .Z-extractor
+    print  "$zcat $file | tar -xvf -\n";
+    system "$zcat $file | tar -xvf -"
       and die "Cannot extract: $!, exitcode=$?.\n";
     ($dir = $file) =~ s/\.t(ar\.)?gz$// or die "malformed name `$file'";
     -d $dir or die "Did not find directory $dir!";
-    print  "cd $dir ; sh ./Configure\n";
-    system "cd $dir ; sh ./Configure"
-      and die "Cannot configure: $!, exitcode=$?.\n";
-    print "Configuration of PARI successful.\n";
+    # Use GP/PARI's Configure to build paricfg.h
+    unless ($^O =~ /dos|djgcc|MSWin32/i) { # We use an existing paricfg.h...
+      if ($do_configure) {
+	print  "cd $dir ; sh ./Configure\n";
+	system "cd $dir ; sh ./Configure"
+	  and die "Cannot configure: $!, exitcode=$?.\n";
+	print "Configuration of GP/PARI successful.\n";
+      } else {
+	write_configure();
+      }
+    }
     my %patches = ('2.0.11'
 		   => [qw(
 			 patch11/diff_pari_gnuplot_aa
@@ -312,6 +465,7 @@ EOP
 				'patch15/diff_errpari_2015',
 				'patch15/diff_pari_gnuplot_2015'],
 		   '2.0.16' => ['patch16/diff_gnuplot_2016'],
+		   '2.1.2' =>  ['patches/diff_2.1.2_gccism'],
 		  );
     if ($patches{$version}) {
       print "Patching...\n";

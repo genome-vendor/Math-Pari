@@ -1,6 +1,10 @@
+==================================================================
 The short install procedure is described in README.  Here is the long one:
 
-If you have Net::FTP module installed (type
+This module was working OK with 5.003 (some time ago, newer versions
+might have broken this...).
+
+If you have Net::FTP module installed and working (type
 
 	perl -MNet::FTP -le "print 'OK'"
 
@@ -9,39 +13,76 @@ to check, and, say
 	perl -MCPAN -e 'install Net::FTP'
 
 to install it if you do not have it), then Makefile.PL may fetch and
-configure PARI for you, so you can skip steps a,b,c,e in the description
-below.  You need to manually apply patches *after doing*
+configure GP/PARI for you, so you can skip steps a,b,c,e in the description
+below.  [Sometimes Net::FTP requires setting PASSIVE_FTP environment variable.]
 
-	perl Makefile.PL
+With Net::FTP, building, testing, and testing is done in most cases with
 
-if the PARI distribution is 2.0.11/2.0.12, maybe later too.
+  perl Makefile.PL
+  make
+  make test
+  make install
 
-If you have a not very old perl (5.003 should do), then
+==================================================================
+Let me state the obvious: Math::Pari is a Perl module, so you need to
+have a "good enough" binary of Perl running on your machine.
+Compiling any Perl module involves a heavy usage of the Config module
+coming with Perl.  If your Perl is copied from another machine with an
+incompatible configuration, expect problems.  [Typical syndroms:
+glob failing; /usr/ucb/cc used instead of a real compiler, etc.]
+
+==================================================================
+GP/PARI detects the type of the assembler files needed for your
+processor; Math::Pari copies this logic, but may not contain the
+latest updates/improvements.  If the detection-of-assembler is wrong, put
+machine=assembler_type to the Makefile.PL line, as in
+
+  perl Makefile.PL machine=hppa
+
+As the last resort, machine=none means using a portable-and-slow C code.
+
+I would like to hear about wrong assembler-detection.
+
+==================================================================
+The older versions of Math::Pari were using GP/PARI configuration
+scripts to generate the header file libPARI/paricfg.h needed for the
+compile of the library.  The newer version generate this file
+themselves.  If this new way fails, put the word Configure to the
+Makefile.PL line to generate this file "the old way":
+
+  perl Makefile.PL Configure
+
+A typical syndrom is a compile error related to undefined CLK_TCK.  I
+would like to hear about these cases.  In the worst cases you may need
+to manually copy paricfg.h from a subdirectory of GP/PARI build
+directory to libPARI/paricfg.h.
+
+[libPARI/paricfg.h is not recreated when rerunning Makefile.PL without
+the Configure options.  If you need it to be recreated, rename this
+file before rerunning.]
+
+==================================================================
+Here is the manual procedure which is somewhat similar to what
+Makefile.PL does.
 
   a) Get the latest PARI distribution from
 	ftp://megrez.math.u-bordeaux.fr/pub/pari/unix/
 
-  b) uncompress the distribution and run 'Configure' script
+  b) uncompress the distribution; optionally run 'Configure' script
 	sh ./Configure
 
-  c) It is not required to make PARI, but you can do it nevertheless:
+     (Running 'Configure' is required if you manually copy 'paricfg.h'.)
+
+  c) Math::Pari does not care whether you made GP/PARI, but you can do
+     it nevertheless:
 	make test
      in toplevel PARI directory;
 
   d) uncompress the Math::Pari archive into a separate directory (for
-     best results make it a subdirectory of PARI's root directory);
+     best results make it a sibling of GP/PARI's root directory; kid
+     or parent should do as well);
 
-  e) Apply patches from patches subdirectory of Math::Pari (patches
-     are made for PARI 2.0.11.beta, your mileage may vary);
-
-	cd pari-2.0.11-beta          # or whatever it is
-	patch -p1 < ../patches/diff_pari_gnuplot_aa
-	patch -p1 < ../patches/patches_round1
-	patch -p1 < ../patches/diff_pari_fixed_interfaces_011 
-	patch -p1 < ../patches/diff_pari_highlevel_hash_011a
-	patch -p1 < ../patches/diff_pari_ret_proto_2011
-
-  f) _Optionally_ find the architecture of your processor (if it is not
+  e) _Optionally_ find the architecture of your processor (if it is not
      known/supported and recognized automatically, the slower 'port' code
      without assembler should be used).  Recognized "processors" are 
 
@@ -49,22 +90,29 @@ If you have a not very old perl (5.003 should do), then
 
      the current version should autorecognize them in most situations;
 
-  g) do
+  f) do (assuming your architecture is hppa)
 
 	perl Makefile.PL 
 		or
 	perl Makefile.PL machine=hppa
-     then
+
+     You may also want to add Configure argument (see above).  At this
+     moment you may want to manually copy paricfg.h if all the rest fails...)
+
+  g) then
 
 	make
 	make test
-
-     (expect several failures from t/*_will_fail.t, but other tests should
-     pass). 
 
   h) Now
 
 	make install
 
      should make this extension available to the perl programs.
+
+x) Patches to some versions of GP/PARI may be needed (in `patches11',
+   or 'patch12', etc.  depending on the version of GP/PARI 2.0.*).
+   This may be done automatically during auto-download of GP/PARI.
+
+x) We skip "compatibility" tests, and do not support "compatibility" mode.
 

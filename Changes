@@ -170,6 +170,8 @@ Files=15,  Tests=1378, 108 secs (86.46 cusr  3.82 csys = 90.28 cpu)
 	Default to `port' for unknow architectures.
 	perl -MMath::Pari=:int -e 'for ($i = 1; $i < 10; $i++) {print "$i\n"}'
 	     not fixed yet.  (Sometimes segfaults, prints floating points.)
+		 (Solution: Make Perl use mymalloc, or upgrade to
+		  5.00557 - maybe 5.00505 will also contain the fix.)
 2.001403:
 	New patch for signatures.
 	Die on a wrong import tag, add link_gnuplot() to :graphic.
@@ -182,3 +184,9 @@ Files=15,  Tests=1378, 108 secs (86.46 cusr  3.82 csys = 90.28 cpu)
 	Update assembler-handling logic to 2.0.15-pre level,
 	streamline logic a little bit.
 	Tested with 2.0.14 and 2.0.15-pre+patches.
+2.001501:
+	On Linux RedHat 6.0: err was masked by some other dynamic library.
+	Make plotting tests work again even without Term::Gnuplot.
+	On Linux RedHat 6.0: one subtest of all.t (ellinit) fails, same with
+	pure PARI.
+	Add autopatches for 2.0.15 (it looks to stay).

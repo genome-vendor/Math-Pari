@@ -1,0 +1,490 @@
+diff -pru pari-2.0.15.beta.old/src/graph/Gnuplot.h pari-2.0.15.beta/src/graph/Gnuplot.h
+--- pari-2.0.15.beta.old/src/graph/Gnuplot.h	Thu May 20 09:02:46 1999
++++ pari-2.0.15.beta/src/graph/Gnuplot.h	Mon Jun  7 01:54:42 1999
+@@ -49,10 +49,20 @@
+ 
+ /* Compatibility with the old gnuplot: */
+ extern  FILE *outfile;
+-FILE *outfile = stdout;
++FILE *outfile = NULL;
+ 
+ extern  FILE *gpoutfile;
+-FILE *gpoutfile = stdout;
++FILE *gpoutfile = NULL;
++
++static outfile_set;
++static void
++set_gpoutfile(void)
++{
++  outfile = stdout;
++  gpoutfile = stdout;
++}
++
++#define SET_OUTFILE (outfile_set++ ? 1 : set_gpoutfile(), 1)
+ 
+ extern int encoding;
+ int        encoding = 0;
+@@ -226,9 +236,14 @@ struct termentry *term;
+        ) :							\
+        (term->flags & (mask)))
+ 
+-#define do_init()	CALL_G_METH0(init)
+-#define reset()	CALL_G_METH0(reset)
+-#define text()	CALL_G_METH0(text)
++#ifdef DONT_POLLUTE_INIT
++#  define gptable_init()	CALL_G_METH0(init)
++#else
++#  define init()		CALL_G_METH0(init)
++#  define gptable_init		init
++#endif
++#define reset()		CALL_G_METH0(reset)
++#define text()		CALL_G_METH0(text)
+ #define options()	CALL_G_METH0(options)
+ #define graphics()	CALL_G_METH0(graphics)
+ #define linetype(lt)	CALL_G_METH1(linetype,lt)
+@@ -252,28 +267,127 @@ struct termentry *term;
+ 
+ #define termprop(prop) (term->prop)
+ #define termset(term) my_change_term(term,strlen(term))
++
+ struct termentry * change_term(char*,int);
+ 
++#define TTABLE_STARTPLOT	0
++#define TTABLE_ENDPLOT		1
++#define TTABLE_STARTMPLOT	2
++#define TTABLE_ENDMPLOT		3
++#define TTABLE_INIT		4
++#define TTABLE_LIST		5
++#define TTABLE_COUNT		6
++
++typedef void (*TSET_FP)(char *s);
++typedef void (*TST_END_FP)(void);
++typedef void (*SET_SIZES_t)(double x, double y);
++typedef double (*GET_SIZES_t)(int flag);
++
++struct t_ftable {
++  int loaded;
++  FUNC_PTR change_term_p;
++  TSET_FP term_set_outputp;
++  SET_SIZES_t set_sizesp;
++  GET_SIZES_t get_sizesp;
++  TST_END_FP term_funcs[TTABLE_COUNT];
++};
++
+ #ifdef DYNAMIC_PLOTTING			/* Can load plotting DLL later */
+ 
+ UNKNOWN_null()
+ {
+-    err(talker,"gnuplot-like plotting environment not loaded yet");
++    croak("gnuplot-like plotting environment not loaded yet");
++}
++
++static void myterm_table_not_loaded_v(void);
++static void myterm_table_not_loaded(char*);
++static int myterm_table_not_loaded_u();
++static void myterm_table_not_loaded_vdd(double x, double y);
++static double myterm_table_not_loaded_di(int flag);
++
++#if 0
++static int ftable_warned;
++static void
++tmp_my_term_init
++{
++  if (!warned++)
++     warn("This runtime link with gnuplot-shim does not implement midlevel start/end functions");
++  shim_myinit();
++}
++#endif
++
++static struct t_ftable my_term_ftable = 
++{
++	0, &myterm_table_not_loaded_u, &myterm_table_not_loaded,
++	&myterm_table_not_loaded_vdd,
++	&myterm_table_not_loaded_di,
++	{&myterm_table_not_loaded_v, &myterm_table_not_loaded_v, 
++	 &myterm_table_not_loaded_v, &myterm_table_not_loaded_v,
++	 &myterm_table_not_loaded_v, &myterm_table_not_loaded_v}
++};
++
++static struct t_ftable *my_term_ftablep = &my_term_ftable;
++
++static void
++myterm_table_not_loaded_v(void)
++{
++    if (!my_term_ftablep->loaded) {
++        UNKNOWN_null();
++	return;
++    }
++    croak("This runtime link with gnuplot-shim does not implement midlevel start/end functions");
++}
++
++static void
++myterm_table_not_loaded(char *s)
++{
++  myterm_table_not_loaded_v();
++}
++
++static void
++myterm_table_not_loaded_vdd(double x, double y)
++{
++  myterm_table_not_loaded_v();
++}
++
++static double
++myterm_table_not_loaded_di(int flag)
++{
++  myterm_table_not_loaded_v();
++}
++
++static int
++myterm_table_not_loaded_u()
++{
++  myterm_table_not_loaded_v();
++  return 0;
+ }
+ 
+-static FUNC_PTR change_term_p;
++#  define change_term		(*my_term_ftablep->change_term_p)
++#  define term_set_output	(*my_term_ftablep->term_set_outputp)
++#  define term_start_plot	(*my_term_ftablep->term_funcs[TTABLE_STARTPLOT])
++#  define term_end_plot	(*my_term_ftablep->term_funcs[TTABLE_ENDPLOT])
++#  define term_start_multiplot	(*my_term_ftablep->term_funcs[TTABLE_STARTMPLOT])
++#  define term_end_multiplot	(*my_term_ftablep->term_funcs[TTABLE_ENDMPLOT])
++#  define term_init		(*my_term_ftablep->term_funcs[TTABLE_INIT])
++#  define list_terms		(*my_term_ftablep->term_funcs[TTABLE_LIST])
++#  define plotsizes_scale	(*my_term_ftablep->set_sizesp)
++#  define plotsizes_scale_get	(*my_term_ftablep->get_sizesp)
++
++#  define scaled_xmax()	((int)termprop(xmax)*plotsizes_scale_get(0))
++#  define scaled_ymax()	((int)termprop(ymax)*plotsizes_scale_get(1))
++
++#define USE_FUNCTION_FROM_TABLE
+ 
+-struct termentry *
++static struct termentry *
+ my_change_term(char*s,int l)
+ {
+-    if (!change_term_p)
++    SET_OUTFILE;
++    if (!my_term_ftablep->change_term_p)
+ 	UNKNOWN_null();
+-    return term = (struct termentry *)(*change_term_p)(s,l);
++    return term = (struct termentry *)(*my_term_ftablep->change_term_p)(s,l);
+ }
+ 
+-#  define change_term(p,l) my_change_term(p,l)
+-#  define term_tbl (my_term_tbl)
+-
+ static struct termentry dummy_term_tbl[] = {
+     {"unknown", "Unknown terminal type - not a plotting device",
+ 	  100, 100, 1, 1,
+@@ -283,45 +397,94 @@ static struct termentry dummy_term_tbl[]
+      UNKNOWN_null, UNKNOWN_null, UNKNOWN_null, UNKNOWN_null, UNKNOWN_null, 0,
+ 	  UNKNOWN_null, UNKNOWN_null, UNKNOWN_null, UNKNOWN_null},
+ };
+-static struct termentry *my_term_tbl = dummy_term_tbl;
+ 
+-#  define term_set_output (*term_set_outputp)
+-static void
+-myterm_set_output(char *s)
++#define set_term_funcp(change_p, term_p) set_term_funcp2((change_p), 0)
++/* #define set_term_funcp3(change_p, term_p, tchange) \
++			set_term_funcp2((change_p), (tchange)) */
++
++/* This function should be called before any graphic code can be used... */
++void
++set_term_funcp2(FUNC_PTR change_p, TSET_FP tchange)
+ {
+-    croak("Change terminal not implemented yet with dynamic gnuplot");
++    SET_OUTFILE;
++    my_term_ftable.change_term_p = change_p;
++    my_term_ftable.loaded = 1;
++    if (tchange) {
++	my_term_ftable.term_set_outputp = tchange;
++    }
+ }
+ 
+-typedef void (*TSET_FP)(char *s);
+-TSET_FP term_set_outputp = &myterm_set_output;
++/* Used from Math::Pari */
++void
++set_term_funcp3(FUNC_PTR change_p, void *term_p, TSET_FP tchange)
++{
++  set_term_funcp2(change_p, tchange);
++}
+ 
+-/* This function should be called before any graphic code can be used... */
+-set_term_funcp(FUNC_PTR change_p, struct termentry *term_p)
++void
++set_term_ftable(struct t_ftable *p)
+ {
+-    my_term_tbl = term_p;
+-    change_term_p = change_p;
+-    /* XXXX Need to set term_set_outputp as well */
++  SET_OUTFILE;
++  my_term_ftablep = p;
+ }
+ 
+-/* This function should be called before any graphic code can be used... */
+-set_term_funcp3(FUNC_PTR change_p, struct termentry *term_p, TSET_FP tchange)
++#else /* !DYNAMIC_PLOTTING */
++
++extern struct termentry term_tbl[];
++
++#  define my_change_term	change_term
++#  define my_term_tbl		term_tbl
++
++extern void term_set_output(char *s);
++extern void term_start_plot(void);
++extern void term_end_plot(void);
++extern void term_start_multiplot(void);
++extern void term_end_multiplot(void);
++extern void term_init(void);
++extern void list_terms(void);
++
++static void
++plotsizes_scale(double x, double y)	{ xsize=x; ysize=y; }
++
++static double
++plotsizes_get(int flag)	{ return (flag ? ysize : xsize); }
++
++struct t_ftable my_term_ftable =
++{
++	1, (FUNC_PTR)&change_term, &term_set_output,
++	&plotsizes_scale, &plotsizes_get,
++	{&term_start_plot, &term_end_plot, 
++	 &term_start_multiplot, &term_end_multiplot, &term_init, &list_terms}
++};
++
++struct t_ftable *get_term_ftable()	{ SET_OUTFILE; return &my_term_ftable; }
++void set_term_ftable()	{ SET_OUTFILE; }
++
++
++void
++set_term_funcp3(FUNC_PTR change_p, void *term_p, TSET_FP tchange)
+ {
+-    my_term_tbl = term_p;
+-    change_term_p = change_p;
++    SET_OUTFILE;
++    my_term_ftable.change_term_p = change_p;
++    my_term_ftable.loaded = 1;
+     if (tchange) {
+-	term_set_outputp = tchange;
++	my_term_ftable.term_set_outputp = tchange;
+     }
+-    /* XXXX Need to set term_set_outputp as well */
+ }
+ 
+-#else /* !DYNAMIC_PLOTTING */
++#define scaled_xmax()	((int)termprop(xmax)*xsize)
++#define scaled_ymax()	((int)termprop(ymax)*ysize)
+ 
+-extern struct termentry term_tbl[];
++#endif /* !DYNAMIC_PLOTTING */
++
++#define int_get_term_ftable()	((IV)get_term_ftable())
++#define int_set_term_ftable(a) (v_set_term_ftable((void*)a))
+ 
+-#  define my_change_term change_term
+-#  define my_term_tbl term_tbl
++void
++v_set_term_ftable(void *a) { set_term_ftable((struct t_ftable*)a); }
+ 
+-#endif /* DYNAMIC_PLOTTING */
++void
++setup_gpshim(void) { SET_OUTFILE; }
+ 
+ #ifdef SET_OPTIONS_FROM_STRING
+ /* This sets the tokens for the options */
+@@ -339,6 +502,11 @@ set_tokens_string(char *start)
+ 	if (!*s)
+ 	    return;
+ 	tstart = s;
++	if (*s == ',') {
++	    s++;
++	    is_integer = is_real = 0;
++	    goto process;
++	}
+ 	is_integer = is_real = ((*s) != 0);
+ 	if (*s == '+' || *s == '-')
+ 	    s++;
+@@ -350,19 +518,24 @@ set_tokens_string(char *start)
+ 			is_real = 0;
+ 		    else if (is_integer == 1 && !(s[1] <= '9' && s[1] >= '0'))
+ 			is_real = 0;
+-		} else if (*s != 'e' || *s == 'E') {
++		} else if (*s == 'e' || *s == 'E') {
+ 		    if (has_exp)
+ 			is_real = 0;
+ 		    has_exp = 1;
+ 		    if (s[1] == '+' || s[1] == '-')
+ 			s++;
+-		} else
++		} else if (*s == ',' && (is_integer || is_real))
++		    break;
++		else
+ 		    is_real = 0;
+ 		is_integer = 0;
+ 	    } else if (is_integer)
+ 		is_integer++;
+ 	    s++;	    
+ 	}
++      process:
++	token[num_tokens].start_index = tstart - input_line;
++	token[num_tokens].length = s - tstart;
+ 	if (is_integer) {
+ 	    token[num_tokens].is_token = 0;
+ 	    token[num_tokens].l_val.type = INTGR;
+@@ -374,8 +547,6 @@ set_tokens_string(char *start)
+ 	    token[num_tokens].l_val.v.cmplx_val.imag = 0;
+ 	} else {
+ 	    token[num_tokens].is_token = 1;
+-	    token[num_tokens].start_index = tstart - input_line;
+-	    token[num_tokens].length = s - tstart;
+ 	}
+ 	num_tokens++;
+     }
+@@ -389,8 +560,12 @@ set_tokens_string(char *start)
+ void
+ set_options_from(char *s)
+ {
++    char *o = input_line;
++
++    input_line = s;		/* for error reports */
+     set_tokens_string(s);
+     options();
++    input_line = o;
+     c_token = num_tokens = 0;
+ }
+ #endif
+diff -pru pari-2.0.15.beta.old/src/graph/plotgnuplot.c pari-2.0.15.beta/src/graph/plotgnuplot.c
+--- pari-2.0.15.beta.old/src/graph/plotgnuplot.c	Mon Jun  7 02:27:33 1999
++++ pari-2.0.15.beta/src/graph/plotgnuplot.c	Mon Jun  7 01:55:16 1999
+@@ -14,6 +14,7 @@
+ #define croak(str) err(talker,str)
+ #define SET_OPTIONS_FROM_STRING
+ #define GNUPLOT_OUTLINE_STDOUT
++#define DONT_POLLUTE_INIT
+ #include "Gnuplot.h"
+ 
+ #ifdef __EMX__
+@@ -34,7 +35,11 @@ rectdraw0(long *w, long *x, long *y, lon
+ 
+   PARI_get_plot(0);
+ 
++#if 0
+   graphics();				/* Switch on terminal. */
++#else
++  term_start_plot();			/* Switch on terminal. */
++#endif
+   linetype(line_type);			/* X does not work otherwise. */
+   setpointsize(pointsize);
+   for(i=0;i<lw;i++)
+@@ -100,7 +105,9 @@ rectdraw0(long *w, long *x, long *y, lon
+ 	  if (RoSTx(p1)+x0 < 0 || RoSTx(p1)+x0+RoSTl(p1)-1 >= w_width
+ 	      || RoSTy(p1) + y0 < 0 || RoSTy(p1) + y0 >= w_height) {
+ 	  } else {
+-	    put_text(RoSTx(p1)+x0,  w_height - 1 - RoSTy(p1) - y0, RoSTs(p1));
++	    put_text(RoSTx(p1)+x0,
++		     w_height - 1 - RoSTy(p1) - y0 + (f_height - 1)/2,
++		     RoSTs(p1));
+ 	  }
+ 	  break;
+ 	case ROt_PTT:
+@@ -118,7 +125,11 @@ rectdraw0(long *w, long *x, long *y, lon
+       p1=RoNext(p1);
+     }
+   }
++#if 0
+   text();				/* Reset terminal */
++#else
++  term_end_plot();			/* Reset terminal. */
++#endif
+ }
+ 
+ void
+@@ -127,6 +138,7 @@ PARI_get_plot(long fatal)
+   if (pari_plot.init) {
+     return;
+   }
++  setup_gpshim();
+   term_set( DEF_TERM );
+ }
+ 
+@@ -134,12 +146,17 @@ PARI_get_plot(long fatal)
+ long
+ term_set(char *s)
+ {
+-  char *t;
++  char *t, *size = NULL;
++  double x, y;
+ 
+   if (*s == 0)
+       s = pari_plot.name;
+   t = s;
+-  while (*t && !(*t == ' ' || *t == '\t' || *s == '\t'))
++  if (t[1] == '\0' && t[0] == '?') {
++     list_terms();
++     return 1;
++  }
++  while (*t && !(*t == ' ' || *t == '\t' || *t == '\n' || *t == '='))
+ 	t++;
+   if ((t-s) > PLOT_NAME_LEN)
+       err(talker,"too long name \"%s\"for terminal", s);
+@@ -149,17 +166,39 @@ term_set(char *s)
+ 	reset();
+   strncpy(pari_plot.name,s,t-s);
+   pari_plot.name[t-s] = '\0';
++
+   if (!termset( pari_plot.name ))
+       err(talker,"error setting terminal \"%s\"", pari_plot.name);
+ 
++  if (*t == '=') {
++    size = ++t;
++    x = atof(size);
++    while (*t && !(*t == ' ' || *t == '\t' || *t == '\n' || *t == ','))
++  	t++;
++    if (*t != ',')
++      err(talker, "Terminal size directive without ','");
++    y = atof(++t);
++    while (*t && !(*t == ' ' || *t == '\t' || *t == '\n'))
++  	t++;
++    plotsizes_scale(x*(1 + 1e-6)/termprop(xmax),
++		    y*(1 + 1e-6)/termprop(ymax)); /* Later - truncated! */
++  } else {
++    plotsizes_scale(1,1);
++  }
++
+   /* *Needed*, say, by gif output: */
+   set_options_from(t);
+ 
+-  do_init();				/* Init terminal. */
++#if 0
++  gptable_init();			/* Init terminal. */
++#else
++  term_init();
++#endif
++
+   setpointsize(pointsize);
+ 
+-  w_width = termprop(xmax);
+-  w_height = termprop(ymax);
++  w_width = scaled_xmax();
++  w_height = scaled_ymax();
+   f_height = termprop(v_char);
+   f_width = termprop(h_char);
+   h_unit = termprop(h_tic);
+@@ -173,6 +212,7 @@ long
+ plot_outfile_set(char *s) { 
+     int normal = (strcmp(s,"-") == 0);
+ 
++    setup_gpshim();
+     /* Delegate all the hard work to term_set_output() */
+ 
+     if (normal) 
+@@ -194,3 +234,4 @@ set_pointsize(double d) 
+     if (pari_plot.init)
+ 	setpointsize(d);
+ }
++
+Only in pari-2.0.15.beta.old/src/graph: plotgnuplot.c.orig

@@ -139,6 +139,9 @@ is equivalent to
 
   print PARI(2)**PARI(1000);
 
+(The support for this feature is buggy before 5.005_57 unless Perl
+uses mymalloc options - check with C<perl -V:usemymalloc>.)
+
 =back
 
 =head1 Available functions
@@ -759,7 +762,7 @@ sub AUTOLOAD {
 $initmem = $initmem || 4000000;		# How much memory for the stack
 $initprimes = $initprimes || 500000;	# Calculate primes up to this number
 
-$VERSION = '2.001500';
+$VERSION = '2.001501';
 
 bootstrap Math::Pari;
 

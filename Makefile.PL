@@ -146,6 +146,8 @@ EOW
       if not -e 'libPARI/paricfg.h' or -M $paricfg[0] < -M 'libPARI/paricfg.h';
 }
 
+$define .= ' -Derr=pari_err'; # On linux it can get a wrong dynamic loading
+
 # See lib/ExtUtils/MakeMaker.pm for details of how to influence
 # the contents of the Makefile being created.
 &WriteMakefile(
@@ -285,6 +287,12 @@ EOP
 				'patch14/diff_extra_2014',
 				'patch14/diff_last_2014',
 				'patch14/diff_plot_2014'],
+		   '2.0.15' => ['patch15/diff_cast_2015',
+				'patch15/diff_errout_2015',
+				'patch15/diff_gnuplot_2015',
+				'patch15/diff_proto_2015',
+				'patch15/diff_errpari_2015',
+				'patch15/diff_pari_gnuplot_2015'],
 		  );
     if ($patches{$version}) {
       print "Patching...\n";

@@ -1,8 +1,8 @@
-#! perl
+#! perl -w
 use Math::Pari ':all';
 
 if ($ENV{MP_NOGNUPLOT}) {
-  print "1..0\n";
+  print "1..0 # skipped: per MP_NOGNUPLOT\n";
   exit;
 }
 unless (Math::Pari::have_highlevel()) {

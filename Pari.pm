@@ -859,7 +859,7 @@ PARI PARIcol PARImat PARIvar PARImat_tr
   sv2pari sv2parimat pari2iv pari2nv pari2num pari2pv pari2bool loadPari _bool
   listPari pari_print pari_pprint pari_texprint O ifact gdivent gdivround
   changevalue set_plot_fh link_gnuplot setprecision setseriesprecision
-  setprimelimit allocatemem type_name
+  setprimelimit allocatemem type_name pari2num_
 );
 
 use subs qw(
@@ -881,6 +881,7 @@ use subs qw(
    _2bool
    pari2pv
    pari2num
+   pari2num_
    _abs
    _cos
    _sin
@@ -913,7 +914,7 @@ sub _shiftr {
 $initmem = $initmem || 4000000;		# How much memory for the stack
 $initprimes = $initprimes || 500000;	# Calculate primes up to this number
 
-$VERSION = '2.010501';
+$VERSION = '2.010600';
 
 bootstrap Math::Pari;
 
@@ -935,7 +936,7 @@ use overload qw(
    cmp _lex
    bool _2bool
    "" pari2pv
-   +0 pari2num
+   0+ pari2num_
    abs _abs
    cos _cos
    sin _sin
@@ -1172,6 +1173,7 @@ sub set_plot_fh {
   Term::Gnuplot::set_gnuplot_fh(@_);
 }
 
+PARI_DEBUG_set($ENV{MATHPARI_DEBUG} || 0);
 $two = PARI(2);
 
 1;

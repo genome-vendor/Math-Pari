@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/perl -w
 
 BEGIN { unshift @INC, './lib', '../lib';
     require Config; import Config;

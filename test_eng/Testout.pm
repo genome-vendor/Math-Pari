@@ -15,9 +15,11 @@ $file = CORE::shift;
 
 $mess = CORE::shift @tests;		# Messages
 pop @tests;			# \q
-$tests = @tests;
-
-print "1..$tests\n";
+if ($tests = @tests) {
+  print "1..$tests\n";
+} else {
+  print "1..0 # skipped: no tests found in `$file'\n";
+}
 
 prec($3 || $1, 1) if $mess =~ /realprecision = (\d+) significant digits( \((\d+) digits displayed\))?/;
 

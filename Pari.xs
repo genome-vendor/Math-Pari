@@ -45,6 +45,18 @@ extern "C" {
 #define dFUNCTION(retv)  retv (*FUNCTION)(VARARG) = \
             (retv (*)(VARARG)) XSANY.any_dptr
 
+#if DEBUG_PARI
+static int pari_debug = 0;
+#  define RUN_IF_DEBUG_PARI(a)	\
+	do {  if (pari_debug) {a;} } while (0)
+#  define PARI_DEBUG_set(d)	((pari_debug = (d)), 1)
+#  define PARI_DEBUG()		(pari_debug)
+#else
+#  define RUN_IF_DEBUG_PARI(a)
+#  define PARI_DEBUG_set(d)	(0)
+#  define PARI_DEBUG(d)		(0)
+#endif
+
 #define DO_INTERFACE(inter) math_pari_subaddr = CAT2(XS_Math__Pari_interface, inter)
 #define CASE_INTERFACE(inter) case inter: \
                    DO_INTERFACE(inter); break
@@ -188,8 +200,8 @@ _gbitshiftr(GEN g, long s)
 
 #endif	/* PARI_VERSION_EXP >= 2002001 */
 
-/* Upgrade to PVAV, attach a magic of type 'P' (non-standard
-   refcounts, so needs special logic on DESTROY) */
+/* Upgrade to PVAV, attach a magic of type 'P' which is just a reference to
+   ourselves (non-standard refcounts, so needs special logic on DESTROY) */
 void
 make_PariAV(SV *sv)
 {
@@ -1479,6 +1491,19 @@ pari2nv(in)
 long	oldavma=avma;
      GEN	in
 
+
+SV *
+pari2num_(in,...)
+long	oldavma=avma;
+     GEN	in
+   CODE:
+     if (typ(in) == t_INT) {
+       RETVAL=pari2iv(in);
+     } else {
+       RETVAL=pari2nv(in);
+     }
+   OUTPUT:
+     RETVAL
 
 SV *
 pari2num(in)
@@ -3348,18 +3373,21 @@ DESTROY(rv)
 		 SvREFCNT_inc(sv);
 		 SvREFCNT_dec(obj);
 	     }
+	     /* We manipulated SvCUR(), which for AV overwrites AvFILLp();
+		make sure that array looks like an empty one */
+	     AvFILLp((AV*)sv) = -1;	
 	 }
 #endif
 	 SvPVX(sv) = GENheap;		/* To avoid extra free() in moveoff.... */
 	 if (type == GENheap)	/* Leave it alone? XXXX */
-	 /* break */ ;
+	     /* break */ ;
 	 else if (type == GENmovedOffStack) {/* Know that it _was temporary. */
 	     killbloc((GEN)SvIV(sv));	     
 	 } else {
 	 		/* Still on stack */
 	     if (type != (char*)PariStack) { /* But not the newest one. */
-		 howmany=moveoffstack_newer_than(sv);
-		 DEBUG_u( deb("%li items moved off stack\n", howmany) );
+		 howmany = moveoffstack_newer_than(sv);
+		 RUN_IF_DEBUG_PARI( warn("%li items moved off stack", howmany) );
 	     }
 	     /* Now fall through: */
 /* case (IV)GENfirstOnStack: */
@@ -3434,6 +3462,13 @@ pari_version_exp()
 
 long
 have_highlevel()
+
+int
+PARI_DEBUG()
+
+int
+PARI_DEBUG_set(val)
+	int val
 
 # Cannot do this: it is xsubpp which needs the typemap entry for UV,
 # and it needs to convert *all* the branches.

@@ -90,6 +90,12 @@ else fails.
 		-lpari build with different non-compatible compiler;
 
 ==================================================================
+Other recognized options:
+  force_download		Download PARI/GP even if a directory is found
+  pari_tgz=PATH_TO_TAR_GZ	To extract a local pari*.tar.gz and patch
+		(if needed) the resulting directory tree.
+
+==================================================================
 Here is the manual procedure which is somewhat similar to what
 Makefile.PL does.
 

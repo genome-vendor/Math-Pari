@@ -129,38 +129,14 @@ the format C<"2.3.1">.
 =cut
 
 sub download_pari {
+  my ($srcfile) = (shift);
   my $host = 'megrez.math.u-bordeaux.fr';
   my $dir  = '/pub/pari/unix/';
+  my($ftp, $ua, $base_url);
 
-  print "Did not find GP/PARI build directory around.\n";
+  print "Did not find GP/PARI build directory around.\n" unless defined $srcfile;
 
-  if (-t STDIN and (-t STDOUT or -p STDOUT)) { # Interactive
-    $| = 1;
-    my $mess = <<EOP;
-Do you want to me to fetch GP/PARI automatically?
-  (If you do not, you will need to fetch it manually, and/or direct me to
-   the directory with GP/PARI source via the command-line option paridir=/dir)
-Make sure you have a large scrollback buffer to see the messages.
-Fetch? (y/n, press Enter)
-EOP
-    chomp $mess;
-    print "$mess ";
-    my $ans = <>;
-    if ($ans !~ /y/i) {
-      print <<EOP;
-Well, as you wish...
-Rerun Makefile.PL when you fetched GP/PARI manually.
-EOP
-      return;
-    }
-  } else {
-    print "Non-interactive session, autofetching...\n"
-  }
-
-  my $base_url = "ftp://$host$dir";
-  print "Getting GP/PARI from $base_url\n";
-
-  my $match = '(pari\W*(\d+\.\d+\.\d+).*\.t(?:ar\.)?gz)$';
+  my $match = '((?:.*\/)?pari\W*(\d+\.\d+\.\d+).*\.t(?:ar\.)?gz)$';
 
   my %archive;
   my $match_pari_archive = sub {
@@ -177,56 +153,86 @@ EOP
     }
   };
 
-  my($ftp, $ua);
-  eval {
-    require Net::FTP;
-
-    $ftp = Net::FTP->new($host) or die "Cannot create FTP object: $!";
-    $ftp->login("anonymous","Math::Pari@")
-      or die "Cannot login anonymously (",$ftp->message(),"): $!";
-    $ftp->cwd($dir) or die "Cannot cwd (",$ftp->message(),"): $!";
-    $ftp->binary() or die "Cannot switch to binary (",$ftp->message(),"): $!";
-    my @lst = $ftp->ls();
-    @lst or ($ftp->passv() and @lst = $ftp->ls()) or die "Cannot list (",$ftp->message(),"): $!";
-    #print "list = `@lst'\n";
-
-    my $c = 0;
-    %archive = ();
-    for my $file (@lst) {
-      $c++ if $match_pari_archive->($file);
-    }
-    die "Did not find any file matching /$match/ via FTP"
-      unless $c;
-  };
-  if ($@) {
-    undef $ftp;
-    warn "$@\nCan't fetch file with Net::FTP, now trying with LWP::UserAgent...\n";
-    # second try with LWP::UserAgent
-    eval { require LWP::UserAgent; require HTML::LinkExtor }
-      or die "You do not have LWP::UserAgent and/or HTML::LinkExtor installed, cannot download, exiting...";
-    $ua = LWP::UserAgent->new;
-    $ua->env_proxy;
-    my $req = HTTP::Request->new(GET => $base_url);
-    my $resp = $ua->request($req);
-    $resp->is_success
-      or die "Can't fetch directory listing from $base_url: " . $resp->as_string;
-    my $c = 0;
-    %archive = ();
-    if ($resp->content_type eq 'text/html') {
-      my $p = HTML::LinkExtor->new;
-      $p->parse($resp->content);
-      for my $link ($p->links) {
-        my($tag, %attr) = @$link;
-        next if $tag ne 'a';
-        $c++ if $match_pari_archive->($attr{href});
+  if ($srcfile and -s $srcfile) {
+    die "The FILE supplied via the pari_tgz=$srcfile option did not match /$match/"
+      unless $match_pari_archive->($srcfile);
+  } else {
+    if (-t STDIN and (-t STDOUT or -p STDOUT)) { # Interactive
+      $| = 1;
+      my $mess = <<EOP;
+Do you want to me to fetch GP/PARI automatically?
+  (If you do not, you will need to fetch it manually, and/or direct me to
+   the directory with GP/PARI source via the command-line option paridir=/dir)
+Make sure you have a large scrollback buffer to see the messages.
+Fetch? (y/n, press Enter)
+EOP
+      chomp $mess;
+      print "$mess ";
+      my $ans = <STDIN>;
+      if ($ans !~ /y/i) {
+        print <<EOP;
+Well, as you wish...
+Rerun Makefile.PL when you fetched GP/PARI manually.
+EOP
+        return;
       }
     } else {
-      foreach my $file (split /\n/, $resp->content) {
+      print "Non-interactive session, autofetching...\n"
+    }
+
+    $base_url = "ftp://$host$dir";
+    print "Getting GP/PARI from $base_url\n";
+
+    eval {
+      require Net::FTP;
+
+      $ftp = Net::FTP->new($host) or die "Cannot create FTP object: $!";
+      $ftp->login("anonymous","Math::Pari@")
+        or die "Cannot login anonymously (",$ftp->message(),"): $!";
+      $ftp->cwd($dir) or die "Cannot cwd (",$ftp->message(),"): $!";
+      $ftp->binary() or die "Cannot switch to binary (",$ftp->message(),"): $!";
+      my @lst = $ftp->ls();
+      @lst or ($ftp->pasv() and @lst = $ftp->ls()) or die "Cannot list (",$ftp->message(),"): $!";
+      #print "list = `@lst'\n";
+
+      my $c = 0;
+      %archive = ();
+      for my $file (@lst) {
         $c++ if $match_pari_archive->($file);
       }
+      die "Did not find any file matching /$match/ via FTP"
+        unless $c;
+    };
+    if ($@) {
+      undef $ftp;
+      warn "$@\nCan't fetch file with Net::FTP, now trying with LWP::UserAgent...\n";
+      # second try with LWP::UserAgent
+      eval { require LWP::UserAgent; require HTML::LinkExtor }
+        or die "You do not have LWP::UserAgent and/or HTML::LinkExtor installed, cannot download, exiting...";
+      $ua = LWP::UserAgent->new;
+      $ua->env_proxy;
+      my $req = HTTP::Request->new(GET => $base_url);
+      my $resp = $ua->request($req);
+      $resp->is_success
+        or die "Can't fetch directory listing from $base_url: " . $resp->as_string;
+      my $c = 0;
+      %archive = ();
+      if ($resp->content_type eq 'text/html') {
+        my $p = HTML::LinkExtor->new;
+        $p->parse($resp->content);
+        for my $link ($p->links) {
+          my($tag, %attr) = @$link;
+          next if $tag ne 'a';
+          $c++ if $match_pari_archive->($attr{href});
+        }
+      } else {
+        foreach my $file (split /\n/, $resp->content) {
+          $c++ if $match_pari_archive->($file);
+        }
+      }
+      die "Did not find any file matching /$match/ via FTP"
+        unless $c;
     }
-    die "Did not find any file matching /$match/ via FTP"
-      unless $c;
   }
 
   sub fmt_version {sprintf "%03d%03d%03d", split /\./, shift}
@@ -280,7 +286,8 @@ EOP
     print  "$zcat $file | tar -xvf -\n";
     system "$zcat $file | tar -xvf -"
       and die "Cannot extract: $!, exitcode=$?.\n";
-    ($dir = $file) =~ s/\.t(ar\.)?gz$// or die "malformed name `$file'";
+    ($dir = $file) =~ s,(?:.*[\\/])?(.*)\.t(ar\.)?gz$,$1,
+      or die "malformed name `$file'";
     -d $dir or die "Did not find directory $dir!";
   }
   if ($ftp) {
@@ -365,7 +372,8 @@ GP/PARI build directory.
 =cut
 
 sub download_and_patch_pari {
-  my ($dir, $version) = download_pari();
+  my ($file) = (shift);
+  my ($dir, $version) = download_pari($file);
   patch_pari($dir, $version) if defined $dir;
   $dir;
 }

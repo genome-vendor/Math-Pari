@@ -510,7 +510,7 @@ unsigned char defcode[] = "\06xD,0,G,D,0,G,D,0,G,D,0,G,D,0,G,D,0,G,";
 void
 installPerlFunction(SV* cv, char *name, I32 numargs, char *help)
 {
-    unsigned char *code, *s;
+    char *code, *s;
     I32 req = numargs, opt = 0;
 
     if (numargs < 0 && SvPOK(cv) && (s = SvPV(cv,na))) {

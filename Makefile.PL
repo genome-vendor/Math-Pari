@@ -5,8 +5,64 @@ use Config '%Config';
 $paridir = "./libPARI";		# Change this line if you have it
 $os = $Config{osname};
 
+sub process_sparc {
+  my $info = shift;
+  return 'sparcv8_super' if $info =~ /TMS390Z5[05]|CY605/;
+  return 'sparcv8_micro' if $info =~ /TMS390S10|MB8690[47]/;
+  return 'sparcv8_hyper' if $info =~ /RT625/;
+  return shift;
+}
+
+sub process_machine {
+  my $os = (split ' ', $Config{myuname})[0];
+  my $machine = $os;
+  if ($os =~ /^hp/) {
+    $machine = 'hppa';
+  } elsif ($os eq 'os2' or $os eq 'freebsd') {
+    $machine = 'i386';
+  } elsif ($os eq 'ultrix') {
+    $machine = 'mips';
+  } elsif ($os eq 'nextstep' or -d '/NextApps') {
+    chomp($machine = `file /bin/sh | sed 's/.*(for architecture \(.*\))/\1/'`);
+  } elsif ($os eq 'osf1') {
+    $machine = 'alpha' if (split ' ', $Config{myuname})[4] eq 'alpha';
+  } elsif ($os eq 'linux') {
+    chomp($machine = `uname -m`);
+    if (-e '/proc/cpuinfo') {
+      open IN, '/proc/cpuinfo' or die "open /proc/cpuinfo: $!";
+      local $/ = undef;		# Needed?
+      my $info = <IN>;
+      close IN or die "close /proc/cpuinfo: $!";
+      $machine = process_sparc $info, $machine;
+    }
+  } elsif ($os eq 'sunos') {
+    my $type = (split ' ', $Config{myuname})[4];
+    if ($type =~ /^sun3/) {
+      $machine = 'm68k';
+    } elsif ($type =~ /^sun4[ce]/) {
+      $machine = 'sparcv7';
+    } elsif ($type =~ /^sun4[dm]/) {
+      local $ENV{PATH} = "$ENV{PATH}:/dev/sbin";
+      my $info = `(prtconf||devinfo)2>&-`;
+      $info = join ' ', grep /TI,|FMI,|Cypress,|Ross,/, split "\n", $info;
+      $machine = process_sparc $info, $machine;
+    } elsif ($type eq 'sun4u') {
+      $machine = 'sparcv9';
+    }
+  }
+  print "Processor $machine detected\n";
+  # For older PARI:
+  $machine = 'sparcv8super'
+    if $machine eq 'sparcv9' or $machine eq 'sparcv8_hyper'
+       or $machine eq 'sparcv8_super';
+  $machine = 'sparcv8micro' if $machine eq 'sparcv8_micro';
+  return $machine;
+}
+
 if (@ARGV and $ARGV[0] =~ /^machine=(.*)$/i) {
   $common::machine = $1; shift;
+} else {
+  $common::machine = process_machine;
 }
 
 $define = "-DDEBUG_PARI";
@@ -45,7 +101,7 @@ $define .= " -DLSB_in_U32=$offset";
 	       'INC' => "-I$paridir",
 	       'NAME' => 'Math::Pari',
 	       'MYEXTLIB' => 'libPARI/libPARI$(LIB_EXT)',
-	       'VERSION' => '0.91',
+	       'VERSION_FROM' => 'Pari.pm',
 	       'DEFINE' => $define,
 	       'dist' => {COMPRESS=>'gzip -9f', SUFFIX=>'gz'},
 	      );

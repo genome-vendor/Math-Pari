@@ -407,6 +407,31 @@ Files=15,  Tests=1378, 108 secs (86.46 cusr  3.82 csys = 90.28 cpu)
 	[Confirmed that it builds on Win32 with M$ VC and mingw for both
 	  'none' and 'ix86'.  (One needs to manually edit t/*.t.)  All the
 	  hard investigative work was done by Bob "Sisyphus".  Thank him!]
-	direcoty-with-\-support in test engine was flacky.
+	directory-with-\-support in test engine was flacky.
 	CPPMINUS was not used.  Change CPP's %Config from cppstdin to cpp.
 	Support for '&' is not very optimized, but works; just omit '&'.
+
+2.010500:
+	Cursory support for LIBPARI="-L/lib -lpari"
+	 (Problems:
+		spoofed version;
+		no graphing functions present;
+		bad free() at t/Pari.t line 265
+			(calling installed Perl function from PARI)
+		no PARI tests to convert;
+		no POD to create;
+		no check for ep codes;
+		no patching the source;
+	   [All but the first 3 of the problems can be avoided if one
+	    lets Makefile.PL download and patch PARI, then builds the library
+	    using the downloaded+patched version.]
+	 Possible problems:
+		different sizeof(long);
+		non-compatible threading model;
+		-lpari build with different non-compatible compiler;
+		...???
+	 ).
+	Cosmetic changes to TestOut.
+	Allow running tests from a different directory (non-Unix filespec?).
+	Somehow the patches to 2.1.4 were not applied.  Apply them to 2.1.5 too.
+	May download via LWP (thanks to Slaven Rezic).

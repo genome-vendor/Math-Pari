@@ -596,7 +596,9 @@ sub process_test {
     print "# eval", ($noans ? "-$noans" : '') ,": $in\n";
     $printout = '';
     my $have_floats = ($in =~ /\d+\.\d*|\d{10,}/
-		       or $in =~ /\b(ellinit|zeta|bin|comprealraw|frac|lseriesell|powrealraw|legendre|suminf|forstep)\b/);
+		       or $in =~ /\b( ellinit|zeta|bin|comprealraw|frac|
+				      lseriesell|powrealraw|legendre|suminf|
+				      forstep )\b/x);
     # Remove the value from texprint:
     # pop @$out if $in =~ /texprint/ and @$out == 2;
     $res = eval "$in";

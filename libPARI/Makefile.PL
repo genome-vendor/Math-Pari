@@ -1,8 +1,13 @@
 use ExtUtils::MakeMaker;
 use Config '%Config';
 
-BEGIN {unshift @INC, 'utils'}
+#BEGIN {unshift @INC, 'utils'}
 use Math::PariBuild;
+
+ExtUtils::MakeMaker::WriteEmptyMakefile(), return 1 if $common::parilib;
+
+*MY::top_targets  = \&xMY::top_targets;		# will break WriteEmptyMakefile
+*MY::const_config = \&xMY::const_config;
 
 $main_paridir = $common::main_paridir;
 die "Please start Makefile.PL at toplevel, not in libPARI"
@@ -198,7 +203,7 @@ WriteMakefile(
 # Assemble assembler files.
 # Compile C files from a *different* directory.
 # Create a library;
-sub MY::top_targets {
+sub xMY::top_targets {
   my $converted = '';
   my @inlines = inline_headers($asmarch, $pari_version);
   $converted = <<EOC if $kernel{convert};

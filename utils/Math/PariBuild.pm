@@ -30,6 +30,7 @@ require Exporter;
 use strict;
 use Config;
 use File::Copy 'copy';
+use File::Basename 'basename';
 
 =head1 NAME
 
@@ -154,26 +155,17 @@ EOP
     print "Non-interactive session, autofetching...\n"
   }
 
-  print "Getting GP/PARI from ftp://$host$dir\n";
+  my $base_url = "ftp://$host$dir";
+  print "Getting GP/PARI from $base_url\n";
 
-  eval { require Net::FTP }
-    or die "You do not have Net::Ftp installed, cannot download, exiting...";
+  my $match = '(pari\W*(\d+\.\d+\.\d+).*\.t(?:ar\.)?gz)$';
 
-  my $ftp = Net::FTP->new($host) or die "Cannot create FTP object: $!";
-  $ftp->login("anonymous","Math::Pari@")
-    or die "Cannot login anonymously (",$ftp->message(),"): $!";
-  $ftp->cwd($dir) or die "Cannot cwd (",$ftp->message(),"): $!";
-  $ftp->binary() or die "Cannot switch to binary (",$ftp->message(),"): $!";
-  my @lst = $ftp->ls() or die "Cannot list (",$ftp->message(),"): $!";
-  #print "list = `@lst'\n";
-
-  my $match = 'pari.*(\d+\.\d+\.\d+).*\.t(ar\.)?gz$';
-  my $c = 0;
-  my ($file, %archive, $version);
-  for $file (@lst) {
-    next unless $file =~ /$match/o;
-    $c++;
-    $version = $1;
+  my %archive;
+  my $match_pari_archive = sub {
+    my $file = shift;
+    return unless $file =~ /$match/o;
+    $file = $1;
+    my $version = $2;
     if ($file =~ /alpha/) {
       $archive{alpha}{$version} = $file;
     } elsif ($file =~ /beta/) {
@@ -181,9 +173,57 @@ EOP
     } else {
       $archive{golden}{$version} = $file;
     }
+  };
+
+  my($ftp, $ua);
+  eval {
+    require Net::FTP;
+    $ftp = Net::FTP->new($host) or die "Cannot create FTP object: $!";
+    $ftp->login("anonymous","Math::Pari@")
+      or die "Cannot login anonymously (",$ftp->message(),"): $!";
+    $ftp->cwd($dir) or die "Cannot cwd (",$ftp->message(),"): $!";
+    $ftp->binary() or die "Cannot switch to binary (",$ftp->message(),"): $!";
+    my @lst = $ftp->ls() or die "Cannot list (",$ftp->message(),"): $!";
+    #print "list = `@lst'\n";
+
+    my $c = 0;
+    %archive = ();
+    for my $file (@lst) {
+      $c++ if $match_pari_archive->($file);
+    }
+    die "Did not find any file matching /$match/ via FTP"
+      unless $c;
+  };
+  if ($@) {
+    undef $ftp;
+    warn "$@\nCan't fetch file with Net::FTP, now trying with LWP::UserAgent...\n";
+    # second try with LWP::UserAgent
+    eval { require LWP::UserAgent; require HTML::LinkExtor }
+      or die "You do not have LWP::UserAgent and/or HTML::LinkExtor installed, cannot download, exiting...";
+    $ua = LWP::UserAgent->new;
+    $ua->env_proxy;
+    my $req = HTTP::Request->new(GET => $base_url);
+    my $resp = $ua->request($req);
+    $resp->is_success
+      or die "Can't fetch directory listing from $base_url: " . $resp->as_string;
+    my $c = 0;
+    %archive = ();
+    if ($resp->content_type eq 'text/html') {
+      my $p = HTML::LinkExtor->new;
+      $p->parse($resp->content);
+      for my $link ($p->links) {
+        my($tag, %attr) = @$link;
+        next if $tag ne 'a';
+        $c++ if $match_pari_archive->($attr{href});
+      }
+    } else {
+      foreach my $file (split /\n/, $resp->content) {
+        $c++ if $match_pari_archive->($file);
+      }
+    }
+    die "Did not find any file matching /$match/ via FTP"
+      unless $c;
   }
-  die "Did not find any file matching /$match/ via FTP"
-    unless $c;
 
   sub fmt_version {sprintf "%03d%03d%03d", split /\./, shift}
 
@@ -208,15 +248,27 @@ EOP
   }
 
   undef $dir;
+  my $version;
   if ($best) {
-    $file = $latest_file{$best};
+    my $file = $latest_file{$best};
     $version = $latest_version{$best};
     print qq(Picking $best version $version, file $file\n);
     if (-f $file) {
       print qq(Well, I already have it, using the disk copy...\n);
     } else {
       print qq(Downloading...\n);
-      $ftp->get($file) or die "Cannot get (",$ftp->message(),"): $!";
+      if ($ftp) {
+        $ftp->get($file) or die "Cannot get (",$ftp->message(),"): $!";
+      } else {
+	my $req = HTTP::Request->new(GET => "$base_url/$file");
+	my $resp = $ua->request($req);
+	$resp->is_success
+	  or die "Can't fetch $base_url/$file: " . $resp->as_string;
+	my $base = basename($file);
+	open(F, ">$base") or die "Can't write to $base: $!";
+	print F $resp->content;
+	close F;
+      }
       print qq(Downloaded...\n);
     }
     print qq(Extracting...\n);
@@ -227,7 +279,9 @@ EOP
     ($dir = $file) =~ s/\.t(ar\.)?gz$// or die "malformed name `$file'";
     -d $dir or die "Did not find directory $dir!";
   }
-  $ftp->quit or die "Cannot quit: $!";
+  if ($ftp) {
+    $ftp->quit or die "Cannot quit: $!";
+  }
   return ($dir, $version);
 }
 
@@ -264,6 +318,7 @@ sub patches_for ($) {
 		 '2.1.2' =>  ['patches/diff_2.1.2_gccism'],
 		 '2.1.3' =>  ['patches/diff_2.1.3_interface'],
 		 '2.1.4' =>  ['patches/diff_2.1.4_interface'],
+		 '2.1.5' =>  ['patches/diff_2.1.4_interface'],
 		 '2.2.2' =>  ['patches/diff_2.2.2_interface'],
 		);
   print "Looking for patches for $v...\n";

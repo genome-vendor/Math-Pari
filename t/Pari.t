@@ -343,7 +343,11 @@ if ($] < 5.007) {
   test(int($x) eq PARI '10000000000000000000000000000000000000000011');	# 95
 }
 
-test 't_COL' eq Math::Pari::pari2pv(Math::Pari::type(PARIcol [1,2,3]));	# 96
+if (Math::Pari::have_highlevel()) {
+  test 't_COL' eq Math::Pari::pari2pv(Math::Pari::type(PARIcol [1,2,3]));	# 96
+} else {
+  test 1;
+}
 test 't_COL' eq Math::Pari::type_name(PARIcol [1,2,3]);	# 97
 test 4 == Math::Pari::lg(PARIcol [1,2,3]); # 98
 test 3 == Math::Pari::lgef(PARI 1); # 99

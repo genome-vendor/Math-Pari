@@ -22,15 +22,14 @@ if ($main_paridir =~ m,^([a-z]:)?[/\\],i) {
 $pari_version = $common::pari_version;
 $machine = $common::machine unless defined $machine;
 
-if ( $machine eq 'port'			# Set by find_machine_architecture()
-     and defined($Config{longsize}) and $Config{longsize} == 8 ) {
-  #$mycflags .= " -DLONG_IS_64BIT";
-}
-
 if (defined $machine) {
   print "...Via command-line: processor family `$machine'\n";
 } else {
   $machine = find_machine_architecture;
+}
+if ( $machine eq 'port'			# Set by find_machine_architecture()
+     and defined($Config{longsize}) and $Config{longsize} == 8 ) {
+  #$mycflags .= " -DLONG_IS_64BIT";	# Moved to BuildPari...
 }
 
 # Choose which assembler files to use
@@ -60,7 +59,7 @@ $kernels = kernel_files($asmarch, $pari_version, $Using_gnu_as);
 kernel_fill_data($kernels, \%kernel);
 
 # remaining kernel C files
-$kernel_dir  = '$(PARI_DIR)/src/kernel/';
+$kernel_dir  = '$(PARI_DIR)/src/kernel';
 $mp	     = "$kernel_dir/none/mp.c";
 $mpinl	     = "$kernel_dir/none/level1.c"; # Non-inlined versions of inlines
 $mpinlh	     = "$kernel_dir/none/level1.h"; # Put as a dependence
@@ -125,7 +124,7 @@ if ($Config{cc} eq 'gcc') {
 $mycflags .= ' -Derr=pari_err'; # On linux it can get a wrong dynamic loading
 
 if ($machine eq 'alpha') {
-  #$mycflags .= " -DLONG_IS_64BIT";
+  #$mycflags .= " -DLONG_IS_64BIT";	# Moved to BuildPari...
 } elsif ($Config{osname} eq 'solaris') {
   $mycflags .= " -DSOLARIS";
 } elsif ($Config{osname} eq 'os2') {
@@ -225,8 +224,8 @@ EOC
     my $mp_pre = $mp;
     $mp = 'mp.c';
     my $kern = "$kernel_dir/none";
-    my @dep			# Copied from src/kernel/none/MakeLVL1.SH 2.2.5
-      ="$kern/mp.c $kern/gcdll.c $kern/ratlift.c $kern/gcd.c $kern/invmod.c $kern/mp_indep.c $kern/add.c";
+    my @dep			# Copied from src/kernel/none/MakeLVL1.SH 2.2.10
+      = "$kern/mp.c $kern/cmp.c $kern/gcdll.c $kern/ratlift.c $kern/gcd.c $kern/invmod.c $kern/mp_indep.c $kern/add.c";
     $create_mp = <<EOS;
 mp.c: @dep
 	\$(PERL) -pe1 @dep > \$@

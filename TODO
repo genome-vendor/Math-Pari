@@ -1,8 +1,13 @@
+*) Temporarily skip nfisincl() in tests - segfaults in 2.2.10 (CVS)...
+
+*) With 2.2.10 (CVS)
+   Failed Test Stat Wstat Total Fail  Failed  List of Failed
+   ------------------------------------------------------------------
+   t/intnum.t                50    9  18.00%  11 23-25 27 41-42 45 49
+
 ULONG test is not robust enough.
 
-Compile of Pari.c requires pariinl.h, which may be not built yet.
-
-ASMINLINE?
+ASMINLINE?  For -g?
 
 *) One scenario to have highremainder problem: cc=gcc, but cpp is not
    gcc-based; thus  __GNUC__ is not defined when building kernel.o, and

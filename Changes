@@ -506,3 +506,28 @@ os2$(OBJ_EXT): $(PARI_DIR)/src/systems/os2/os2.c pariinl.h paricfg.h
 	   keep ASMINLINE in libPARI/Makefile.PL (since PariBuild.pm
 	   knows little about $asmarch), but make it conditional on
 	   $do_configure.  (Avoids warnings with Configure.)
+
+2.010603:
+	Mismatch between gpmalloc() and free() - possible reason for
+		failure of 00_Pari.t:60.
+	One branch in installPerlFunctionCV() could allow functions with
+		unrecognized prototypes.
+	Avoid "signed/unsigned mismatch" warnings in Pari.xs.
+	SvPV_nolen() could be used even on older Perls...
+	Remove all unused variables from Pari.xs found by M$ compilers and gcc.
+	setprimelimit() would not return the old value, but new...
+	Some XS functions which took GEN input and non-GEN output did not
+		do necessary CLEANUP: ; some other which did not take GEN
+		argument would start with oldavma=avma...
+	interface5 (unused) would take 5 GENs, when it should have taken 4.
+	Update PariBuild's process_sparc() and find_machine_architecture
+		to 2.2.8's config/arch-osname.	(XXXX 64-bit disabled on non-alpha?)
+	Update to new build method of 2.2.9+.
+		XXXX config/Makefile.SH: see makeLVL1.SH logic to support GMP
+	Some entry points disappeared in 2.2.*: pariK1, m_evallg, ...
+		XXXX gshift3 now gone???
+	Implement EXISTS method for Pari (fake) arrays (so one now can view
+		PARI arrays in debugger too...
+	Extensive update of the test suite to update to new numint/sumint
+		flavors and extra spaces in the check-tests files.
+	XXXX Temporarily skip nfisincl() - segfaults in 2.2.10...

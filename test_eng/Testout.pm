@@ -198,6 +198,7 @@ sub process_test {
   undef $prev;
   $c++;
   # First a trivial processing:
+  $in =~ s/^\s*gettime\s*;//;		# Starting lines of tests...
   $in =~ s/\b(\d+|[a-z]+\(\))\s*\\\s*(\d+(\^\d+)?)/ gdivent($1,$2)/g; # \
   $in =~ s/\b(\d+)\s*\\\/\s*(\d+)/ gdivround($1,$2)/g; # \/
   $in =~ s/\b(\w+)\s*!/ ifact($1)/g; # !

@@ -1,8 +1,8 @@
 Next paragraph is an excerpt from documentation inside Pari.pm:
 
-This package is a Perl interface to famous library PARI for
+Package Math::Pari is a Perl interface to famous library PARI for
 numerical/scientific/number-theoretic calculations.  It allows use of
-most PARI functions as Perl functions, and (almost) seamless merging
+most PARI functions (>500) as Perl functions, and (almost) seamless merging
 of PARI and Perl data. 
 
 Documentation to this package is contained inside Pari.pm. After
@@ -13,8 +13,14 @@ installing it is accessible by standard means, like
 
 and possibly in other forms particular for your system.
 
+A copy of documentation of the PARI library in POD format is provided as 
+well, access it as Math::libPARI:
+
+  perldoc Math::libPARI
+  man Math::libPARI
+
 If you have a not very old perl (5.003 should do), then uncompress the
-archive into a separate directory, find the archtecture of your
+archive into a separate directory, find the architecture of your
 processor (if it is not known/supported, and recognized automatically, the
 slower 'port' code should be used), and do
 
@@ -23,7 +29,8 @@ slower 'port' code should be used), and do
 	perl Makefile.PL machine=hppa
 
 (recognized "processors" are sun3 sparcv7 sparcv8micro sparcv8super
-alpha hppa i386 port), then
+alpha hppa i386 port, the versions starting from 0.92 should autorecognize
+them in most situations), then
 
 	make
 	make test
@@ -35,7 +42,7 @@ should pass). Now
 
 should make this extension available to the perl programs.
 
-You can get a better undestanding of the translations made by Testout.t by
+(You can get a better understanding of the translations made by Testout.t by
 running it manually:
 
 	perl t/Testout.t
@@ -44,4 +51,7 @@ after install, or
 
 	perl -Mblib t/Testout.t
 
-before install.
+before install.)
+
+The version 0.93 was tested with OS/2 and Solaris.  It uses version 1.37.4+
+of the PARI library.

@@ -1,75 +1,96 @@
-=====>>> BETA level interface to version 2.0 <<<=======
+a) Math::Pari is the PERL interface to the PARI part of GP/PARI
+   (version 2.*).  The info about GP/PARI is on
+   http://www.parigp-home.de/
+   The first 4 digits after the point of the version of Math::Pari
+   reflect the latest version of GP/PARI it was tested with.
 
-a) Should be installed inside or near pari-2.* source directory.
-b) Patches to PARI (in `patches11', or 'patch12', etc.
-   depending on the version of PARI) should be applied (or this may be done
-   automatically).
-c) paricfg.h should be created beforehand in pari-2,* build directory
-	(run configure to do this) (or this may be done automatically).
-d) We skip "compatibility" tests, and do not support "compatibility" mode.
+   The next paragraph is an excerpt from documentation inside Pari.pm:
 
-================================================================
-Next paragraph is an excerpt from documentation inside Pari.pm:
+     Package Math::Pari is a Perl interface to famous library PARI for
+     numerical/scientific/number-theoretic calculations.  It allows
+     use of most PARI functions (>500) as Perl functions, and (almost)
+     seamless merging of PARI and Perl data.
 
-  Package Math::Pari is a Perl interface to famous library PARI for
-  numerical/scientific/number-theoretic calculations.  It allows use of
-  most PARI functions (>500) as Perl functions, and (almost) seamless merging
-  of PARI and Perl data. 
+b) In most cases, this module can be installed as all the others, by
 
-Documentation to this package is contained inside Pari.pm. After
-installing it is accessible by standard means, like
+     perl -MCPAN -e shell
+     CPAN> install Math::Pari
 
-  perldoc Math::Pari
-  man Math::Pari
+   or
 
-and possibly in other forms particular for your system.
+     perl -MCPAN -e 'install Math::Pari'
 
-A copy of documentation of the PARI library in POD format is provided as 
-well, access it as Math::libPARI:
+   or (if you manually downloaded the archive)
 
-  perldoc Math::libPARI
-  man Math::libPARI
+     tar -zxfv Math-Pari-2.001200.tar.gz
+     cd Math-Pari-2.001200
+     perl Makefile.PL && make && make test && make install
 
-For long instructions to install Math::Pari see file INSTALL.  Short
-instructions work if you have PARI build directory, or have Net::FTP
+   Possible complications are addressed in the file INSTALL:
 
-  a) Get the latest version of Math::Pari similar to
+     x) Not having Net::FTP installed and working, and not having
+        GP/PARI build directory "nearby" (as parent, kid or sibling);
 
-	perl -MCPAN -e shell
-	CPAN> test Math::Pari
+     x) Failing compile or configuration: wrong assembler
+	architecture, wrong paricfg.h (CLK_TCK etc.);
 
-     or manually FTP the file, extract it, and try to build
+     x) the rest of it...
 
-        tar -zxfv Math-Pari-2.001200.tar.gz
-	cd Math-Pari-2.001200
-	perl Makefile.PL
-	make test
+   IMPORTANT REMARK: If you try to compile with a different
+   configuration, please run
 
-  b) If the necessary patches were not applied to the latest version
-     of PARI yet, and the above step did not auto-apply the patches,
-     you need to manually apply the patches (see INSTALL) in the build
-     directory after "make test" fails, and redo
+	make realclean
 
-	make test
+   in between.  Otherwise significant problems may arise.  [A typical
+   symptom: the symbol overflow cannot be found.]
 
-  c)	make install
+c) Due to the apparent recent breakage of PAUSE mirroring of my
+   directories, CPAN may have not the latest-and-greatest version. :-(
 
-     will finish the installation
+d) How the tests work
 
-(lowercase test scripts translate native PARI tests from GP syntax to
-Perl syntax.  You can get a better understanding of these translations
-by running the tests manually, as in
+   Lowercase test scripts translate native GP/PARI tests from GP
+   syntax to Perl syntax.  You can get a better understanding of these
+   translations by running the tests manually, as in
 
 	perl t/all.t
 
-after install, or
+   after install, or
 
 	perl -Mblib t/all.t
 
-before install.)
+   before install.  Currently two subtests of t/nfields 'leak' PARI
+   warnings.  Until the test engine is taught to look-for/eat these
+   warnings, they *must* appear.
 
-The version 2.001104 was tested with OS/2 and Solaris, the versions
-2.001200 and 2.001300 with Solaris.  They were tested with the patched
-versions 2.0.11/2.0.12/2.0.13 of the PARI library.
+e) Reporting bugs/problems
 
-The version 2.001501 was tested with Linux RedHat 6.0 and Solaris
+   I need to see the output of 
+
+     perl Makefile.PL
+
+   and the relevant messages "near the failure".
+
+   elliptic.t subtest 41 often fails on GP/PARI itself, so currently I
+   do not consider its failure to be a Math::Pari's bug.
+
+f) Documentation to this package is contained inside Pari.pm. After
+   installing it is accessible by standard means, like
+
+     perldoc Math::Pari
+     man Math::Pari
+
+   and possibly in other forms particular for your system.
+
+   A copy of documentation of the PARI library in POD format is
+   provided as well, access it as Math::libPARI:
+
+     perldoc Math::libPARI
+     man Math::libPARI
+
+   Since many POD converters are too stupid/buggy to process these
+   docs, an alternative Math::libPARI.dumb is provided; use as in
+
+     perldoc Math::libPARI.dumb
+
+   etc.

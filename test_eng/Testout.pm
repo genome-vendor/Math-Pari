@@ -5,7 +5,7 @@ use Math::Pari qw(:DEFAULT pari_print :all);
 use vars qw($x $y $z $k $t $q $a $u $j $l $name $other $n);
 die "Need a path to a testout file" unless @ARGV;
 
-$file = shift;
+$file = CORE::shift;
 {
   open TO, "< $file" or die "open `$file': $!";
   local $/ = "\n? ";
@@ -13,7 +13,7 @@ $file = shift;
   close TO or die "close: $!";
 }
 
-$mess = shift @tests;		# Messages
+$mess = CORE::shift @tests;		# Messages
 pop @tests;			# \q
 $tests = @tests;
 
@@ -108,13 +108,13 @@ for (@tests) {
 }
 
 sub format_matrix {
-  my $in = shift;
+  my $in = CORE::shift;
   my @in = split /;/, $in;
   'PARImat_tr([[' . join('], [', @in) . ']])';
 }
 
 sub format_vvector {
-  my $in = shift;
+  my $in = CORE::shift;
   $in =~ s/~\s*$//;
   "PARIcol($in)";
 }
@@ -125,6 +125,11 @@ sub re_format {			# Convert PARI output to a regular expression
   $in =~ s/\\\]\\\n\\\n\\\[/\\s*;\\s*/g; # row separator
   $in =~ s/\\\n/\\s*/g;
   $in =~ s/\\[ \t]/,?\\s*/g;
+  # This breaks a lot of linear.t tests
+  ### Allow for rounding 3999999 <=> 40000000, but only after . or immediately before it
+  ##$in =~ s/([0-8])((?:\\\.)?)(9+(\\s\*9+)?)(?![+\d])/$n=$1+1;"($1$2$3|$n${2}0+)"/ge;
+  ##$in =~ s/([1-9])((?:\\\.)?)(0+(\\s\*0+)?)(?![+\d])/$n=$1-1;"($1$2$3|$n${2}9+)"/ge;
+  ##$in =~ s/(\d{8,})([1-8])(?![+\d()]|\\s\*)/$n=$2-1;$m=$2+1;$1."[$2$n$m]\\d*"/ge;
   $in
 }
 
@@ -158,8 +163,8 @@ sub mformat_transp {
 }
 
 sub massage_floats {
-  my $in = shift;
-  $pre = shift || "16g";
+  my $in = CORE::shift;
+  $pre = CORE::shift || "16g";
   $in =~ s/(.\d*)\s+e/$1E/gi;	# 1.74 E-78
   $in =~ s/\b(\d+\.\d*(e[-+]?\d+)?|\d{10,})\b/sprintf "%.${pre}", $1/gei;
   $in;
@@ -563,7 +568,7 @@ sub process_test {
     print "# eval", ($noans ? "-$noans" : '') ,": $in\n";
     $printout = '';
     my $have_floats = ($in =~ /\d+\.\d*|\d{10,}/ 
-		       or $in =~ /\b(zeta|bin|comprealraw|frac|lseriesell|powrealraw|legendre|suminf|forstep)\b/);
+		       or $in =~ /\b(ellinit|zeta|bin|comprealraw|frac|lseriesell|powrealraw|legendre|suminf|forstep)\b/);
     # Remove the value from texprint:
     # pop @$out if $in =~ /texprint/ and @$out == 2;
     $res = eval "$in";
@@ -598,7 +603,7 @@ sub process_test {
 	  $rout =~ s/,*\s+/ /g;
 	  $rres =~ s/,*\s+/ /g if defined $res;
 	}
-	if ($in =~ /\b(zeta|bin|comprealraw|frac|lseriesell|powrealraw|pollegendre|legendre|suminf)\b/) {
+	if ($in =~ /\b(zeta|bin|comprealraw|frac|lseriesell|powrealraw|pollegendre|legendre|suminf|ellinit)\b/) {
 	  $rres = massage_floats $rres, "14f";
 	  $rout = massage_floats $rout, "14f";
 	} else {
@@ -708,7 +713,7 @@ sub process_multi {
 }
 
 sub my_print {
-  my $nl = shift;
+  my $nl = CORE::shift;
   @_ = map {(ref) ? (pari_print $_) : $_} @_;
   $printout .= join '', @_;
   $printout .= "\t" if $nl;
@@ -716,7 +721,7 @@ sub my_print {
 }
 
 sub my_pprint {
-  my $nl = shift;
+  my $nl = CORE::shift;
   @_ = map {(ref) ? (pari_pprint $_) : $_} @_;
   $printout .= join '', @_;
   $printout .= "\t" if $nl;
@@ -724,7 +729,7 @@ sub my_pprint {
 }
 
 sub my_texprint {
-  my $nl = shift;
+  my $nl = CORE::shift;
   @_ = map {(ref) ? (pari_texprint $_) : $_} @_;
   $printout .= join '', @_;
   $printout .= "\t" if $nl;
@@ -741,4 +746,8 @@ sub sprec {
   print "# Setting series precision to $_[0] digits.\n";
   print "ok $c\n";
 }
-sub safe_sizes { eval {plothsizes()} or [1000,1000,20,20,20,20]}
+
+# *Need* to convert to PARI, otherwise the arithmetic will propagate
+# the values to floats
+
+sub safe_sizes { eval {plothsizes()} or PARI [1000,1000,20,20,20,20]}

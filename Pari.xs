@@ -1,6 +1,13 @@
-#include <pari.h>
-#include <language/anal.h>
-#include <gp/gp.h>			/* init_opts */
+#  include <pari.h>
+#  include <language/anal.h>
+#  include <gp/gp.h>			/* init_opts */
+
+/* On some systems /usr/include/sys/dl.h attempts to declare
+   ladd which pari.h already defined with a different meaning.
+
+   It is not clear whether this is a correct fix...
+ */
+#undef ladd
 
 #define PERL_POLLUTE			/* We use older varnames */
 
@@ -40,6 +47,11 @@ extern "C" {
 #define DO_INTERFACE(inter) subaddr = CAT2(XS_Math__Pari_interface, inter)
 #define CASE_INTERFACE(inter) case inter: \
                    DO_INTERFACE(inter); break
+
+#ifndef XSINTERFACE_FUNC_SET		/* Not in 5.004_04 */
+#  define XSINTERFACE_FUNC_SET(cv,f)	\
+		CvXSUBANY(cv).any_dptr = (void (*) (void*))(f)
+#endif
 
 /* Here is the rationals for managing SVs which keep GENs: when newly
    created SVs from GENs on stack, the same moved to heap, and
@@ -207,6 +219,8 @@ installep(void *f, char *name, int len, int valence, int add, entree **table)
   ep->menu    = 0;
   return *table = ep;
 }
+
+#if PARI_VERSION_EXP <= 2002000		/* Global after 2.2.0 */
 static void
 changevalue(entree *ep, GEN val)
 {
@@ -221,6 +235,8 @@ changevalue(entree *ep, GEN val)
   y[-1] = x[-1]; /* save initial value */
   killbloc(x);   /* destroy intermediate one */
 }
+#endif
+
 static long
 numvar(GEN x)
 {
@@ -427,6 +443,16 @@ not_here(char *s)
     return -1;
 }
 
+unsigned long
+longword(GEN x, long n)
+{
+  if (n < 0 || n >= lg(x))
+      croak("The longword %ld ordinal out of bound", n);
+  return x[n];
+}
+
+
+
 SV* worksv;
 SV* workErrsv;
 
@@ -520,8 +546,23 @@ sv2pari(SV* sv)
       }
   }
   else if (SvIOKp(sv)) return stoi(SvIV(sv));
-  else if (SvNOKp(sv)) return dbltor(SvNV(sv));
-  else if (SvPOK(sv)) return lisexpr(SvPV(sv,na));
+  else if (SvNOKp(sv)) {
+      /* Need more voodoo, since sv_true sv_false are NOK, but not IOK */
+      if (/*SvIOKp(sv) && */ SvPOKp(sv) && SvCUR(sv)) {
+	  char *s = SvPVX(sv), *e = SvEND(sv);
+
+	  if (*s == '+' || *s == '-')
+	      s++;
+	  while (1) {
+	      if (s == e)
+		  return stoi(SvIV(sv)); /* In fact, is integer */
+	      if (*s < '0' || *s > '9')	/* Not an integer */
+		  break;
+	      s++;
+	  }
+      }
+      return dbltor(SvNV(sv));
+  } else if (SvPOK(sv)) return lisexpr(SvPV(sv,na));
   else if (!SvOK(sv)) return stoi(0);
   else
     croak("Variable in perl2pari is not of known type");  
@@ -554,11 +595,53 @@ sv2parimat(SV* sv)
   }
 }
 
-
 SV*
 pari2iv(GEN in)
 {
-  return newSViv((IV)gtolong(in));
+#ifdef SvIsUV
+#  define HAVE_UVs 1
+    UV uv;
+#else
+#  define HAVE_UVs 0
+    IV uv;
+#endif
+    int overflow = 0;
+
+    if (typ(in) != t_INT) 
+	return newSViv((IV)gtolong(in));
+    switch (lgef(in)) {
+    case 2:
+	uv = 0;
+	break;
+    case 3:
+	uv = in[2];
+	if (sizeof(long) >= sizeof(IV) && in[2] < 0)
+	    overflow = 1;
+	break;
+    case 4:
+	if ( 2 * sizeof(long) > sizeof(IV)
+	     || (2 * sizeof(long) == sizeof(IV)) && !HAVE_UVs && in[2] < 0 )
+	    goto do_nv;
+	uv = in[2];
+	uv = (uv << TWOPOTBYTES_IN_LONG) + in[3];
+	break;
+    default:
+	goto do_nv;
+    }
+    if (overflow) {
+#ifdef SvIsUV
+	if (signe(in) > 0) {
+	    SV *sv = newSViv((IV)uv);
+
+	    SvIsUV_on(sv);
+	    return sv;
+	} else
+#endif
+	    goto do_nv;
+    }
+    return newSViv(signe(in) > 0 ? (IV)uv : -(IV)uv);
+do_nv:
+    return newSVnv(gtodouble(in));	/* XXXX to NV, not to double? */
 }
 
 SV*
@@ -570,12 +653,16 @@ pari2nv(GEN in)
 SV*
 pari2pv(GEN in)
 {
-  PariOUT *oldOut = pariOut;
-  pariOut = &perlOut;
-  worksv = newSVpv("",0);
-  bruteall(in,'g',-1,0);		/* 0: compact pari-readable form */
-  pariOut = oldOut;
-  return worksv;
+    if (typ(in) == t_STR)		/* Puts "" around without special-casing */
+	return newSVpv(GSTR(in),0);
+    {    
+	PariOUT *oldOut = pariOut;
+	pariOut = &perlOut;
+	worksv = newSVpv("",0);
+	bruteall(in,'g',-1,0);		/* 0: compact pari-readable form */
+	pariOut = oldOut;
+	return worksv;
+    }
 }
 
 int fmt_nb;
@@ -602,6 +689,24 @@ setseriesprecision(long digits)
 
   if(digits>0) {precdl = digits;}
   return m;
+}
+
+static IV primelimit;
+static UV parisize;
+
+IV
+setprimelimit(IV n)
+{
+    byteptr ptr;
+    IV o = primelimit;
+
+    if (n != 0) {
+	ptr = initprimes(n);
+	free(diffptr);
+	diffptr = ptr;
+	primelimit = n;
+    }
+    return primelimit;
 }
 
 SV*
@@ -740,6 +845,23 @@ moveoffstack_newer_than(SV* sv)
   PariStack = sv;
   return ret;
 }
+
+void
+detach_stack(void)
+{
+    moveoffstack_newer_than((SV *) GENfirstOnStack);
+}
+
+UV
+allocatemem(UV newsize)
+{
+    if (newsize) {
+	detach_stack();
+	parisize = allocatemoremem(newsize);
+    }
+    return parisize;
+}
+
 
 GEN
 callPerlFunction(entree *ep, ...)
@@ -1084,6 +1206,28 @@ fill_argvect(entree *ep, char *s, long *has_pointer, GEN *argvec,
 #endif
 }
 
+#define _to_int(in,dummy1,dummy2) to_int(in)
+
+static GEN
+to_int(GEN in)
+{
+    long sign = gcmp(in,gzero);
+    long dummy;
+    
+
+    if (!sign)
+	return gzero;
+    switch (typ(in)) {
+    case t_INT:
+    case t_SMALL:
+	return in;
+    case t_INTMOD:
+	return lift0(in, -1);		/* -1: not as polmod */
+    default:
+	return gtrunc(in);
+    }
+}
+
 typedef int (*FUNC_PTR)();
 typedef void (*TSET_FP)(char *s);
 #if PARI_VERSION_EXP < 2000013
@@ -1096,6 +1240,9 @@ typedef void (*TSET_FP)(char *s);
 
 #define int_set_term_ftable(a) (v_set_term_ftable((void*)a))
 extern  void v_set_term_ftable(void *a);
+
+#define s_type_name(x) type_name(typ(x));
+
 
 MODULE = Math::Pari PACKAGE = Math::Pari PREFIX = Arr_
 
@@ -1166,6 +1313,13 @@ long	oldavma=avma;
      RETVAL=pari2pv(in);
    OUTPUT:
      RETVAL
+
+GEN
+_to_int(in, dummy1, dummy2)
+long	oldavma=avma;
+    GEN in
+    SV  *dummy1
+    SV  *dummy2
 
 GEN
 PARI(...)
@@ -2828,9 +2982,11 @@ BOOT:
    pari_addfunctions(&pari_modules, functions_highlevel,helpmessages_highlevel);
    init_graph();
 
-   init(SvIV(mem),SvIV(pri)); /* Default: take four million bytes of
-			       * memory for the stack, calculate
-			       * primes up to 500000. */
+   primelimit = SvIV(pri);
+   parisize = SvIV(mem);
+   init(parisize, primelimit); /* Default: take four million bytes of
+			        * memory for the stack, calculate
+			        * primes up to 500000. */
    PariStack = (SV *) GENfirstOnStack;
    workErrsv = newSVpv("",0);
    pariErr = &perlErr;
@@ -2958,9 +3114,53 @@ long
 setseriesprecision(digits=0)
     long digits
 
+IV
+setprimelimit(n = 0)
+    IV n
+
 void
 int_set_term_ftable(a)
     IV a
 
 long
 pari_version_exp()
+
+# Cannot do this: it is xsubpp which needs the typemap entry for UV,
+# and it needs to convert *all* the branches.
+#/* #if defined(PERL_VERSION) && (PERL_VERSION >= 6)*//* 5.6.0 has UV in the typemap */
+
+#if 0
+#UV
+#allocatemem(newsize = 0)
+#UV newsize
+
+#else	/* !( HAVE_UVs ) */
+
+unsigned long
+allocatemem(newsize = 0)
+    unsigned long newsize
+
+#endif	/* !( HAVE_UVs ) */
+
+long
+lgef(x)
+    GEN x
+
+long
+lgefint(x)
+    GEN x
+
+long
+lg(x)
+    GEN x
+
+unsigned long
+longword(x,n)
+    GEN x
+    long n
+
+MODULE = Math::Pari PACKAGE = Math::Pari	PREFIX = s_
+
+char *
+s_type_name(x)
+    GEN x

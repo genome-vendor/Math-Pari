@@ -328,6 +328,29 @@ if (Math::Pari::pari_version_exp >= 2000018) {
   }
 }
 
+{
+  my $eleven = PARI 11;
+  $eleven++;
+  test($eleven eq 12);		# 93
+  test("$eleven" eq "12");	# 94
+}
+
+if ($] < 5.007) {
+  test 1;			# 95
+} else {
+  my $x = PARI '10000000000000000000000000000000000000000011.5';
+
+  test(int($x) eq PARI '10000000000000000000000000000000000000000011');	# 95
+}
+
+test 't_COL' eq Math::Pari::pari2pv(Math::Pari::type(PARIcol [1,2,3]));	# 96
+test 't_COL' eq Math::Pari::type_name(PARIcol [1,2,3]);	# 97
+test 4 == Math::Pari::lg(PARIcol [1,2,3]); # 98
+test 3 == Math::Pari::lgef(PARI 1); # 99
+test 17 == Math::Pari::longword(-PARI(17),2); # 100
+test not defined eval { Math::Pari::longword((-PARI(17)),3); 1}; # 101
+test not defined eval { Math::Pari::longword((-PARI(17)),-3); 1}; # 102
+
 my $ow;
 BEGIN {
   $ow = $^W;
@@ -346,4 +369,4 @@ BEGIN {
   $^W = $ow;
 }
 
-sub last {92}
+sub last {102}

@@ -363,3 +363,50 @@ Files=15,  Tests=1378, 108 secs (86.46 cusr  3.82 csys = 90.28 cpu)
 
 2.010305:
 	Misprint in PariBuild.pm fixed (thanks to John Borwick).
+
+2.010400:
+	Remove .pod on `make clean'.
+	Do part of `perl -V' from Makefile.PL.
+	Support 64-bit longsize.
+	Fix for broken gcc 2.95 with -ffast-math.
+	gpui() (for **) was called with wrong signature...
+	0b1011 etc now should work
+	$obj->can($meth_name) method implemented (AUTOLOAD-aware).
+	Better 'skipped' messages
+	Less tests skipped
+	  (in graph: plot() - can't redirect output?!)
+	  (in objets: error test?!)
+	  (in program: f(x)=, print of a matrix, input(), break(),install())
+	Support the current implementation of 'M' code.
+	[Support for '&' code is still very hard to use - see test engine.]
+	Do not define UNIX and USE_TIMES on Win32 (d_times *is* defined?!)
+	Support M$ VC and Borland archive-creation switches and VC's
+	  object-file destination switch.
+	Use documented forcecopy instead of undocumented gcopy_av() [should
+	  fix problems with destruction of Mod() too - but slower...].
+	Whitespace edits in Perl code.
+	Inheriting from Math::Pari lead to recursion in sv2pari().
+	  [???  Similar change done to findVariable - not tested]
+	Disable assembler on Win32 if not cc == gcc (won't understand GNU
+	  assembler anyway).
+
+2.010401:
+	Special-case -o for object files for Borland too.
+	Inline none/int.h for 2.2.5 or newer too.
+	Define SHELL_Q (needed for 2.2.5).
+	Adjust svputs to "const" for 2.2.5 or newer.
+	Adjust _gtodouble() for 2.2.5 or newer.
+	New way of generation of mp.c for 2.2.5 or newer.
+	Backslashes in PARIDIR argument could confuse the test engine.
+	Support of code 'M' (for mneumonics) was not complete.
+	M$ VC can't handle files with .s extension, rename to kernel1.c if needed.
+	Enable back default x86 build with Win32 compilers.
+
+2.010402:
+	Remove dead code for gcopy_av().
+	[Confirmed that it builds on Win32 with M$ VC and mingw for both
+	  'none' and 'ix86'.  (One needs to manually edit t/*.t.)  All the
+	  hard investigative work was done by Bob "Sisyphus".  Thank him!]
+	direcoty-with-\-support in test engine was flacky.
+	CPPMINUS was not used.  Change CPP's %Config from cppstdin to cpp.
+	Support for '&' is not very optimized, but works; just omit '&'.

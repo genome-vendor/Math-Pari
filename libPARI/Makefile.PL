@@ -16,6 +16,12 @@ if ($main_paridir =~ m,^([a-z]:)?[/\\],i) {
 
 $pari_version = $common::pari_version;
 $machine = $common::machine unless defined $machine;
+
+if ( $machine eq 'port'			# Set by find_machine_architecture()
+     and defined($Config{longsize}) and $Config{longsize} == 8 ) {
+  $mycflags .= " -DLONG_IS_64BIT";
+}
+
 if (defined $machine) {
   print "...Via command-line: processor family `$machine'\n";
 } else {
@@ -121,7 +127,7 @@ if ($machine eq 'alpha') {
 $mycflags .= " -D__HAS_NO_ASM__" if $machine eq 'port';
 
 if ($Config{gccversion}
-    and not ($asmarch eq 'alpha' 
+    and not ($asmarch eq 'alpha'
 	     and $Config{gccversion} !~ /^(3\.)|(2\.95\.3.*)/)) {
   $mycflags .= " -DASMINLINE";
 }
@@ -134,16 +140,29 @@ $mycflags .= " -DDYNAMIC_PLOTTING";
 # OMF build needs no underscores:
 $mycflags .= " -D__NO_AOUT" if $^O eq 'os2' and !$OS2::is_aout;
 
+# Fix for broken gcc 2.95 with -ffast-math
+my @opt;
+my $opt = $Config{optimize};
+
+if (defined $Config{gccversion} and $Config{gccversion} =~ /^2\.9[46]/
+    and $opt =~ s/-ffast-math// and not "@ARGV" =~ /\bOPTIMIZE=/) {
+  @opt = ( OPTIMIZE => $opt );
+}
+
+my $Using_ms_vc = ($^O =~ /win32/i and $Config{cc} =~ /cl/i);
+my $Using_Borland = ($^O =~ /win32/i and $Config{cc} =~ /\bbcc/i);
+
 WriteMakefile(
     NAME	=> 'Math::PARI::libPARI',
     LINKTYPE	=> 'static',
     LIBS	=> $libs,
     OBJECT	=> join(' ', @obj_files),
+    @opt,
     macro	=> {
 		    PARI_DIR	  => $main_paridir,
 		    ADD_AR_OPT	  => ($add_ar_flags || ''),
-		    CPP		  => $Config{cppstdin},
-		    CPPMINUS	  => $Config{cppminus},
+		    CPP		  => $Config{cpp},
+		    # CPPMINUS	  => $Config{cppminus},
 		    ASSCMD	  => $asscmd,
 				# Extra defines when CPPing assembler files:
 		    ASSCPPDEFINE  => $asmcpp_define,
@@ -151,6 +170,18 @@ WriteMakefile(
 		    ASFLAGS	  => assembler_flags($machine, $Using_gnu_as),
 				# defines used when assembling:
 		    ASSDEFINE	  => ($Using_gnu_as ? '' : '$(DEFINE)'),
+		    MY_CC_PRE_TARGET => ($Using_ms_vc
+					 ? '-Fo'
+					 : ($Using_Borland
+					    ? '-o': '-o $(MY_EMPTY_STR)')),
+		    MY_AR_PRE_TARGET => ($Using_ms_vc
+					 ? '-out:'
+					 : ($Using_Borland
+					    ? '' : 'cr $(MY_EMPTY_STR)')),
+		    MY_AR_OBJECT => ($Using_Borland
+				     ? '$(OBJECT:^"+")'
+				      : '$(OBJECT)'),
+		    MY_EMPTY_STR  => '',
 		   },
     DEFINE	=> $mycflags,
     INC		=> '-I$(PARI_DIR)/src/headers -I$(PARI_DIR)/src/graph -I.'
@@ -158,7 +189,7 @@ WriteMakefile(
     C		=> \@cfiles,
     SKIP	=> [qw( distclean test dist makeaperl xs_o static)],
     clean	=> {FILES =>
-		    'libPARI$(LIB_EXT) pariinl.h kernel1.s kernel2.s paricfg.h'},
+		    'libPARI$(LIB_EXT) pariinl.h kernel1.s kernel2.s paricfg.h mp.c kernel1.c'},
 );
 
 # Create preprocessed copies of assembler files (GNU as does not run cpp);
@@ -169,15 +200,27 @@ WriteMakefile(
 # Create a library;
 sub MY::top_targets {
   my $converted = '';
-  my @inlines = inline_headers($asmarch);
+  my @inlines = inline_headers($asmarch, $pari_version);
   $converted = <<EOC if $kernel{convert};
-kernel1.s: $kernel{file1} $kernel{header1}
+$kernel{converted1}: $kernel{file1} $kernel{header1}
 	\$(CPP) -I. \$(INC) -I$kernel{dir1} \$(DEFINE) \$(ASSCPPDEFINE) $kernel{file1} | perl -ne "s/%\\s+/%/g; print unless /^\\s*#/" > \$@
 
 kernel2.s: $kernel{file2}
 	\$(CPP) -I. \$(INC) -I$kernel{dir1} \$(DEFINE) \$(ASSCPPDEFINE) $kernel{file2} | perl -ne "s/%\\s+/%/g; print unless /^\\s*#/" > \$@
 
 EOC
+  my $create_mp = '';
+  if ($pari_version >= 2002005) {
+    my $mp_pre = $mp;
+    $mp = 'mp.c';
+    my $kern = "$kernel_dir/none";
+    my @dep			# Copied from src/kernel/none/MakeLVL1.SH 2.2.5
+      ="$kern/mp.c $kern/gcdll.c $kern/ratlift.c $kern/gcd.c $kern/mp_indep.c";
+    $create_mp = <<EOS;
+mp.c: @dep
+	\$(PERL) -pe1 @dep > \$@
+EOS
+  }
   return '
 all :: libPARI$(LIB_EXT)
 
@@ -187,31 +230,32 @@ test:
 
 libPARI$(LIB_EXT): $(OBJECT)
 	-$(RM_F) libPARI$(LIB_EXT)
-	$(AR) $(ADD_AR_OPT) cr libPARI$(LIB_EXT) $(OBJECT)
+	$(AR) $(ADD_AR_OPT) $(MY_AR_PRE_TARGET)libPARI$(LIB_EXT) $(MY_AR_OBJECT)
 	$(RANLIB) libPARI$(LIB_EXT)
 
 ' . qq{
+$create_mp
 pariinl.h: @inlines
 	\$(PERL) -pe1 @inlines > pariinl.h
 
 $converted
 
 mp\$(OBJ_EXT): $mp pariinl.h
-	\$(CCCMD) \$(CCCDLFLAGS) \$(DEFINE) -o \$@ $mp
+	\$(CCCMD) \$(CCCDLFLAGS) \$(DEFINE) \$(MY_CC_PRE_TARGET)\$@ $mp
 
 kernel\$(OBJ_EXT): $kernel{converted1} pariinl.h
-	\$(ASSCMD) \$(ASSDEFINE) -o \$@ $kernel{converted1}
+	\$(ASSCMD) \$(ASSDEFINE) \$(MY_CC_PRE_TARGET)\$@ $kernel{converted1}
 
 kernel2\$(OBJ_EXT): $kernel{converted2} pariinl.h
-	\$(ASSCMD) \$(ASSDEFINE) -o \$@ $kernel{converted2}
+	\$(ASSCMD) \$(ASSDEFINE) \$(MY_CC_PRE_TARGET)\$@ $kernel{converted2}
 
 mpinl\$(OBJ_EXT): $mpinl $mpinlh pariinl.h
-	\$(CCCMD) \$(CCCDLFLAGS) \$(DEFINE) -o \$@ $mpinl
+	\$(CCCMD) \$(CCCDLFLAGS) \$(DEFINE) \$(MY_CC_PRE_TARGET)\$@ $mpinl
 
 } .
     join "\n", map { <<EOF } sort keys %cfiles;
 $_\$(OBJ_EXT): $cfiles{$_} pariinl.h paricfg.h
-	\$(CCCMD) \$(CCCDLFLAGS) \$(DEFINE) -o \$@ $cfiles{$_}
+	\$(CCCMD) \$(CCCDLFLAGS) \$(DEFINE) \$(MY_CC_PRE_TARGET)\$@ $cfiles{$_}
 EOF
 }
 
@@ -222,7 +266,7 @@ sub MY::const_config
 {
  my $self = shift;
  my $flags = $self->{'CCCDLFLAGS'}; # Tmp var needed with Perl4 !
- $flags =~ s/(-[fK]?\s*)pic\b/${1}PIC/; 
+ $flags =~ s/(-[fK]?\s*)pic\b/${1}PIC/;
  $flags =~ s/-KPIC/-K PIC/;	# Apparently needed on Solaris...
  $self->{'CCCDLFLAGS'} = $flags;
  if ($^O eq 'MSWin32' && $Config{'ccflags'} =~ /-DPERL_OBJECT/)

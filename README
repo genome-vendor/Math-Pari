@@ -11,9 +11,9 @@ a) Math::Pari is the PERL interface to the PARI part of GP/PARI
      use of most PARI functions (>500) as Perl functions, and (almost)
      seamless merging of PARI and Perl data.
 
-b) This module includes C part; thus it is requires a *fully* working Perl
-   installation, including a C compiler which Perl knows about.  Since
-   prebuild configurations are typically broken (in many subtle ways),
+b) This module includes a part written in C; thus it is requires a *fully*
+   working Perl installation, including a C compiler which Perl knows about.
+   Since prebuild configurations are typically broken (in many subtle ways),
    it is not supported unless your perl executable was build on your machine
    (or otherwise you show that you know what you are talking about ;-).
 
@@ -74,6 +74,7 @@ e) Reporting bugs/problems
    I need to see the output of 
 
      perl Makefile.PL
+     perl -V
 
    and the relevant messages "near the failure".
 

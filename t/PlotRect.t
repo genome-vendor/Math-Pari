@@ -11,7 +11,7 @@ if ($@ =~ m%^Can't locate Term/Gnuplot.pm in \@INC%) {
 } else {
   print "1..1\n";
 }
-eval 'setprecision 9';
+setprecision 9;
 $x = PARIvar 'x';
 
 $t = plothsizes();

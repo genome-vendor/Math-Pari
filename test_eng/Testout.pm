@@ -23,30 +23,34 @@ prec($3 || $1, 1) if $mess =~ /realprecision = (\d+) significant digits( \((\d+)
 
 $| = 1;
 @seen{qw(Pi I Euler a x y z k t q u j l n v p name other mhbi
-	 acurve bcurve ccurve cmcurve tcurve mcurve deu ma mpoints)} 
+	 acurve bcurve ccurve cmcurve tcurve mcurve ma mpoints)} 
   = (' ', ' ', ' ', ('$') x 100);
 for (keys %seen) {
   $$_ = PARI($_);
 }
+$seen{'random'} = ' ';
+$DEFAULT = undef;
+
 # Some of these are repeated below (look for XXXX), since they cause
 # an early interpretation of unquoted args
 @not_yet_defined{qw(
-    bernreal eta precision incgam log ln thetanullk polylog round weber
-    besselk hyperu reorder setrand intnum prodinf sumalt sumpos
-    factorpadic polcoeff polcyclo poldegree pollegendre polresultant polroots
-    poltchebi polzagier
-    plotbox plotcolor plotcursor plotdraw ploth plothraw plotinit plotlines 
-    plotmove plotpoints plotrline plotrmove plotrpoint psdraw psploth 
-    psplothraw
-    centerlift shift shiftmul type
-    Qfb addprimes contfrac core coredisc factor factorial ffinit hilbert 
-    lift qfbclassno sigma
-    bnfreg nfdisc nfinit polgalois polred polredabs polsubcyclo zetak
-    Set Vec algdep charpoly concat lindep matker matkerint matsnf trans
-    vecextract vecsort
-    plotkill
-    ellbil ellheight ellinit elllseries ellpow ellwp
+    type
   )} = (1) x 10000;
+
+if ($file =~ /plot|graph|all/) {
+  eval { link_gnuplot() };
+  if ($@ =~ m%^Can't locate Term/Gnuplot.pm in \@INC%) {
+    print STDERR "# Can't locate Term/Gnuplot.pm in \@INC, ignoring plotting\n";
+    @not_yet_defined{qw(
+      plotbox plotcolor plotcursor plotdraw ploth plothraw plotinit plotlines 
+      plotmove plotpoints plotrline plotrmove plotrpoint psdraw psploth 
+      psplothraw
+      plotkill
+    )} = (1) x 10000;
+  } elsif ($@) {
+    die $@;
+  }
+}
 
 $started = 0;
 
@@ -56,11 +60,13 @@ for (@tests) {
   1 while s/^\\\\.*\n//;	# Comment
   $bad = /^\\/;			# \precision = 
   $wasbadprint = /\b(plot)\b/;
-  $wasprint = /\b((|p|tex)print|plot)\b/;
+  $wasprint = /\b((|p|tex)print(tex)?|plot)\b/;
   s/\s*\n\?\s*\Z// or die "Not terminated: `$_'\n";
   s/\A(\s*\?)+\s*//;
-  s/[^\S\n]+$//gm;
+#  s/[^\S\n]+$//gm;
   s/\A(.*)\s*; $ \s*(\w+)\s*\(/$1;$2(/mx; # Continuation lines of questions
+  # Special-case test nfields-3 with a wrapped question:
+  s/\A(p2=.*\d{10})\n(7\n)/$1$2/;
   s/\A(.*)\s*$//m or die "No question: `$_'\n";
   $in = $1;
   1 while s/^\n//;		# Before warnings
@@ -108,9 +114,19 @@ sub format_vvector {
   "PARIcol($in)";
 }
 
+sub re_format {			# Convert PARI output to a regular expression
+  my $in = join "\n", @_;
+  $in = quotemeta $in;
+  $in =~ s/\\\]\\\n\\\n\\\[/\\s*;\\s*/g; # row separator
+  $in =~ s/\\\n/\\s*/g;
+  $in =~ s/\\[ \t]/,?\\s*/g;
+  $in
+}
+
 sub mformat {
+  # if not matrix, join with \t
   return join("\t", @_) unless @_ > 1 and $_[0] =~ /^\[/;
-  @_ = grep {!/^$/} @_;
+  @_ = grep {!/^$/} @_;		# remove empty lines
   return join("\t", @_) if grep {!/^\s*\[.*\]\s*$/} @_;	# Not matrix
   #return join("\t", @_) if grep {!/^\s*\([^,]*,\s*$/} @_; # Extra commas
   map {s/^\s*\[(.*)\]\s*$/$1/} @_;
@@ -159,14 +175,20 @@ sub process_test {
   $in =~ s/\b(\d+|[a-z]+\(\))\s*\\\s*(\d+(\^\d+)?)/ gdivent($1,$2)/g; # \
   $in =~ s/\b(\d+)\s*\\\/\s*(\d+)/ gdivround($1,$2)/g; # \/
   $in =~ s/\b(\w+)\s*!/ ifact($1)/g; # !
+  $in =~ s/,\s*(?=,)/, \$DEFAULT /g;	# Default arguments?
+  $in =~ s/^default\(realprecision,(.*)\)/\\p $1/; # Some cases of default()
+  $in =~ s/^default\(seriesprecision,(.*)\)/\\ps $1/; # Some cases of default()
+  $in =~ s/(\w+)\s*\\(\w+(\s*\^\s*\w+)?)/gdivent($1,$2)/g; # random\10^8
   if ($in =~ /^\\p\s*(\d+)/) {
     prec($1);
+  } elsif ($in =~ /^\\ps\s*(\d+)/) {		# \\ for division unsupported
+    sprec($1);
   } elsif ($in =~ /\\/) {		# \\ for division unsupported
     $c--;
     process_error($in, $out, '\\');
   } elsif ($in =~ /^(\w+)\s*\([^()]*\)\s*=/ and 0) { # XXXX Not implemented yet
     $c--;
-    process_definition($1, $in);    
+    process_definition($1, $in);
   } elsif ($in =~ /[!_\']/) {	# Factorial
     print "# `$in'\nok $c # Skipping (ifact/conj/deriv)\n";
   } else {
@@ -176,20 +198,20 @@ sub process_test {
     $in =~ s/\^\^\^/**/g;	# Now treat it outside of O()
     $in =~ s/\[([^\[\];]*;[^\[\]]*)\]/format_matrix($1)/ge; # Matrix
     $in =~ s/\[([^\[\];]*)\]\s*~/format_vvector($1)/ge; # Vertical vector
+    $in =~ s/\bif\(([^(,)]+),([^(,)]+),([^(,)]+)\)/(($1) ? ($2) : ($3))/g; # if(a,b,c)
     if ($in =~ /\[[^\]]*;/) {	# Matrix
       print "# `$in'\nok $c # Skipping (matrix notation)\n";
       return;
-    } elsif ($in =~ /(^|[\(=])%/) {
+    } elsif ($in =~ /(^|[\(=,])%/) {
       print "# `$in'\nok $c # Skipping (history notation)\n";
       return;
     } elsif ($in =~ /
 		      (
 			\b 
-			( while | if | for | goto | label | changevar
-                          | gettime | forstep 
+			( while | until | if | for | goto | label | changevar
+                          | gettime | forstep | default
                           # XXXX These need to be done ASAP:
-                          | reorder | log | ln | setrand | sumalt | prodinf
-			  | truncate
+			  | sumalt | prodinf 
                         )
 			\b 
 		      |
@@ -234,9 +256,10 @@ sub process_test {
 	     and $in =~ / \b ($installed) \s* \( /x) {
       print "# `$in'\nok $c # Skipping (installed function)\n";
       return;
-    } elsif ($in =~ / \b ( rnfdiscf | rnfpseudobasis | idealhermite2 | isideal ) \b /x) {
-#    } elsif ($in =~ / \b ( rnfhermitebasis | rnfsteinitz | idealhermite2 | isideal ) \b /x) {
-      # Will result in segfault or wrong answer
+    } elsif ($in =~ / \b ( deu=direuler | bnrisprincipal | nfisideal
+			   | idealhnf .* 3 | nfgaloisapply ) \b /x
+	     and $file !~ /will_fail/) {
+      # XXXX Will result in a wrong answer, but we moved these tests to a different
       print "# `$in'\nok $c # Skipping (would fail, checked in different place)\n";
       return;
     } elsif ($in =~ /\bget(heap|stack)\b/) { # Meaningless
@@ -247,7 +270,7 @@ sub process_test {
       return;
     }
     # Convert transposition
-    $in =~ s/(\w+(\([^()]*\))?|\[([^\[\]]+(?=[\[\]])|\[[^\[\]]*\])*\])~/trans($1)/g;
+    $in =~ s/(\w+(\([^()]*\))?|\[([^\[\]]+(?=[\[\]])|\[[^\[\]]*\])*\])~/mattranspose($1)/g;
     if ($in =~ /~/) {
       print "# `$in'\nok $c # Skipping (transpose notation)\n";
       return;
@@ -257,10 +280,16 @@ sub process_test {
       *$1 = \&{$2};
       return;
     }
-    if ($in !~ /\w\(/) {	# No function calls?
+    if ($in !~ /\w\(/) { # No function calls
+      # XXXX Primitive!
+      # Constants: (.?) eats following + or - (2+3 ==> PARI(2)+PARI(3))
+      $in =~ s/(^|\G|\W)([-+]?\d+(\.\d*)?)(.?)/$1 PARI($2) $4/g;
+      # Big integer constants:
+      $in =~ s/\bPARI\((\d{10,})\)/PARI('$1')/g;
+    } elsif ($in =~ /\belllseries\b|\bbinomial\b|\*mathilbert\b/) { # high precision needed?
       # XXXX Primitive!
       # Substitute constants where they are not arguments to functions
-      $in =~ s/(^|\G|\W)([-+]?\d+(\.\d*)?)(.?)/$1 PARI($2) $4/g;
+      $in =~ s/(^|\G|\W)([-+]?\d+\.\d*)/$1 PARI('$2') /g;
       # Big integer constants:
       $in =~ s/\bPARI\((\d{10,})\)/PARI('$1')/g;
     } else {
@@ -274,7 +303,7 @@ sub process_test {
       $in =~ s/([\(,]\w+)=(?!=)/$1,/g;
     }
     # Substitute print
-    $in =~ s/\b(|p|tex)print\(/ 'my_' . $1 . 'print(1,' /ge;
+    $in =~ s/\b(|p|tex)print(tex|)\(/ 'my_' . $1 . $2 . 'print(1,' /ge;
     $in =~ s/\b(|p|tex)print1\(/ 'my_' . $1 . 'print(0,'/ge;
     $in =~ s/\b(eval|shift|sort)\(/&$1\(/g; # eval($y)
     # Recognize variables
@@ -290,13 +319,15 @@ sub process_test {
     }
     # Simplify for the following conversion:
     $in =~ s/\brandom\(\)/random/g;
-    # Sub-ify sum,prod
+    # Sub-ify sum,prod,intnum
     1 while
       $in =~ s/
 		(
 		  \b 
 		  (
 		    sum 
+		  |
+		    intnum
 		  |
 		    prod (?: euler )?
 		  ) \s*
@@ -349,6 +380,32 @@ sub process_test {
 		  , [^(,)]+ \)
                 )
 	      /$1 sub{$3}/xg;
+    # Sub-ify direuler
+    1 while
+      $in =~ s/
+		(
+		  \b 
+		  (
+		    direuler
+		  ) \s*
+		  \( 
+		  (?:
+		     (?:
+		       [^(=,)]+ 
+		       (?=
+		         [(=,)]
+		       )
+		     |
+		       \( [^()]+ \)
+		     )		# One level of parenths supported
+		  [,=]){3}		# $x,1,100
+		)
+		(?!\s*sub\s*\{)	# Skip already converted...
+                (.*)
+		(?=
+                  \)
+                )
+	      /$1 sub{$3}/xg;
     # Do the rest
     1 while
       $in =~ s/
@@ -368,13 +425,13 @@ sub process_test {
 		    # prod \w* 
 		    prodinf
 		  |
-		    v? vector 
+		    v? vector v? 
 		  |
 		    matrix 
 		  |
 		    intgen 
-		  |
-		    intnum 
+		  #|
+		  #  intnum 
 		  |
 		    intopen 
 		  |
@@ -437,12 +494,17 @@ sub process_test {
     my $have_floats = ($in =~ /\d+\.\d*|\d{10,}/ 
 		       or $in =~ /\b(zeta|bin|comprealraw|frac|lseriesell|powrealraw|legendre|suminf|forstep)\b/);
     # Remove the value from texprint:
-    pop @$out if $in =~ /texprint/ and @$out == 2;
+    # pop @$out if $in =~ /texprint/ and @$out == 2;
     $res = eval "$in";
     $rres = $res;
     $rres = pari_print $res if defined $res and ref $res;
+    my $re_out;
     if ($doprint) {
-      $rout = join "\t", @$out, "";
+      if ($in =~ /my_texprint/) { # Special-case, assume one wrapped with \n
+	$rout = join "", @$out, "\t";
+      } else {
+	$rout = join "\t", @$out, "";
+      }
       if ($have_floats) {
 	$printout = massage_floats $printout, "14f";
 	$rout = massage_floats $rout, "14f";
@@ -451,29 +513,43 @@ sub process_test {
       $printout =~ s/\s+/ /g;
       $rout =~ s/\s+/ /g;
     } else {
-      $rout = mformat @$out;
-      if (defined $rres and $rres !~ /\n/) {
-	$rout =~ s/\]\s*\[/; /g;
-	$rout =~ s/,\n/, \n/g;	# Spaces were removed 
-	$rout =~ s/\n//g;		# Long wrapped text
-      }
-      if ($rout =~ /\[.*[-+,]\s/) {
-	$rout =~ s/,*\s+/ /g;
-	$rres =~ s/,*\s+/ /g if defined $res;
-      }
-    }
-    if ($have_floats and ref $res) {
-      if ($in =~ /\b(zeta|bin|comprealraw|frac|lseriesell|powrealraw|legendre|suminf)\b/) {
-	$rres = massage_floats $rres, "14f";
-	$rout = massage_floats $rout, "14f";
+      # Special-case several tests in all.t
+      if (($have_floats or $in =~ /^(sinh?|solve)\b/) and ref $res) {
+	# do it the hard way: we cannot massage floats before doing wrapping
+	$rout = mformat @$out;
+	if (defined $rres and $rres !~ /\n/) {
+	  $rout =~ s/\]\s*\[/; /g;
+	  $rout =~ s/,\n/, \n/g; # Spaces were removed 
+	  $rout =~ s/\n//g;	# Long wrapped text
+	}
+	if ($rout =~ /\[.*[-+,;]\s/) {
+	  $rout =~ s/,*\s+/ /g;
+	  $rres =~ s/,*\s+/ /g if defined $res;
+	}
+	if ($in =~ /\b(zeta|bin|comprealraw|frac|lseriesell|powrealraw|pollegendre|legendre|suminf)\b/) {
+	  $rres = massage_floats $rres, "14f";
+	  $rout = massage_floats $rout, "14f";
+	} else {
+	  $rres = massage_floats $rres;
+	  $rout = massage_floats $rout;
+	}
+	$rout =~ s/\s*([-+])\s*/$1/g;
+	$rres =~ s/\s*([-+])\s*/$1/g if defined $res;
       } else {
-	$rres = massage_floats $rres;
-	$rout = massage_floats $rout;
+	$re_out = re_format @$out;
+#	$rout = mformat @$out;
+#	if (defined $rres and $rres !~ /\n/) {
+#	  $rout =~ s/\]\s*\[/; /g;
+#	  $rout =~ s/,\n/, \n/g; # Spaces were removed 
+#	  $rout =~ s/\n//g;	# Long wrapped text
+#	}
+#	if ($rout =~ /\[.*[-+,;]\s/) {
+#	  $rout =~ s/,*\s+/ /g;
+#	  $rres =~ s/,*\s+/ /g if defined $res;
+#	}
+#	$rout =~ s/\s*([-+])\s*/$1/g;
+#	$rres =~ s/\s*([-+])\s*/$1/g if defined $res;
       }
-    }
-    if (not $doprint) {
-      $rout =~ s/\s*([-+])\s*/$1/g;
-      $rres =~ s/\s*([-+])\s*/$1/g if defined $res;
     }
     if ($@) {
       if ($@ =~ /^Undefined subroutine &main::(\w+)/ 
@@ -482,9 +558,17 @@ sub process_test {
       } else {
 	print "not ok $c # in='$in', err='$@'\n";
       }
+    } elsif (not $noans and defined $re_out 
+	     and (not defined $rres or $rres !~ /^$re_out$/)) {
+      $out->[0] =~ s/\n/\t/g;	# @$out usually has 1 elt
+      print "not ok $c # in='$in'\n#    out='", $rres, "', type='", ref $res,
+      "'\n# pari==='", join("\t", @$out), "'\n# re_out='$re_out'\n";
+    } elsif (not $noans and defined $re_out) {
+      print "ok $c\n";
+      @seen{keys %seen_now} = values %seen_now;
     } elsif (not $noans and (not defined $rres or $rres ne $rout)) {
-      print "not ok $c # in='$in'\n#    out='", $rres, 
-      "'\n# expect='$rout', type='", ref $res,"'\n";
+      print "not ok $c # in='$in'\n#    out='", $rres, "', type='", ref $res,
+      "'\n# expect='$rout'\n";
     } elsif ($doprint and $printout ne $rout) {
       print "not ok $c # in='$in'\n# printout='", $printout, 
       "'\n#   expect='$rout', type='", ref $res,"'\n";
@@ -561,4 +645,9 @@ sub prec {
   setprecision($_[0]);
   print "# Setting precision to $_[0] digits.\n";
   print "ok $c\n" unless $_[1];
+}
+sub sprec {
+  setseriesprecision($_[0]);
+  print "# Setting series precision to $_[0] digits.\n";
+  print "ok $c\n";
 }

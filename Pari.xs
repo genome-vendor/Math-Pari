@@ -540,6 +540,15 @@ setprecision(long digits)
   return m;
 }
 
+long
+setseriesprecision(long digits)
+{
+  long m = precdl;
+
+  if(digits>0) {precdl = digits;}
+  return m;
+}
+
 SV*
 pari_print(GEN in)
 {
@@ -811,6 +820,169 @@ Arr_FETCH(GEN g, I32 n)
     return (GEN)g[n + 1];
 }
 
+#define DFT_VAR (GEN)-1
+#define DFT_GEN (GEN)NULL
+
+static void
+check_pointer(unsigned int ptrs, GEN argvec[])
+{
+  unsigned int i;
+  for (i=0; ptrs; i++,ptrs>>=1)
+    if (ptrs & 1) *((GEN*)argvec[i]) = gclone(*((GEN*)argvec[i]));
+}
+
+#define RETTYPE_VOID 0
+#define RETTYPE_LONG 1
+#define RETTYPE_GEN 2
+
+static void
+fill_argvect(entree *ep, char *s, long *has_pointer, GEN *argvec,
+	     long *rettype, SV **args, int items)
+{
+    entree *ep1;
+    int i = 0, j = 0;
+    long fake;
+    PariExpr expr;
+
+    if (!ep)
+	croak("XSUB call through interface did not provide *function");
+    if (!s)
+	croak("XSUB call through interface with a NULL code");
+
+    while (*s) {
+	if (i >= 8)
+	    croak("Too many args for a flexible-interface function");
+	switch (*s++)
+	    {
+	    case 'G': /* GEN */
+		argvec[i++] = sv2pari(args[j++]);
+		break;
+
+	    case 'L': /* long */
+		argvec[i++] = (GEN) (long)SvIV(args[j]);
+		j++;
+		break;
+
+	    case 'n': /* var number */
+		argvec[i++] = (GEN) numvar(sv2pari(args[j++]));
+		break;
+
+	    case 'V': /* variable */
+		ep1 = bindVariable(args[j++]);
+		argvec[i++] = (GEN)ep1;
+		if (EpVALENCE(ep1) != EpVAR && *(s-1) == 'V')
+		    croak("Did not get a variable");
+		break;
+	    case 'S': /* symbol */
+		ep1 = bindVariable(args[j++]);
+		argvec[i++] = (GEN)ep1;
+		break;
+	    case '&': /* *GEN */
+		ep1 = bindVariable(args[j++]);
+		if (ep1->value == (void*)initial_value(ep1))
+		    changevalue(ep1, gzero); /* don't overwrite initial value */
+		*has_pointer |= (1 << i);
+		argvec[i++] = (GEN) &(ep1->value); 
+		break;
+	    case  'I': /* Input position - subroutine */
+		if (SvROK(args[j]) && SvTYPE(SvRV(args[j])) == SVt_PVCV) {
+		    expr = ((char*)&(SvRV(args[j])->sv_flags)) + LSB_in_U32;
+		} else expr = (char *)SvPV(args[j],na);
+		argvec[i++] = (GEN) expr;
+		j++;
+		break;
+
+	    case 'r': /* raw */
+	    case 's': /* expanded string; empty arg yields "" */
+		argvec[i++] = (GEN) SvPV(args[j],na);
+		j++;
+		break;
+
+	    case 'p': /* precision */
+		argvec[i++] = (GEN) prec; 
+		break;
+
+	    case '=':
+	    case ',':
+		break;
+
+	    case 'D': /* Has a default value */
+		if (j >= items || !SvOK(args[j]))
+		    {
+			char *pre = s;
+
+			if (j < items)
+			    j++;
+
+			if (*s == 'G' || *s == '&') { 
+			    argvec[i++]=DFT_GEN; s++; 
+			    break; 
+			}
+			if (*s == 'n')              { 
+			    argvec[i++]=DFT_VAR; s++; 
+			    break; 
+			}
+			while (*s++ != ',');
+			switch (*s) {
+			case 'r': case 's':
+			    if (pre[0] == '\"' && pre[1] == '\"' 
+				&& pre[2] == 0) {
+				argvec[i++] = (GEN) "";
+				break;
+			    }
+			    goto unknown;
+			case 'L': /* long */
+			    argvec[i++] = (GEN) atol(pre);
+			    break;
+			case 'G':
+			    if ((*pre == '1' || *pre == '0') && pre[1]==',') {
+				argvec[i++] = (*pre == '1'
+					       ? gun : gzero);
+				break;
+			    }
+			default:
+			  unknown:
+			    croak("Cannot process default argument %.*s of type %.1s",
+				  s - pre - 1, pre, s);
+			}
+			s++;			/* Skip ',' */
+		    }
+		else
+		    if (*s == 'G' || *s == '&' || *s == 'n') break;
+		while (*s++ != ',');
+		break;
+
+	    case 'P': /* series precision */
+		argvec[i++] = (GEN) precdl; 
+		break;
+
+	    case 'f': /* Fake *long argument */
+		argvec[i++] = (GEN) &fake; 
+		break;
+
+	    case 'x': /* Foreign function */
+		croak("Calling Perl via PARI with an unknown interface: avoiding loop");
+		break;
+
+	    case 'l': /* Return long */
+		*rettype = RETTYPE_LONG; break;
+
+	    case 'v': /* Return void */
+		*rettype = RETTYPE_VOID; break;
+
+	    default: 
+		croak("Unsupported code '%.1s' in signature of a PARI function", s-1);
+	    }
+	if (j > items)
+	    croak("Too few args %d for PARI function %s", items, ep->name);
+    }
+    if (j < items)
+	croak("%d unused args for PARI function %s", items - j, ep->name);
+#if PURIFY
+    for ( ; i<9; i++) argvec[i]=NULL; 
+#endif
+}
+
 typedef int (*FUNC_PTR)();
 #define set_gnuterm(a,b) set_term_funcp((FUNC_PTR)(a),(struct termentry *)(b))
 
@@ -936,6 +1108,79 @@ char   *help
 
 # In what follows if a function returns long, we do not need anything
 # on the stack, thus we add a cleanup section.
+
+void
+interface_flexible_void(...)
+long	oldavma=avma;
+ CODE:
+  {
+    entree *ep = (entree *) XSANY.any_dptr, *ep1;
+    void (*FUNCTION_real)(VARARG)
+	= (void (*)(VARARG))ep->value;
+    GEN argvec[9];
+    long rettype = RETTYPE_GEN;
+    long has_pointer = 0;		/* XXXX ?? */
+
+    fill_argvect(ep, ep->code, &has_pointer, argvec, &rettype, &ST(0), items);
+
+    if (rettype != RETTYPE_VOID)
+	croak("Expected VOID return type, got code '%s'", ep->code);
+    
+    (FUNCTION_real)(argvec[0], argvec[1], argvec[2], argvec[3],
+	          argvec[4], argvec[5], argvec[6], argvec[7], argvec[8]);
+    if (has_pointer) 
+	check_pointer(has_pointer,argvec);
+  }
+
+GEN
+interface_flexible_gen(...)
+long	oldavma=avma;
+ CODE:
+  {
+    entree *ep = (entree *) XSANY.any_dptr, *ep1;
+    GEN (*FUNCTION_real)(VARARG)
+	= (GEN (*)(VARARG))ep->value;
+    GEN argvec[9];
+    long rettype = RETTYPE_GEN;
+    long has_pointer = 0;		/* XXXX ?? */
+
+    fill_argvect(ep, ep->code, &has_pointer, argvec, &rettype, &ST(0), items);
+
+    if (rettype != RETTYPE_GEN)
+	croak("Expected GEN return type, got code '%s'", ep->code);
+    
+    RETVAL=(FUNCTION_real)(argvec[0], argvec[1], argvec[2], argvec[3],
+	          argvec[4], argvec[5], argvec[6], argvec[7], argvec[8]);
+    if (has_pointer) 
+	check_pointer(has_pointer,argvec);
+  }
+ OUTPUT:
+   RETVAL
+
+long
+interface_flexible_long(...)
+long	oldavma=avma;
+ CODE:
+  {
+    entree *ep = (entree *) XSANY.any_dptr, *ep1;
+    long (*FUNCTION_real)(VARARG)
+	= (long (*)(VARARG))ep->value;
+    GEN argvec[9];
+    long rettype = RETTYPE_GEN;
+    long has_pointer = 0;		/* XXXX ?? */
+
+    fill_argvect(ep, ep->code, &has_pointer, argvec, &rettype, &ST(0), items);
+
+    if (rettype != RETTYPE_LONG)
+	croak("Expected long return type, got code '%s'", ep->code);
+    
+    RETVAL=FUNCTION_real(argvec[0], argvec[1], argvec[2], argvec[3],
+	          argvec[4], argvec[5], argvec[6], argvec[7], argvec[8]);
+    if (has_pointer) 
+	check_pointer(has_pointer,argvec);
+  }
+ OUTPUT:
+   RETVAL
 
 GEN
 interface0()
@@ -2230,27 +2475,21 @@ loadPari(name)
 	 void (*subaddr)(CV*);
 	 char* file = __FILE__, *proto = NULL;
 	 char subname[276]="Math::Pari::";
-	 char buf[10];
+	 char buf[64], *s, *s1;
 	 CV *protocv;
+	 int flexible = 0;
 	 
-	 strcpy(subname+12,"interface");
 	 sprintf(buf, "%d", valence);
-	 strcpy(subname+12+9,buf);
-	 protocv = perl_get_cv(subname, FALSE);
-	 if (protocv) {
-	     proto = SvPV((SV*)protocv,na);
-	 }
-	 
-	 strcpy(subname+12,olds);
 	 switch (valence) {
 	 case 0:
-	     if (ep->code[0] == 'p' && ep->code[1] == 0) {
+	     if (!ep->code) {
+		 croak("Unsupported Pari function %s, interface 0 code NULL");
+	     } else if (ep->code[0] == 'p' && ep->code[1] == 0) {
 		 DO_INTERFACE(0);
 	     } else if (ep->code[0] == 0) {
 		 DO_INTERFACE(00);
 	     } else {
-		 croak("Unsupported interface %d for a Pari function %s with code \"%s\"",
-		       valence, olds, ep->code);
+		 goto flexible;
 	     }
 	     break;
 	   CASE_INTERFACE(1);
@@ -2302,13 +2541,41 @@ loadPari(name)
 	   CASE_INTERFACE(86);
 	   CASE_INTERFACE(87);
 
-	 default: croak("Unsupported interface %d for a Pari function %s",
-			valence, olds);
+	 default: 
+	     if (!ep->code)
+		 croak("Unsupported interface %d and no code for a Pari function %s",
+		       valence, olds);
+	   flexible:
+	     s1 = s = ep->code;
+	     if (*s1 == 'x')
+		 s1++;
+	     if (*s1 == 'v') {
+		 strcpy(buf, "_flexible_void");
+		 DO_INTERFACE(_flexible_void);
+	     }
+	     else if (*s1 == 'l') {
+		 strcpy(buf, "_flexible_long");
+		 DO_INTERFACE(_flexible_long);
+	     }
+	     else {
+		 strcpy(buf, "_flexible_gen");
+		 DO_INTERFACE(_flexible_gen);
+	     }
+	     
+	     flexible = 1;
 	 }
+	 strcpy(subname+12,"interface");
+	 strcpy(subname+12+9,buf);
+	 protocv = perl_get_cv(subname, FALSE);
+	 if (protocv) {
+	     proto = SvPV((SV*)protocv,na);
+	 }
+	 
+	 strcpy(subname+12,olds);
 	 RETVAL = newXS(subname,subaddr,file);
 	 if (proto)
 	     sv_setpv((SV*)RETVAL, proto);
-	 CvXSUBANY(RETVAL).any_dptr = func;
+	 CvXSUBANY(RETVAL).any_dptr = flexible ? (void*)ep : (void*)func;
        } else {
 	 croak("Cannot load a Pari macro `%s'", olds);
        }
@@ -2331,9 +2598,9 @@ listPari(tag)
 	   valence = EpVALENCE(ep);
 	   if (tag == -1 || ep->menu == tag) {
 	       switch (valence) {
+		   default:
 		   case 0:
-		       if ((ep->code[0] != 0) 
-			   && ((ep->code[0] != 'p' || ep->code[1] != 0)))
+		       if (ep->code == 0)
 			   break;
 		       /* FALL THROUGH */
 	           case 1:
@@ -2520,3 +2787,8 @@ set_gnuterm(a,b)
 long
 setprecision(digits=0)
     long digits
+
+long
+setseriesprecision(digits=0)
+    long digits
+

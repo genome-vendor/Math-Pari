@@ -279,6 +279,7 @@ EOP
 		   '2.0.12' => ['patch12/diff_for_perl_2012'],
 		   '2.0.13' => ['patch13/diff_for_perl_2013',
 				'patch13/diff_for_gnuplot_2013'],
+		   '2.0.14' => ['patch14/diff_for_perl_2014'],
 		  );
     if ($patches{$version}) {
       print "Patching...\n";

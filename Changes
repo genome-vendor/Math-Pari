@@ -164,3 +164,9 @@ Files=15,  Tests=1378, 108 secs (86.46 cusr  3.82 csys = 90.28 cpu)
 	Special-case version 2.0.14 too (prefer alpha over betas).
 2.001401:
 	machine=port target was trying to compile src//level0.c.
+2.001402:
+	New patch for issqrt() - was wrong signature.
+	Correct backwacking of \s \d.
+	Default to `port' for unknow architectures.
+	perl -MMath::Pari=:int -e 'for ($i = 1; $i < 10; $i++) {print "$i\n"}'
+	     not fixed yet.  (Sometimes segfaults, prints floating points.)

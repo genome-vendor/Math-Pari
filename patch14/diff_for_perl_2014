@@ -1,0 +1,11 @@
+--- pari-2.0.14.alpha/src/language/init.c~	Fri Mar  5 02:52:30 1999
++++ pari-2.0.14.alpha/src/language/init.c	Mon May 17 18:25:37 1999
+@@ -1414,7 +1414,7 @@ entree functions_basic[]={
+ {"isfundamental",18,(void*)gisfundamental,4,"G"},
+ {"isprime",18,(void*)gisprime,4,"G"},
+ {"ispseudoprime",18,(void*)gispsp,4,"G"},
+-{"issquare",18,(void*)gcarrecomplet,4,"GD&"},
++{"issquare",99,(void*)gcarrecomplet,4,"GD&"},
+ {"issquarefree",18,(void*)gissquarefree,4,"G"},
+ {"kronecker",2,(void*)gkronecker,4,"GG"},
+ {"lcm",2,(void*)glcm,4,"GG"},

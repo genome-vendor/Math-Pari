@@ -44,6 +44,7 @@ Found PARI build directory in $paridir
      (formatted $pari_version).
 EOP
   $pari_version =~ s/.*pari-0+([0-9]*).*/$1/;
+  $common::pari_version = $pari_version;
 } else {
   die "Could not find PARI build directory, please edit Makefile.PL.\n";
 }
@@ -217,7 +218,7 @@ EOP
   #print "list = `@lst'\n";
   
   for $file (@lst) {
-    next unless $file =~ /pari.*(\d+\.\d+\.\d+).*\.tar\.gz$/;
+    next unless $file =~ /pari.*(\d+\.\d+\.\d+).*\.t(ar\.)?gz$/;
     $version = $1;
     if ($file =~ /alpha/) {
       $alpha{$version} = $file;
@@ -263,7 +264,7 @@ EOP
     print  "zcat $file | tar -xvf -\n";
     system "zcat $file | tar -xvf -"
       and die "Cannot extract: $!, exitcode=$?.\n";
-    ($dir = $file) =~ s/\.tar\.gz$// or die "malformed name `$file'";
+    ($dir = $file) =~ s/\.t(ar\.)?gz$// or die "malformed name `$file'";
     -d $dir or die "Did not find directory $dir!";
     print  "cd $dir ; sh ./Configure\n";
     system "cd $dir ; sh ./Configure"

@@ -178,3 +178,7 @@ Files=15,  Tests=1378, 108 secs (86.46 cusr  3.82 csys = 90.28 cpu)
 	Now keep log of codes as supported by Math::Pari, as
 	 implemented by PARI, and have a tool to check this (see libPARI/).
 	Make test script creation skip backups and other junk.
+2.001500:
+	Update assembler-handling logic to 2.0.15-pre level,
+	streamline logic a little bit.
+	Tested with 2.0.14 and 2.0.15-pre+patches.

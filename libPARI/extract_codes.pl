@@ -1,7 +1,10 @@
 #!/usr/bin/perl -wn
 BEGIN {
+  @ARGV = ("$ARGV[0]/src/language/init.c", "$ARGV[0]/src/gp/highlvl.c")
+    if @ARGV == 1;
   @ARGV == 2 or die <<EOD;
-Usage: $0  \$PARI_SRC_DIR/src/language/init.c \$PARI_SRC_DIR/src/gp/highlvl.c
+Usage: $0  \$PARI_SRC_DIR
+       $0  \$PARI_SRC_DIR/src/language/init.c \$PARI_SRC_DIR/src/gp/highlvl.c
 EOD
   open EXP, 'expected_codes' or die "open expected_codes: $!";
   while (<EXP>) {

@@ -7,7 +7,7 @@ print "1..565\n";
 
 push @ARGV, 'libPARI/testouts' unless @ARGV;
 $| = 1;
-@seen{qw(pi i euler a x y z k t q u j l n name other)} = (' ', ' ', ' ', ('$') x 100);
+@seen{qw(Pi I Euler a x y z k t q u j l n name other)} = (' ', ' ', ' ', ('$') x 100);
 $x = PARI('x');
 $y = PARI('y');
 $z = PARI('z');
@@ -22,12 +22,21 @@ $n = PARI('n');
 $name = PARI('name');
 $other = PARI('other');
 
-while (<>) {
-  last if /^stacksize/;
-}
+#while (<>) {
+#  last if /^stacksize/;
+#}
+$started = 0;
+
 main_loop:
 while (<>) {
-  s/^(\?\s+)+// or die "Malformed question: `$_'";
+  unless (s/^(\?\s+)+//) {
+    if ($started) {
+      die "Malformed question: `$_'";
+    } else {
+      next;
+    }
+  }
+  $started = 1;
   next if /^\\\\/;		# Comment
   $bad = /^\\/;			# \precision = 
   $wasbadprint = /\b(plot)\b/;
@@ -44,7 +53,7 @@ while (<>) {
   defined or die "Can't find an answer";
   chomp;
   process_test($in, 1, []), redo if /^\?\s/; # Was a void 
-  s/^%\d+\s*=\s*// or die "Malformed answer: $_" unless $bad or $wasprint;
+#  s/^%\d+\s*=\s*// or die "Malformed answer: $_" unless $bad or $wasprint;
   if ($_ eq '' or $wasprint) {	# Answer is multiline
     @ans = $_ eq '' ? () : ($_) ;
     while (<>) {

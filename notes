@@ -1,0 +1,58 @@
+paricfg.h manually copied.
+
+Need an additional field to ep_produce: where parsing ended.
+fmt_nb only a placeholder.
+NOEXP2 needs to be fixed.
+init_opts declared in gp/gp.h.
+wrong dependence for none/kernel0.o
+Need to use $(AS) on sparcs, alpha, hppa.
+
+changevalue() and installep() are statics.
+numvar() disappeared.
+l0asm.c, Gnuplot.h, plotport.c anal.h, init.c, anal.c edited.
+
+Add for -g:
+
+dummy$(OBJ_EXT): pariinl.h
+	$(CCCMD) $(CCCDLFLAGS) $(DEFINE) -o $@ pariinl.h
+
+pariinl.c: pariinl.h
+	$(CPP) -I. $(INC) -I../../src/kernel/ix86/ $(DEFINE) $(CPPMINUS) < ../../src/kernel/none/level0.c | perl -ne "s/%s+/%/g; print unless /^s*#/" > $@
+
+dummy$(OBJ_EXT): pariinl.c
+	$(CCCMD) $(CCCDLFLAGS) $(DEFINE) -o $@ pariinl.c
+
+Instead of using __OPTIMIZE__ for switching (ouch!!!), Configure
+should check for -g in CFLAGS, and specify USE_INLINES macro.
+
+../src/graph/plotgnuplot.c: In function `rectdraw0':
+../src/graph/plotgnuplot.c:29: warning: unused variable `texts'
+../src/graph/plotgnuplot.c:28: warning: unused variable `ne'
+../src/graph/plotgnuplot.c:28: warning: unused variable `b'
+../src/graph/plotgnuplot.c:28: warning: unused variable `a'
+../src/graph/plotgnuplot.c:27: warning: unused variable `n'
+
+install() installs at the head of the chain, but findentry() expects
+that the installed entry goes into the end of the chain.
+
+err_recover() was flush()ing before giving the caller the possibility to
+die().
+
+coinit() assumes that a long can be put in 9 chars ?!
+p-adic was outputting extra space.
+
+bruteall() was overwriting old sp.
+
+sum and prod have the same numeric interface, but different string
+interfaces.
+
+
+
+
+t/Pari.t                     82    1   1.22%  77
+t/PlotRect.t      2   512    ??   ??       %  ??
+t/Testout.t       3   768   565  532  94.16%  10-12, 14-15, 18-19, 23-28, 31,
+                                              37-40, 42-43, 45-46, 48, 50, 53-
+                                              54, 56, 59-63, 66-565
+t/will_fail.t     2   512     4    4 100.00%  1-4
+Failed 4/4 test scripts, 0.00% okay. 537/651 subtests failed, 17.51% okay.

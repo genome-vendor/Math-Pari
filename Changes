@@ -78,3 +78,11 @@ after 0.92:
 after 0.93:
 	Updated for newer Term::Gnuplot.
 
+after 0.94:
+	Updated for v 2.0.11-beta of PARI.
+	One needs to manually copy paricfg.h from pari distribution
+		to libPARI directory.
+	Processor recognition is on level of 2.0.5-alpha.
+	sparcs on linux/nextstep not supported.
+	hppa cannot build dynamically, use machine=port instead in
+		Makefile.PL line.

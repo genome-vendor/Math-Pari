@@ -15,7 +15,9 @@ extern "C" {
 #  undef coeff
 #endif
 
-#include <genpari.h>
+#include <pari.h>
+#include <language/anal.h>
+#include <gp/gp.h>			/* init_opts */
 
 /* 	$Id: Pari.xs,v 1.7 1995/01/23 18:50:58 ilya Exp ilya $	 */
 /* dFUNCTION should be the last declaration! */
@@ -133,51 +135,88 @@ wrongT(SV *sv, char *file, int line)
 HV *pariStash;				/* For quick id. */
 HV *pariEpStash;
 
+/* Copied from anal.c. */
+static entree *
+installep(void *f, char *name, int len, int valence, int add, entree **table)
+{
+  entree *ep = (entree *) gpmalloc(sizeof(entree) + add + len+1);
+  const entree *ep1 = initial_value(ep);
+  char *u = (char *) ep1 + add;
+
+  ep->name    = u; strncpy(u, name,len); u[len]=0;
+  ep->args    = NULL; ep->help = NULL; ep->code = NULL;
+  ep->value   = f? f: (void *) ep1;
+  ep->next    = *table;
+  ep->valence = valence;
+  ep->menu    = 0;
+  return *table = ep;
+}
+static void
+changevalue(entree *ep, GEN val)
+{
+  GEN y = gclone(val), x = (GEN)ep->value;
+
+  ep->value = (void *)y;
+  if (x == (GEN) initial_value(ep) || !isclone(x))
+  {
+    y[-1] = (long)x; /* push new value */
+    return;
+  }
+  y[-1] = x[-1]; /* save initial value */
+  killbloc(x);   /* destroy intermediate one */
+}
+static long
+numvar(GEN x)
+{
+  if (typ(x) != t_POL || lgef(x) != 4 || 
+    !gcmp0((GEN)x[2]) || !gcmp1((GEN)x[3])) 
+      croak("Corrupted data: should be variable");
+  return varn(x);
+}
+
+
 static SV *
 PARIvar(char *s)
 {
   char *olds = s, *u, *v;
-  long n;
+  long hash;
   SV *sv;
   GEN p1;
-  entree *ep;
+  entree *ep = is_entry_intern(s, functions_hash, &hash);
 
-  for (n = 0; isalnum(*s); s++) n = n << 1 ^ *s;
-  if (*s || s == olds) 
-      croak("Bad PARI variable name \"%s\"", olds);
-  if (n < 0) n = -n; n %= TBLSZ;
-  for(ep = hashtable[n]; ep; ep = ep->next)
-  {
-    for(u = ep->name, v = olds; (*u) && *u == *v; u++, v++);
-    if (!*u && !*v) {
-      if (EpVALENCE(ep) != 200)
-	croak("Got a function name instead of a variable");
-      goto found;
-    }
+  if (ep) {
+      if (EpVALENCE(ep) != EpVAR)
+	  croak("Got a function name instead of a variable");
+  } else {
+      ep = installep(NULL, s, strlen(s), EpVAR, 7*sizeof(long),
+		     functions_hash + hash);
+      manage_var(0,ep);
+#if 0
+      ep = (entree *)malloc(sizeof(entree) + 7*BYTES_IN_LONG 
+			    + s - olds + 1);
+      ep->name = (char *)ep + sizeof(entree) + 7*BYTES_IN_LONG;
+      for (u = ep->name, v = olds; v < s;) *u++ = *v++; *u = 0;
+      ep->value = (void *)((char *)ep + sizeof(entree));
+      ep->code = ep->help = NULL;
+      ep->next = hashtable[n];
+      hashtable[n] = ep;
+      p1 = (GEN)ep->value;
+      if (nvar == MAXVAR) err(trucer1);
+      ep->valence = 200;
+      p1[0] = evaltyp(10)+evalpere(1)+evallg(4);
+      p1[1] = evalsigne(1)+evallgef(4)+evalvarn(nvar);
+      p1[2] = zero; p1[3] = un;
+      polx[nvar] = p1;
+      polvar[nvar+1] = (long)p1;
+      p1 += 4;
+      p1[0] = evaltyp(10)+evalpere(1)+evallg(3);
+      p1[1] = evalsigne(1)+evallgef(3)+evalvarn(nvar); p1[2] = un;
+      polun[nvar] = p1;
+      varentries[nvar++] = ep;
+      setlg(polvar, nvar+1);    
+#endif
   }
-  ep = (entree *)malloc(sizeof(entree) + 7*BYTES_IN_LONG 
-			+ s - olds + 1);
-  ep->name = (char *)ep + sizeof(entree) + 7*BYTES_IN_LONG;
-  for (u = ep->name, v = olds; v < s;) *u++ = *v++; *u = 0;
-  ep->value = (void *)((char *)ep + sizeof(entree));
-  ep->code = ep->help = NULL;
-  ep->next = hashtable[n];
-  hashtable[n] = ep;
-  p1 = (GEN)ep->value;
-  if (nvar == MAXVAR) err(trucer1);
-  ep->valence = 200;
-  p1[0] = evaltyp(10)+evalpere(1)+evallg(4);
-  p1[1] = evalsigne(1)+evallgef(4)+evalvarn(nvar);
-  p1[2] = zero; p1[3] = un;
-  polx[nvar] = p1;
-  polvar[nvar+1] = (long)p1;
-  p1 += 4;
-  p1[0] = evaltyp(10)+evalpere(1)+evallg(3);
-  p1[1] = evalsigne(1)+evallgef(3)+evalvarn(nvar); p1[2] = un;
-  polun[nvar] = p1;
-  varentries[nvar++] = ep;
-  setlg(polvar, nvar+1);    
-
+  
   found:
   sv = NEWSV(909,0);
   sv_setref_pv(sv, "Math::Pari::Ep", (void*)ep);
@@ -198,8 +237,8 @@ findVariable(SV *sv, int generate)
        In any case we localize the value.
      */
   char *s;
-  char *olds, *u, *v;
-  long n;
+  char *s1, *u, *v;
+  long hash;
   GEN p1;
   entree *ep;
   char name[50];
@@ -229,19 +268,35 @@ findVariable(SV *sv, int generate)
       goto ignore;
   s = SvPV(sv,na);
   repeat:
-  olds = s;
-  for (n = 0; isalnum(*s); s++) n = n << 1 ^ *s;
-  if (*s || s == olds || !isalpha(*olds)) {
+  s1 = s;
+  while (isalnum(*s1)) 
+      s1++;
+  if (*s1 || s1 == s || !isalpha(*s)) {
       static int depth;
 
     ignore:
       if (!generate)
-	  croak("Bad PARI variable name specified");
+	  croak("Bad PARI variable name \"%s\" specified",s);
       SAVEINT(depth);
       sprintf(name, "intiter%i",depth++);
       s = name;
       goto repeat;
   }
+  
+  ep = is_entry_intern(s, functions_hash, &hash);
+
+  if (ep) {
+      if (EpVALENCE(ep) != EpVAR)
+	  croak("Got a function name instead of a variable");
+  } else {
+      ep = installep(NULL, s, s1 - s, EpVAR, 7*sizeof(long),
+		     functions_hash + hash);
+      manage_var(0,ep);
+  }
+
+#if 0
+  olds = s;
+  for (n = 0; isalnum(*s); s++) n = n << 1 ^ *s;
   if (n < 0) n = -n; n %= TBLSZ;
   for(ep = hashtable[n]; ep; ep = ep->next)
   {
@@ -274,7 +329,7 @@ findVariable(SV *sv, int generate)
   polun[nvar] = p1;
   varentries[nvar++] = ep;
   setlg(polvar, nvar+1);
-
+#endif
   return ep;
 }
 
@@ -346,6 +401,12 @@ svErrputs(char* p)
 }
 
 void
+svOutflush()
+{
+    /* EMPTY */
+}
+
+void
 svErrflush()
 {
     STRLEN len;
@@ -366,8 +427,8 @@ svErrdie()
 }
 
 
-PariOUT perlOut={svputc, svputs};
-PariERR perlErr={svErrputc, svErrputs, svErrflush, svErrdie};
+PariOUT perlOut={svputc, svputs, svOutflush, NULL};
+PariOUT perlErr={svErrputc, svErrputs, svErrflush, svErrdie};
 
 GEN
 sv2pari(SV* sv)
@@ -460,13 +521,19 @@ pari2pv(GEN in)
   return worksv;
 }
 
+#ifdef LONG_IS_64BIT
+#define fmt_nb 38
+#else
+#define fmt_nb 28
+#endif
+
 SV*
 pari_print(GEN in)
 {
   PariOUT *oldOut = pariOut;
   pariOut = &perlOut;
   worksv = newSVpv("",0);
-  brute(in,(char)glbfmt[0],glbfmt[2]);
+  brute(in, 'g', fmt_nb);
   pariOut = oldOut;
   return worksv;
 }
@@ -477,7 +544,7 @@ pari_pprint(GEN in)
   PariOUT *oldOut = pariOut;
   pariOut = &perlOut;
   worksv = newSVpv("",0);
-  sor(in,(char)glbfmt[0],glbfmt[2],glbfmt[1]);
+  sor(in, 'g'/*fmt.format*/, fmt_nb, 0/*fmt.field*/);
   pariOut = oldOut;
   return worksv;
 }
@@ -488,7 +555,7 @@ pari_texprint(GEN in)
   PariOUT *oldOut = pariOut;
   pariOut = &perlOut;
   worksv = newSVpv("",0);
-  texe(in,(char)glbfmt[0],glbfmt[2]);
+  texe(in, 'g', fmt_nb);
   pariOut = oldOut;
   return worksv;
 }
@@ -505,13 +572,19 @@ pari2mortalsv(GEN in, long oldavma)
 }
 
 static const 
-unsigned char defcode[] = "\06xD,0,G,D,0,G,D,0,G,D,0,G,D,0,G,D,0,G,";
+unsigned char defcode[] = "\06xD0,G,D0,G,D0,G,D0,G,D0,G,D0,G,";
 
-void
-installPerlFunction(SV* cv, char *name, I32 numargs, char *help)
+static int doing_PARI_autoload = 0;
+
+entree *
+installPerlFunctionCV(SV* cv, char *name, I32 numargs, char *help)
 {
     char *code, *s;
     I32 req = numargs, opt = 0;
+    entree *ep;
+
+    if(SvROK(cv))
+	cv = SvRV(cv);
 
     if (numargs < 0 && SvPOK(cv) && (s = SvPV(cv,na))) {
 	/* Get number of arguments. */
@@ -533,22 +606,30 @@ installPerlFunction(SV* cv, char *name, I32 numargs, char *help)
     
     if (numargs < 0) {		/* Variable number of arguments. */
 	/* Install something hairy with <= 6 args */
-	code = (char*)defcode;		/* Remove constness. */
+	code = (char*)defcode + 1;		/* Remove constness. */
+	numargs = code[-1];
     } else if (numargs >= 256) {
 	croak("Import of Perl function with too many arguments");
     } else {
-	code = (char *)malloc(numargs*6 - req*5 + 3);
-	code[0] = numargs;
-	code[1] = 'x';
-	memset(code + 2, 'G', req);
-	s = code + 2 + req;
+	code = (char *)malloc(numargs*6 - req*5 + 2);
+	code[0] = 'x';
+	memset(code + 1, 'G', req);
+	s = code + 1 + req;
 	while (opt--) {
-	    strcpy(s, "D,0,G,");
+	    strcpy(s, "D0,G,");
 	    s += 6;
 	}
 	*s = '\0';
     }
-    installep((void*)SvREFCNT_inc(cv), name, 99, code + 1, help); /* XXX Leak! */
+    ((CV*)cv)->sv_any->xof_off = numargs;	/* XXXX Nasty of us... */
+    SAVEINT(doing_PARI_autoload);
+    doing_PARI_autoload = 1;
+    ep = install((void*)SvREFCNT_inc(cv), name, code);
+    doing_PARI_autoload = 0;
+    if (code != (char*)defcode + 1)
+	free(code);
+    ep->help = help;
+    return ep;
 }
 
 void
@@ -588,8 +669,8 @@ callPerlFunction(entree *ep, ...)
 {
     va_list args;
     char *s = ep->code;
-    int numargs = ep->code[-1];
     SV *cv = (SV*) ep->value;
+    int numargs = ((CV*)cv)->sv_any->xof_off;	/* XXXX Nasty of us... */
     GEN res;
     int i;
     dSP;
@@ -631,7 +712,7 @@ callPerlFunction(entree *ep, ...)
     /* We need to copy it back to stack, otherwise we cannot decrement
      the count.  XXXX not necessary! */
     avma -= taille(res)<<TWOPOTBYTES_IN_LONG;
-    brutcopy(res, avma);
+    brutcopy(res, (GEN)avma);
     SvREFCNT_dec(sv);
     
     return (GEN)avma;
@@ -639,19 +720,22 @@ callPerlFunction(entree *ep, ...)
 
 /* Currently with <=6 arguments only! */
 
-long
+entree *
 autoloadPerlFunction(char *s, long len)
 {
     CV *cv;
-    SV* name = sv_2mortal(newSVpv(s, len));
+    SV* name;
+
+    if (doing_PARI_autoload)
+	return 0;
+    name = sv_2mortal(newSVpv(s, len));
 
     cv = perl_get_cv(SvPVX(name), FALSE);
     if (cv == Nullcv) {
 	return 0;
     }
     /* Got it! */
-    installPerlFunction((SV*)cv, SvPVX(name), -1, NULL); /* -1 gives variable. */
-    return 1;
+    return installPerlFunctionCV((SV*)cv, SvPVX(name), -1, NULL); /* -1 gives variable. */
 }
 
 GEN
@@ -690,7 +774,7 @@ exprHandler_Perl(char *s)
     /* We need to copy it back to stack, otherwise we cannot decrement
      the count. */
     avma -= taille(res)<<TWOPOTBYTES_IN_LONG;
-    brutcopy(res, avma);
+    brutcopy(res, (GEN)avma);
     SvREFCNT_dec(sv);
     
     return (GEN)avma;
@@ -826,7 +910,7 @@ long	oldavma=avma;
      RETVAL
 
 void
-installPerlFunction(cv, name, numargs = 1, help = NULL)
+installPerlFunctionCV(cv, name, numargs = 1, help = NULL)
 SV*	cv
 char   *name
 I32	numargs
@@ -1498,7 +1582,7 @@ PariExpr	arg4
    RETVAL
 
 GEN
-interface48(arg0,arg1,arg2,arg3,arg4)
+interface48(arg0,arg1,arg2,arg3,arg4=gzero)
 long	oldavma=avma;
 GEN	arg0
 PariVar	arg1
@@ -1513,7 +1597,7 @@ PariExpr	arg4
       croak("XSUB call through interface did not provide *function");
     }
 
-    RETVAL=FUNCTION(arg1, arg0, arg2, arg3, arg4, prec);
+    RETVAL=FUNCTION(arg1, arg0, arg2, arg3, arg4);
   }
  OUTPUT:
    RETVAL
@@ -1581,7 +1665,7 @@ PariExpr	arg3
       croak("XSUB call through interface did not provide *function");
     }
 
-    RETVAL=FUNCTION(arg2, arg1, arg3);
+    RETVAL=FUNCTION(arg1, arg2, arg3);
   }
  OUTPUT:
    RETVAL
@@ -1784,7 +1868,7 @@ loadPari(name)
      {
        char *olds = name;
        entree *ep=NULL;
-       long n, valence;
+       long hash, valence;
        void (*func)(void*)=NULL;
        void (*unsupported)(void*) = (void (*)(void*)) not_here;
 
@@ -2020,6 +2104,11 @@ loadPari(name)
 	   }
        }
        if (!func) {
+	   SAVEINT(doing_PARI_autoload);
+	   doing_PARI_autoload = 1;
+	   ep = is_entry_intern(name, functions_hash, &hash);
+	   doing_PARI_autoload = 0;
+#if 0
 	 for (n = 0; *name; name++) n = n << 1 ^ *name;
 	 if (n < 0) n = -n; n %= TBLSZ;
 	 for(ep = hashtable[n]; ep; ep = ep->next) {
@@ -2027,17 +2116,25 @@ loadPari(name)
 	     break;
 	   }
 	 }
+#endif
 	 if (!ep) {
-	   croak("`%s' is not a Pari function name",olds);
+#if 0					/* findentry() is static. */
+	     ep = findentry(name,strlen(name),funct_old_hash[hash]);
+#endif
+	     if (!ep)
+		 croak("`%s' is not a Pari function name",name);
+	     else
+		 warn("`%s' is an obsolete Pari function name", name);
 	 }
-	 if (ep && (EpVALENCE(ep)<100 && ep>=fonctions
-		    && ep<fonctions+NUMFUNC)) { /* Builtin */
+	 if (ep && (EpVALENCE(ep) < EpUSER 
+		    /* && ep>=fonctions && ep < fonctions+NUMFUNC) */)) {
+	     /* Builtin */
 	   valence=EpVALENCE(ep);
 	   func=(void (*)(void*)) ep->value;
 	   if (!func) {
 	     func = unsupported;
 	   }
-	 } 
+	 }
        }
        if (func == unsupported) {
 	 croak("Do not know how to work with Pari control structure `%s'",
@@ -2130,10 +2227,11 @@ listPari(tag)
    PPCODE:
      {
        long v, valence;
+       entree *ep;
 
-       for(v = 0; v < NUMFUNC; v++)  {
-	   valence = EpVALENCE(&(fonctions[v]));
-	   if (tag == -1 || fonctions[v].menu == tag) {
+       for(ep = functions_basic; ep->name; ep++)  {
+	   valence = EpVALENCE(ep);
+	   if (tag == -1 || ep->menu == tag) {
 	       switch (valence) {
 		   case 0:
 		   case 1:
@@ -2182,7 +2280,7 @@ listPari(tag)
 		   case 73:
 		   case 86:
 		   case 87:
-		   XPUSHs(sv_2mortal(newSVpv(fonctions[v].name, 0)));
+		   XPUSHs(sv_2mortal(newSVpv(ep->name, 0)));
 	       }
 	   }
        }

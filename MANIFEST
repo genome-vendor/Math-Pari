@@ -5,6 +5,7 @@ MANIFEST
 Makefile.PL
 README
 chap3_to_pod
+diff_small_to_Math_Pari
 foncpari.pl
 libPARI.pod
 libPARI/Buglist

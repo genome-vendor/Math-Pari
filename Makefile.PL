@@ -138,6 +138,10 @@ if (not -e $targ
 }
 
 @paricfg = <$paridir/o.*/paricfg.h>;
+push @paricfg, <$paridir/O*/paricfg.h>;
+
+@paricfg = grep !/Odos/, @paricfg unless $^O =~ /dos|djgcc/i;
+
 if (@paricfg > 1) {
   warn "Found multiple paricfg.h: @paricfg.\n";
   @paricfg = sort { -M $a <=> -M $b} @paricfg;

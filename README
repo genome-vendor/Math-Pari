@@ -2,8 +2,9 @@
 
 a) Should be installed inside pari-2.* source directory.
 b) Patches to pari (in `patches') should be applied.
-c) A lot of problems should be expected.
-d) Some tests should fail.
+c) paricfg.h should be manually copied from pari-2,* build directory.
+d) A lot of problems should be expected.
+e) Some tests should fail.
 
 What follows is the older README, good for the version 1.39.
 

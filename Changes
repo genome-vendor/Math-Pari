@@ -86,3 +86,8 @@ after 0.94:
 	sparcs on linux/nextstep not supported.
 	hppa cannot build dynamically, use machine=port instead in
 		Makefile.PL line.
+after 0.95_00:
+	Approximately half of subtests are passed now (229 skip, 337 fail
+		out of 782).
+	Some more patches to PARI are required (in ./patches).
+	Still needs to be built as a subdirectory of the root of PARI tree.

@@ -54,15 +54,6 @@
    if (environnement)  
    { 
     /* wait till recover() is done before allocating a new stack.
-@@ -1345,7 +1346,7 @@ entree functions_basic[]={
- {"fibonacci",11,(void*)fibo,4,"L"},
- {"floor",1,(void*)gfloor,2,"G"},
- {"for",83,(void*)forpari,11,"vV=GGI"},
--{"fordiv",84,(void*)fordiv,11,"vGVI"},
-+{"fordiv",84,(void*)fordiv,11,"GVI"},
- {"forprime",83,(void*)forprime,11,"vV=GGI"},
- {"forstep",86,(void*)forstep,11,"vV=GGGI"},
- {"forvec",87,(void*)forvec,11,"vV=GID0,L,"},
 --- ./src/kernel/ix86/l0asm.c~	Thu Jul 23 08:40:30 1998
 +++ ./src/kernel/ix86/l0asm.c	Fri Sep 11 16:16:40 1998
 @@ -28,6 +28,12 @@

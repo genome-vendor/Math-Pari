@@ -3,65 +3,64 @@
 
 use Math::Pari qw(:DEFAULT pari_print :all);
 use vars qw($x $y $z $k $t $q $a $u $j $l $name $other $n);
-print "1..565\n";
+die "Need a path to a testout file" unless @ARGV;
 
-push @ARGV, 'libPARI/testouts' unless @ARGV;
+$file = shift;
+{
+  open TO, "< $file" or die "open `$file': $!";
+  local $/ = "\n? ";
+  @tests = <TO>;
+  close TO or die "close: $!";
+}
+
+shift @tests;			# Messages
+pop @tests;			# \q
+$tests = @tests;
+
+print "1..$tests\n";
+
 $| = 1;
-@seen{qw(Pi I Euler a x y z k t q u j l n name other)} = (' ', ' ', ' ', ('$') x 100);
-$x = PARI('x');
-$y = PARI('y');
-$z = PARI('z');
-$k = PARI('k');
-$t = PARI('t');
-$q = PARI('q');
-$a = PARI('a');
-$u = PARI('u');
-$j = PARI('j');
-$l = PARI('l');
-$n = PARI('n');
-$name = PARI('name');
-$other = PARI('other');
-
+@seen{qw(Pi I Euler a x y z k t q u j l n v p name other mhbi
+	 acurve bcurve ccurve cmcurve tcurve mcurve deu ma mpoints)} 
+  = (' ', ' ', ' ', ('$') x 100);
+for (keys %seen) {
+  $$_ = PARI($_);
+}
 #while (<>) {
 #  last if /^stacksize/;
 #}
 $started = 0;
 
 main_loop:
-while (<>) {
-  unless (s/^(\?\s+)+//) {
-    if ($started) {
-      die "Malformed question: `$_'";
-    } else {
-      next;
-    }
-  }
-  $started = 1;
-  next if /^\\\\/;		# Comment
+for (@tests) {
+  #print "Doing `$_'";
+  1 while s/^\\\\.*\n//;	# Comment
   $bad = /^\\/;			# \precision = 
   $wasbadprint = /\b(plot)\b/;
   $wasprint = /\b((|p|tex)print|plot)\b/;
-  chomp;
-  $in = $_;
-  $_ = '';
-  $_ = <> while defined and /^$/; # Before warnings
-  $_ = <> while defined and /^\s*\*+\s*warning/i; # skip warnings
+  s/\s*\n\?\s*\Z// or die "Not terminated: `$_'\n";
+  s/\A(\s*\?)+\s*//;
+  s/[^\S\n]+$//gm;
+  s/\A(.*)\s*; $ \s*(\w+)\s*\(/$1;$2(/mx; # Continuation lines of questions
+  s/\A(.*)\s*$//m or die "No question: `$_'\n";
+  $in = $1;
+  1 while s/^\n//;		# Before warnings
+  1 while s/^\s*\*+\s*warning.*\n?//i; # skip warnings
   if (s/^\s*\*+\s*(.*)//) {		# error
     process_error($in,$_,$1);
     next;
   }
-  defined or die "Can't find an answer";
-  chomp;
-  process_test($in, 1, []), redo if /^\?\s/; # Was a void 
+  process_test($in, 'noans', []), next if /^$/; # Was a void 
 #  s/^%\d+\s*=\s*// or die "Malformed answer: $_" unless $bad or $wasprint;
   if ($_ eq '' or $wasprint) {	# Answer is multiline
-    @ans = $_ eq '' ? () : ($_) ;
-    while (<>) {
-      last if /^\?\s+/;
-      next if /^$/;
-      chomp;
-      push @ans, $_;
-    }
+#    @ans = $_ eq '' ? () : ($_) ;
+#    while (<>) {
+#      last if /^\?\s+/;
+#      next if /^$/;
+#      chomp;
+#      push @ans, $_;
+#    }
+    @ans = split "\n";
     if ($wasbadprint) {
       process_print($in, @ans);
     } elsif ($wasprint) {
@@ -69,7 +68,7 @@ while (<>) {
     } else {
       process_test($in, 0, [@ans]);
     }
-    redo main_loop;
+    next main_loop;
   }
   if ($bad) {
     process_set($in, $_);
@@ -148,7 +147,7 @@ sub process_test {
     $c--;
     process_definition($1, $in);    
   } elsif ($in =~ /[!_\']/) {	# Factorial
-    print "# Skipping (ifact/conj/deriv) `$in'\nok $c\n";
+    print "# `$in'\nok $c # Skipping (ifact/conj/deriv)\n";
   } else {
     # work with "^", need to treat differently inside o()
     $in =~ s/\^/^^^/g;
@@ -157,18 +156,24 @@ sub process_test {
     $in =~ s/\[([^\[\];]*;[^\[\]]*)\]/format_matrix($1)/ge; # Matrix
     $in =~ s/\[([^\[\];]*)\]\s*~/format_vvector($1)/ge; # Vertical vector
     if ($in =~ /\[[^\]]*;/) {	# Matrix
-      print "# Skipping (matrix notation) `$in'\nok $c\n";
+      print "# `$in'\nok $c # Skipping (matrix notation)\n";
       return;
     } elsif ($in =~ /(^|[\(=])%/) {
-      print "# Skipping (history notation) `$in'\nok $c\n";
+      print "# `$in'\nok $c # Skipping (history notation)\n";
       return;
     } elsif ($in =~ /
 		      (
 			\b 
-			( while | if | for | goto | label | changevar | gettime | forstep )
+			( while | if | for | goto | label | changevar
+                          | gettime | forstep 
+                          # XXXX These need to be done ASAP:
+                          | reorder | log | ln | setrand
+                        )
 			\b 
 		      |
-			\w+ \( \w+ \) = 
+			(\w+) \s* \( \s* \w+ \s* \) = 
+		      |
+			\b install \s* \( \s* (\w+) \s* , [^()]* \)
 		      |
 			\b 
 			(
@@ -180,25 +185,54 @@ sub process_test {
 			\b forprime .* \){4}
 		      )
 		    /x) {
+      if (defined $3) {
+	if (defined $userfun) {
+	  $userfun .= "|$3";
+	} else {
+	  $userfun = $3;
+	}
+	print "# User function `$3'.\n";
+      }
+      if (defined $4) {
+	if (defined $installed) {
+	  $installed .= "|$4";
+	} else {
+	  $installed = $4;
+	}
+	print "# Installed function `$4'.\n";
+      }
       # It is not clear why changevar gives a different answer in GP
-      print "# Skipping (converting test for '$1' needs additional work) `$in'\nok $c\n";
+      print "# `$in'\nok $c # Skipping (converting test for '$1' needs additional work)\n";
+      return;
+    } elsif ($userfun 
+	     and $in =~ / \b ($userfun) \s* \( /x) {
+      print "# `$in'\nok $c # Skipping (user function)\n";
+      return;
+    } elsif ($installed
+	     and $in =~ / \b ($installed) \s* \( /x) {
+      print "# `$in'\nok $c # Skipping (installed function)\n";
       return;
     } elsif ($in =~ / \b ( rnfdiscf | rnfpseudobasis | idealhermite2 | isideal ) \b /x) {
 #    } elsif ($in =~ / \b ( rnfhermitebasis | rnfsteinitz | idealhermite2 | isideal ) \b /x) {
       # Will result in segfault or wrong answer
-      print "# Skipping (would fail, checked in different place) `$in'\nok $c\n";
+      print "# `$in'\nok $c # Skipping (would fail, checked in different place)\n";
       return;
     } elsif ($in =~ /\bget(heap|stack)\b/) { # Meaningless
-      print "# Skipping meaningless `$in'\nok $c\n";
+      print "# `$in'\nok $c # Skipping meaningless\n";
       return;
     } elsif ($in =~ /\b(nonesuch now)\b/) {
-      print "# Skipping (possibly FATAL $1) `$in'\nok $c\n";
+      print "# `$in'\nok $c # Skipping (possibly FATAL $1)\n";
       return;
     }
     # Convert transposition
     $in =~ s/(\w+(\([^()]*\))?|\[([^\[\]]+(?=[\[\]])|\[[^\[\]]*\])*\])~/trans($1)/g;
     if ($in =~ /~/) {
-      print "# Skipping (transpose notation) `$in'\nok $c\n";
+      print "# `$in'\nok $c # Skipping (transpose notation)\n";
+      return;
+    }
+    if ($in =~ /^\s*alias\s*\(\s*(\w+)\s*,\s*(\w+)\s*\)$/) {
+      print "# Aliasing `$1' ==> `$2'\nok $c\n";
+      *$1 = \&{$2};
       return;
     }
     if ($in !~ /\w\(/) {	# No function calls?
@@ -228,13 +262,72 @@ sub process_test {
     $in =~ s/(^|[^\$])\b([a-zA-Z]\w*)\b(?!\s*[(^])/($1 || '') . ($seen{$2} || $seen_now{$2} || '') . $2/ge;
     # Die if did not substitute variables:
     while ($in =~ /(^|[^\$])\b([a-zA-Z]\w*)\b(?!\s*[\{\(^])/g) {
-      print("# Skipping ($2 was not set) `$in'\nok $c\n"), return
+      print("# `$in'\nok $c # Skipping ($2 was not set)\n"), return
 	unless $seen{$2} and $seen{$2} eq ' ' or $in =~ /\"/;
       # Let us hope that lines which contain '"' do not contain unset vars
     }
     # Simplify for the following conversion:
     $in =~ s/\brandom\(\)/random/g;
     # Sub-ify sum,prod
+    1 while
+      $in =~ s/
+		(
+		  \b 
+		  (
+		    sum 
+		  |
+		    prod (?: euler )?
+		  ) \s*
+		  \( 
+		  (?:
+		     (?:
+		       [^(=,)]+ 
+		       (?=
+		         [(=,)]
+		       )
+		     |
+		       \( [^()]+ \)
+		     )		# One level of parenths supported
+		  [,=]){3}		# $x,1,100
+		)
+		(?!\s*sub\s*\{)	# Skip already converted...
+		(		# This follows after a comma on toplevel
+		  (?:
+		    [^(,)\[\]]+ 
+		    (?=
+		      [(,)\[\]]
+		    )
+		  |
+		    \(		# One level of parenths
+		    (?:
+		      [^()]+ 
+		      (?=
+			[()]
+		      )
+		    |
+		      \( [^()]+ \) # Second level of parenths
+		    )*
+		    \)
+		  |
+		    \[		# One level of brackets
+		    (?:
+		      [^\[\]]+ 
+		      (?=
+			[\[\]]
+		      )
+		    |
+		      \[ [^\[\]]+ \] # Second level of brackets
+		    )*
+		    \]
+		  )*		# Two levels of parenths supported
+		)
+		(?=
+                  \)
+                |
+		  , [^(,)]+ \)
+                )
+	      /$1 sub{$3}/xg;
+    # Do the rest
     1 while
       $in =~ s/
 		(
@@ -247,9 +340,11 @@ sub process_test {
 		    )?
 		    ploth \w* 
 		  |
-		    sum \w* 
+		    # sum \w* 
+		    sum \w+
 		  |
-		    prod \w* 
+		    # prod \w* 
+		    prodinf
 		  |
 		    v? vector 
 		  |
@@ -315,7 +410,7 @@ sub process_test {
     $in =~ s/\$y=\$x;&eval\b(.*)/PARI('y=x');&eval$1;\$y=\$x/;
     # Workaround for kill:
     $in =~ s/^kill\(\$(\w+)\);/kill('$1');\$$1=PARIvar '$1';/;
-    print "# eval", ($noans ? "-noans" : '') ,": $in\n";
+    print "# eval", ($noans ? "-$noans" : '') ,": $in\n";
     $printout = '';
     my $have_floats = ($in =~ /\d+\.\d*|\d{10,}/ 
 		       or $in =~ /\b(zeta|bin|comprealraw|frac|lseriesell|powrealraw|legendre|suminf|forstep)\b/);
@@ -330,6 +425,9 @@ sub process_test {
 	$printout = massage_floats $printout, "14f";
 	$rout = massage_floats $rout, "14f";
       }
+      # New wrapping code gets in the way:
+      $printout =~ s/\s+/ /g;
+      $rout =~ s/\s+/ /g;
     } else {
       $rout = mformat @$out;
       if (not $doprint and $rout =~ /\[.*[-+,]\s/) {
@@ -364,7 +462,7 @@ sub process_test {
 sub process_error {
   my ($in, $out, $error) = @_;
   $c++;
-  print("# Skipping error($error) test $c: `$in'\nok $c\n");
+  print("# `$in'\nok $c # Skipping error($error) test\n");
 }
 
 sub process_definition {
@@ -381,22 +479,22 @@ sub process_definition {
 
 sub process_set {
   my ($in, $out) = @_;
-  return process_test("setprecision($1)", 1, '') if $in =~ /^\\precision\s*=\s*(\d+)$/;
+  return process_test("setprecision($1)", 'noans', '') if $in =~ /^\\precision\s*=\s*(\d+)$/;
   $c++;
-  print("# Skipping setting test $c: `$in'\nok $c\n");
+  print("# `$in'\nok $c # Skipping setting test\n");
 }
 
 sub process_print {
   my ($in, @out) = @_;
   $c++;
-  print("# Skipping print $c: `$in'\nok $c\n");
+  print("# $c: `$in'\nok $c # Skipping print\n");
 }
 
 sub process_multi {
   my ($in, $out) = @_;
   my @out = @$out;
   $c++;
-  print("# Skipping multiline $c: `$in'\nok $c\n");
+  print("# `$in'\nok $c # Skipping multiline\n");
 }
 
 sub my_print {

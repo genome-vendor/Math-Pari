@@ -1,6 +1,10 @@
 #! perl
 use Math::Pari ':all';
 
+if ($ENV{MP_NOGNUPLOT}) {
+  print "1..0\n";
+  exit;
+}
 eval { link_gnuplot() };
 if ($@ =~ m%^Can't locate Term/Gnuplot.pm in \@INC%) {
   print STDERR "# Can't locate Term/Gnuplot.pm in \@INC, ignoring the test\n";

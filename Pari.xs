@@ -1,3 +1,5 @@
+#define PERL_POLLUTE			/* We use older varnames */
+
 #ifdef __cplusplus
 extern "C" {
 #endif 
@@ -1985,7 +1987,7 @@ PariExpr	arg3
  OUTPUT:
    RETVAL
 
-GEN
+void
 interface83(arg1,arg2,arg3,arg4)
 long	oldavma=avma;
 PariVar	arg1
@@ -1994,18 +1996,16 @@ GEN	arg3
 PariExpr	arg4
  CODE:
   {
-    dFUNCTION(GEN);
+    dFUNCTION(void);
 
     if (!FUNCTION) {
       croak("XSUB call through interface did not provide *function");
     }
 
-    RETVAL=FUNCTION(arg1, arg2, arg3, arg4);
+    FUNCTION(arg1, arg2, arg3, arg4);
   }
- OUTPUT:
-   RETVAL
 
-GEN
+void
 interface84(arg1,arg2,arg3)
 long	oldavma=avma;
 GEN	arg1
@@ -2013,16 +2013,15 @@ PariVar	arg2
 PariExpr	arg3
  CODE:
   {
-    dFUNCTION(GEN);
+    dFUNCTION(void);
 
     if (!FUNCTION) {
       croak("XSUB call through interface did not provide *function");
     }
 
-    RETVAL=FUNCTION(arg1, arg2, arg3);
+    FUNCTION(arg1, arg2, arg3);
   }
- OUTPUT:
-   RETVAL
+
 
 # These interfaces were automatically generated:
 
@@ -2743,13 +2742,12 @@ DESTROY(rv)
 	 long howmany;
        
 	 SvPVX(sv) = GENheap;		/* To avoid extra free() in moveoff.... */
-	 switch ((IV)type) {
-	 case (IV)GENheap:	/* Leave it alone? XXXX */
-	     break;
-	 case (IV)GENmovedOffStack:	/* Know that it _was temporary. */
-	     killbloc((GEN)SvIV(sv));
-	     break;
-	 default:		/* Still on stack */
+	 if (type == GENheap)	/* Leave it alone? XXXX */
+	 /* break */ ;
+	 else if (type == GENmovedOffStack) {/* Know that it _was temporary. */
+	     killbloc((GEN)SvIV(sv));	     
+	 } else {
+	 		/* Still on stack */
 	     if (type != (char*)PariStack) { /* But not the newest one. */
 		 howmany=moveoffstack_newer_than(sv);
 		 DEBUG_u( deb("%li items moved off stack\n", howmany) );

@@ -1,0 +1,11 @@
+--- ./src/graph/Gnuplot.h~	Wed Jun  9 10:36:27 1999
++++ ./src/graph/Gnuplot.h	Wed Jun 30 18:58:53 1999
+@@ -62,7 +62,7 @@ set_gpoutfile(void)
+   gpoutfile = stdout;
+ }
+ 
+-#define SET_OUTFILE (outfile_set++ ? 1 : set_gpoutfile(), 1)
++#define SET_OUTFILE (outfile_set++ ? 1 : (set_gpoutfile(), 1))
+ 
+ extern int encoding;
+ int        encoding = 0;

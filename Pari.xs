@@ -1042,7 +1042,10 @@ typedef void (*TSET_FP)(char *s);
 #else	/* !( PARI_VERSION_EXP < 2000013 ) */ 
 #  define set_gnuterm(a,b,c) \
 	set_term_funcp3((FUNC_PTR)(a),(struct termentry *)(b), (TSET_FP)(c))
-#endif
+#endif	/* PARI_VERSION_EXP < 2000013 */
+
+#define int_set_term_ftable(a) (v_set_term_ftable((void*)a))
+extern  void v_set_term_ftable(void *a);
 
 MODULE = Math::Pari PACKAGE = Math::Pari PREFIX = Arr_
 
@@ -2881,3 +2884,6 @@ long
 setseriesprecision(digits=0)
     long digits
 
+void
+int_set_term_ftable(a)
+    IV a

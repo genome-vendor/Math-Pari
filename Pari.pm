@@ -762,7 +762,7 @@ sub AUTOLOAD {
 $initmem = $initmem || 4000000;		# How much memory for the stack
 $initprimes = $initprimes || 500000;	# Calculate primes up to this number
 
-$VERSION = '2.001501';
+$VERSION = '2.001600';
 
 bootstrap Math::Pari;
 
@@ -892,9 +892,8 @@ for $name (keys %converted) {
 @export_ok{@EXPORT_OK,@EXPORT} = (1) x (@EXPORT_OK + @EXPORT);
 
 sub link_gnuplot {
-  eval 'use Term::Gnuplot 0.4; 1' or die;
-  set_gnuterm(Term::Gnuplot::change_term_address(), 
-	      Term::Gnuplot::term_tbl_address());
+    eval 'use Term::Gnuplot 0.56; 1' or die;
+    int_set_term_ftable(Term::Gnuplot::get_term_ftable());
 }
 
 sub set_plot_fh {

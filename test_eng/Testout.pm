@@ -381,7 +381,7 @@ sub process_test {
     }
     # Simplify for the following conversion:
     $in =~ s/\brandom\(\)/random/g;
-    # Sub-ify sum,prod,intnum
+    # Sub-ify sum,prod,intnum, psploth, ploth
     1 while
       $in =~ s/
 		(
@@ -390,6 +390,10 @@ sub process_test {
 		    sum 
 		  |
 		    intnum
+		  |
+		    psploth
+		  |
+		    ploth
 		  |
 		    prod (?: euler )?
 		  ) \s*
@@ -437,9 +441,7 @@ sub process_test {
 		  )*		# Two levels of parenths supported
 		)
 		(?=
-                  \)
-                |
-		  , [^(,)]+ \)
+                  [),]
                 )
 	      /$1 sub{$3}/xg;
     # Sub-ify direuler
@@ -477,9 +479,9 @@ sub process_test {
 		    solve 
 		  |
 		    (?:
-		      post (?! plothraw \b)
+		      post 
 		    )?
-		    ploth \w* 
+		    ploth (?! raw \b ) \w+
 		  |
 		    # sum \w* 
 		    sum \w+

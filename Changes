@@ -138,3 +138,9 @@ Files=15,  Tests=1377, 121 wallclock secs ( 0.00 cusr +  0.00 csys =  0.00 CPU)
 after 2.001102:
         Patching was still busted.
 	Use the copy of tar.gz in the current directory if present.
+
+after 2.001103:
+        Tests now run with the plotting enabled too.
+
+All tests successful.
+Files=15,  Tests=1378, 108 secs (86.46 cusr  3.82 csys = 90.28 cpu)

@@ -7,6 +7,11 @@
 # name of the compression program in the %compress = ... statement below.
 #
 
+# How to show a chunk of docs:
+# pod2man --lax a.pod  | nroff -man |
+# perl -p00e "s/\s*$/\n/;if (/^\S/) {$_=''} else {print qq'\n' if $next++}"|
+# less -s -+C
+
 $version = $1, shift @ARGV if @ARGV and $ARGV[0] =~ /^-v=(.*)$/;
 
 $parifile = shift || "f:/pari/doc/usersch3.tex.gz";
@@ -48,16 +53,22 @@ if ($pipe) {
 $/='';				# Paragraph mode
 # %table = qw(`a ? "a ? "u ? "o ? 'e ?);
 
+sub indexify ($) {
+  my $in = shift;
+  $in =~ s/(^|and\s+)(\w+)(\$?\()/$1\\ref{$2}$3/g;
+  $in;
+}
+
 while (<DOC>) {
   # last if /\\subsec[\\{}ref]*[\\\${]$help[}\\\$]/o;
-  s/\\chapter\s*{(.*)}/\n\n=head1 NAME\n\n$1\n\n=head1 DESCRIPTION\n\n/;
-  s/\\section\s*{(.*)}/\n\n=head1 $1\n\n/;
+  s/\\chapter\s*{(.*)}/\n\n=head1 NAME\n\nlibPARI - $1\n\n=head1 DESCRIPTION\n\n/;
+  s/\\section\s*{(.*)}/"\n\n=head1 " . indexify($1) . "\n\n"/e;
   # Try to delimit by :
-  s/\\subsec(?:ref)?\s*{(([^{}]+(?=[{}])|{[^{}]+})+)}([^\n:]*):\s*/\n\n=head2 $1$3\n\n/;
-  s/\\subsubsec(?:ref)?\s*{(([^{}]+(?=[{}])|{[^{}]+})+)}([^\n:]*):\s*/\n\n=item $1$3\n\n/;
+  s/\\subsec(?:ref)?\s*{(([^{}]+(?=[{}])|{[^{}]+})+)}([^\n:]*):\s*/"\n\n=head2 " . indexify("$1$3") . "\n\n"/e;
+  s/\\subsubsec(?:ref)?\s*{(([^{}]+(?=[{}])|{[^{}]+})+)}([^\n:]*):\s*/"\n\n=item " . indexify("$1$3") . "\n\n"/e;
   # Try to delimit by ' '
-  s/\\subsec(?:ref)?\s*{(([^{}]+(?=[{}])|{[^{}]+})+)}(\S*)\s+/\n\n=head2 $1$3\n\n/;
-  s/\\subsec(?:ref|title)?\s*{(([^{}]+(?=[{}])|{[^{}]*})+)}:?\s*/\n\n=head2 $1\n\n/;
+  s/\\subsec(?:ref)?\s*{(([^{}]+(?=[{}])|{[^{}]+})+)}(\S*)\s+/"\n\n=head2 " . indexify("$1$3") . "\n\n"/e;
+  s/\\subsec(?:ref|title)?\s*{(([^{}]+(?=[{}])|{[^{}]*})+)}:?\s*/"\n\n=head2 " . indexify("$1") . "\n\n"/e;
   &TeXprint;
 }
 if ($pipe) {
@@ -70,19 +81,30 @@ if ($pipe) {
   close(DOC) || die "Cannot close file $parifile: $!, stopped";
 }
 
+sub wrap_code {
+  my $in = shift;
+  $in =~ s/^(.)/  $1/mg;
+  $in
+}
+
+# sref is invisible reference
+# tec(a,b) is ref(a)tt(b)
 sub TeXprint {
   # frac{}{} ???  \s?ref ???  \tec ???
-  s/\\([% &\/|])/$1/g;
+  s/\\\///g;
+  s/\\([% &|])/$1/g;
   s/\\c?dots\b/.../g;
   s/\\cdot\b/ . /g;
   s/\\mid\b/ | /g;
   s/(\\string)?\\_/_/g;
-  s/\\(hat\b|\^)(\{(\\\s+)?\})?/^/g;
+  s/\\(hat\b|\^)({\\?\s*})?/^/g;
   s/(^|[^\\])~/$1 /g;
   s/\\,/ /g;
   s/\\enspace(\b|(?=[\d_]))/ /g;
   s/\\~(\{(\\\s*)?\})?/~/g;
   s/\\tilde(\{\\\s+\})?/~/g;
+  s/\\hbox{}/ /g;
+  s/\\parskip.*/\n/g;		# Up to end of the line
   s/\\(equiv|approx|simeq)(\b|(?=[\d_]))/ ~ /g;
   s/\\neq(\b|(?=[\d_]))/!=/g;
   s/([A-Z])\</$1 < /g;
@@ -92,14 +114,17 @@ sub TeXprint {
   s/\\\$/F<dollar>/g;
   s/\$\\bf\b\s*([^\$]+)\$/C<B<$1>>/g;
   s/\$+([^\$]+)\$+/C<$1>/g;
-  s/\\(s?ref|tec){\s*([^{}]*)}/I<$2>/g;	# XXXX X<>?
+  s/\\sref{\s*([^{}]*)}/X<$1>/g;
+  s/\\ref{\s*([^{}]*)}/X<$1>$1/g;
+  s/\\tec{\s*([^{}]*)}{\s*([^{}]*)}/X<$1>$1C<$2>/g;
   s/\\text{\s*([^{}]*)}/$1/g;
+  s/^{\\tt\s*\\obeylines\s*(([^{}]+(?=[{}])|{[^{}]*})+)}/wrap_code($1)/e;
   s/{\\tt\b\s*([^{}]*)}/C<$1>/g;
   s/{\\bf\b\s*(([^{}]+(?=[{}])|{[^{}]+})+)}/B<$1>/g;
   s/\\Bbb\b\s*(\w)/B<I<$1>>/g;
   s/\\Z(\b|(?=[\d_]))/B<I<Z>>/g;
   s/\\teb{\s*([^{}]*)}/$1/g;
-  s/{\\(sl|it)\b\s*([^{}]*)}/I<$1>/g;
+  s/{\\(sl|it)\b\s*([^{}]*)}/I<$2>/g;
   #s/\\(subsec(ref)?|smallskip|sl|sref[ a-z]*|bf|ref|Bbb|text|tt|\|)[ \t]*//g;
   s/\\backslash\s*(\b|(?=[\d_]))/\\/g;
   s/\\(log|sin|cos|lim|tan|mod|sqrt|exp|ln|det)(\b|(?=[\d_]))/ F<$1> /g;
@@ -111,6 +136,7 @@ sub TeXprint {
   s/\\(quad|vfill|eject)(\b|(?=[\d_]))/    /g;
   s/(^|\s)\{(\w+)\}/$1$2/g;
   s/\\([{}])/$1/g;
+  s/'(\W)'/'C<$1>'/g;
   s/\\(Alpha | Beta | Chi | Delta | Epsilon | Phi | Gamma
        | Eta | Iota | vartheta | Kappa | Lambda | Mu | Nu | Omicron
        | Pi | Theta | Rho | Sigma | Tau | Ypsilon | varsigma | Omega

@@ -97,7 +97,7 @@ if ($machine eq 'alpha') {
 } elsif ($Config{osname} eq 'port') {
   $mycflags .= " -D__HAS_NO_ASM__";
 } elsif ($Config{osname} eq 'linux') {
-  $define .= ' -DNOEXP2';
+  $mycflags .= ' -DNOEXP2';
 }
 
 $mp_cflags = '';

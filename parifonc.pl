@@ -35,12 +35,12 @@ while (<ANAL>) {
 		      )
 		      \s* , \s* 
 		      (
-			\d+
+			\d+	# 5 
 		      )
-		      ( \s* , \s* (" [^"]* " | NULL) \s* , \s* NULL )? # New fields
+		      ( \s* , \s* ((" [^"]* ") | NULL) \s* , \s* NULL )? # New fields
 		      \s* \} \s* ,? \s* $
 		    /x; # ";
-    ($pari, $interface, $gp, $group) = ($1, $2, $3, $4);
+    ($pari, $interface, $gp, $group, $code) = ($1, $2, $3, $4, $8);
     if ($gp eq "0") {
       if ($known{$pari}) {
 	$builtin_known{$pari}++;
@@ -49,6 +49,7 @@ while (<ANAL>) {
       }
     } else {
       $interface{$pari} = $interface;
+      $code{$interface} ||= ($code || '');
       push @{$group{$group}}, $pari unless exists $supported{$interface};
       $interfaces{$interface}++;
     }
@@ -71,7 +72,7 @@ for (keys %interfaces) {
 
 print "\tTotal number of unsupported interfaces: ",scalar @unsupported,":\n";
 for $i (sort {$a <=> $b} @unsupported) {
-  print "Interface $i used in $interfaces{$i} function(s): ",
+  print "Interface $i$code{$i} used in $interfaces{$i} function(s): ",
      join(", ", @f=grep($interface{$_}==$i, keys %interface)), ".\n";
   $total += $interfaces{$i};
   push(@ff,@f);

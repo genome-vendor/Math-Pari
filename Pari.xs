@@ -189,7 +189,6 @@ bindVariable(SV *sv)
   GEN p1;
   entree *ep;
   char name[50];
-  SV *setsv = NULL;
 
   if (!SvREADONLY(sv)) {
       save_item(sv);			/* Localize it. */
@@ -205,7 +204,6 @@ bindVariable(SV *sv)
 		  && (gcmp0((GEN)x[2]))	/* Free */
 		  && (gcmp1((GEN)x[3]))) { /* Leading */
 		  s = varentries[ordvar[varn(x)]]->name;
-		  setsv = sv;
 		  goto repeat;
 	      }
 	      goto ignore;
@@ -214,16 +212,17 @@ bindVariable(SV *sv)
 	  }
       }
   }
+  if (!SvOK(sv))
+      goto ignore;
   s = SvPV(sv,na);
   repeat:
   olds = s;
   for (n = 0; isalnum(*s); s++) n = n << 1 ^ *s;
-  if (*s || s == olds) {
+  if (*s || s == olds || !isalpha(*olds)) {
       static int depth;
 
     ignore:
       SAVEINT(depth);
-      setsv = sv;			/* Change the value of sv. */
       sprintf(name, "intiter%i",depth++);
       s = name;
       goto repeat;
@@ -262,8 +261,8 @@ bindVariable(SV *sv)
   setlg(polvar, nvar+1);
 
   found:
-  if (setsv && override)
-      sv_setref_pv(setsv, "Math::Pari::Ep", (void*)ep);
+  if (override)
+      sv_setref_pv(sv, "Math::Pari::Ep", (void*)ep);
   return ep;
 }
 
@@ -554,6 +553,7 @@ callPerlFunction(entree *ep, ...)
     int count ;
     long oldavma = avma;
     SV *oPariStack = PariStack;
+    SV *sv;
 
     va_start(args, ep);
     ENTER ;
@@ -571,9 +571,7 @@ callPerlFunction(entree *ep, ...)
     if (count != 1)
 	croak("Perl function exported into PARI did not return a value");
 
-    res = sv2pari(POPs);
-    if (isonstack(res) && res < (GEN)oldavma) /* Will be cleared. */
-	res = gclone(res);
+    sv = SvREFCNT_inc(POPs);		/* Preserve the guy. */
 
     PUTBACK ;
     FREETMPS ;
@@ -582,8 +580,16 @@ callPerlFunction(entree *ep, ...)
        oldavma, but the caller is going to unwind the stack: */
     if (PariStack != oPariStack)
 	moveoffstack_newer_than(oPariStack);
+    /* Now, when everything is moved off stack, and avma is reset, we
+       can get the answer: */
+    res = sv2pari(sv);			/* XXXX When to decrement the count? */
+    /* We need to copy it back to stack, otherwise we cannot decrement
+     the count. */
+    avma -= taille(res)<<TWOPOTBYTES_IN_LONG;
+    brutcopy(res, avma);
+    SvREFCNT_dec(sv);
     
-    return res;
+    return (GEN)avma;
 }
 
 /* Currently with <=6 arguments only! */
@@ -612,6 +618,8 @@ exprHandler_Perl(char *s)
     GEN res;
     long count;
     dSP;
+    SV *sv;
+    SV *oPariStack = PariStack;
 
     ENTER ;
     SAVETMPS;
@@ -619,13 +627,26 @@ exprHandler_Perl(char *s)
     count = perl_call_sv(cv, G_SCALAR);
 
     SPAGAIN;
-    if (count != 1) res = gnil;
-    else res = sv2pari(POPs);
+    sv = SvREFCNT_inc(POPs);		/* Preserve it through FREETMPS */
 
     PUTBACK ;
     FREETMPS ;
     LEAVE ;
-    return res;
+
+    /* Now PARI data created inside this subroutine sits above
+       oldavma, but the caller is going to unwind the stack: */
+    if (PariStack != oPariStack)
+	moveoffstack_newer_than(oPariStack);
+    /* Now, when everything is moved off stack, and avma is reset, we
+       can get the answer: */
+    res = sv2pari(sv);
+    /* We need to copy it back to stack, otherwise we cannot decrement
+     the count. */
+    avma -= taille(res)<<TWOPOTBYTES_IN_LONG;
+    brutcopy(res, avma);
+    SvREFCNT_dec(sv);
+    
+    return (GEN)avma;
 }
 
 

@@ -166,6 +166,7 @@ $level0c	= $level0convert ? 'level0.s' : $level0;
 $level0h	= '' unless -r $level0h;
 ($level0path	= $level0) =~ s/[^\/]*\.c$//;
 $kernel1	= $kernel1c = "$main_paridir/src/kernel/$level0machine->[2]";
+$kernel1	= $kernel1c = '' unless $level0machine->[2];
 $kernel1c	= 'kernel1.s'
   if $level0machine->[3];  
 
@@ -326,7 +327,7 @@ WriteMakefile(
 
 sub MY::top_targets {
   my $converted = '';
-  $converted = <<EOC if $kernel1c eq 'kernel1.s';
+  $converted = <<EOC if $kernel1c eq 'kernel1.s' or $level0c eq 'level0.s';
 level0.s: $level0 $level0h
 	\$(CPP) -I. \$(INC) -I$level0path \$(DEFINE) \$(CPPMINUS) < $level0 | perl -ne "s/%\s+/%/g; print unless /^\s*#/" > \$@
 

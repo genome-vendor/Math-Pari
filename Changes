@@ -122,3 +122,15 @@ after 0.95_03:
 
 All tests successful, 1 test skipped, plus 156 subtests skipped.
 Files=17,  Tests=1393, 204 secs ( 0.00 cusr  0.00 csys =  0.00 cpu)
+		       ^^^ with debugging enabled
+
+after 2.0011_01:
+	Build which needed a translation to level0.s, kernel1.s was busted.
+	Perl 5.005_52 had conflicting `warner'.
+	Perl 5.005_52 has different order of hashes => needed to explicitly
+		order the variables in Testout.pm.
+	Perl 5.005_52: Autoloading got in the way of FETCHSIZE (implemented)
+	:int, :float and :hex import tags tested and fixed.
+
+All tests successful, 1 test skipped, plus 156 subtests skipped.
+Files=15,  Tests=1377, 121 wallclock secs ( 0.00 cusr +  0.00 csys =  0.00 CPU)

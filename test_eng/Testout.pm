@@ -22,10 +22,10 @@ print "1..$tests\n";
 prec($3 || $1, 1) if $mess =~ /realprecision = (\d+) significant digits( \((\d+) digits displayed\))?/;  
 
 $| = 1;
-@seen{qw(Pi I Euler getrand a x y z k t q u j l n v p name other mhbi a2 a1 a0 b0 b1
-	 acurve bcurve ccurve cmcurve tcurve mcurve ma mpoints)} 
-  = (' ', ' ', ' ', ' ', ('$') x 100);
-for (keys %seen) {
+@seen = qw(Pi I Euler getrand a x y z k t q u j l n v p name other mhbi a2 a1 a0 b0 b1
+	 acurve bcurve ccurve cmcurve tcurve mcurve ma mpoints);
+@seen{@seen}  = (' ', ' ', ' ', ' ', ('$') x 100);
+for (@seen) {
   $$_ = PARI($_);
 }
 $seen{'random'} = ' ';

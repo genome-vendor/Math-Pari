@@ -1,14 +1,74 @@
---- ./src/language/anal.h~	Mon Sep 28 17:27:58 1998
-+++ ./src/language/anal.h	Mon Sep 28 17:38:13 1998
-@@ -38,7 +38,7 @@ extern int  (*whatnow_fun)(char *, int);
- extern void *foreignHandler;
- extern GEN  (*foreignExprHandler)(char*);
- extern char foreignExprSwitch;
--extern long (*foreignAutoload)(char*, long);
-+extern entree * (*foreignAutoload)(char*, long);
- extern void (*foreignFuncFree)(entree *);
- 
- /* Variables containing the list of PARI functions */
+From ilya Sat Sep 12 01:07:17 1998
+Subject: Making Perl interface to PARI-2.0
+To: pari-dev@list.cr.yp.to (Developers Pari)
+Date: Sat, 12 Sep 1998 01:07:17 -0400 (EDT)
+X-Mailer: ELM [version 2.5 PL0b1]
+Content-Length: 6787      
+Status: OR
+
+I started a remake of Math::PARI Perl's module for version 2.0.  Some of
+the parts are working already (I released version 0.95_00 today, should 
+propagate soon to CPAN: http://www.perl.com/CPAN/authors/ILYAZ/modules).
+
+Here are the PARI problems I encountered:
+
+Corrected, -p1-patch at the end:
+
+a)  plotgnuplot.c had warnings (and no init segment, see `f').
+
+b)  install() installs at the head of the chain, but findentry() 
+    expects that the installed by foreighAutoload() entry goes into the
+    end of the chain.  I changed the signature of foreighAutoload() to
+    return entree*, thus made this problem disappear.
+
+c)  err_recover() was flush()ing before giving the caller the possibility 
+    to die().
+
+d)  p-adic print was outputting extra space: bruteall() was overwriting 
+    the old value of sp.
+
+e)  fordiv() changed signature without a change to numeric interface,
+    or the string signature.  I corrected the string signature.
+
+f)  x86 assembler was putting overhead and hiremainder in uninit segment.
+    The resulting object file had no init segment, so IBM linker was 
+    skipping it (I was told that this is not a bug: allowed by standards).
+    I special-cased it for the particular compiler and linking options.
+
+g)  Moreover, OMF compile under EMX (necessary to get a full-feature DLL)
+    has no underscores, but takes BSD syntax.  Again, I special-cased it.
+
+h)  Gnuplot.h had a typo.
+
+Not corrected:
+
+1)  init_opts declared in gp/gp.h.  The idea of macros INIT_JMP_on and 
+    friends was to make the switching accessible to the caller of PARI.
+
+2)  wrong dependence for kernel0.o in none/Makefile.SH.
+
+3)  changevalue() and installep() are statics, but they are important
+    interfaces.
+
+4)  numvar() disappeared altogether.
+
+5)  GP function matinvr() disappeared without a trace.
+
+6)  Instead of using __OPTIMIZE__ for switching inlining (ouch!!!), 
+    Configure should check for -g in CFLAGS, and specify USE_INLINES macro.
+
+7)  coinit() assumes that a long can be put in 9 chars ?!  (Some more around.)
+
+8)  sum() and prod() have the same numeric interface, but different string
+    interfaces.  -  This stops the translator dead.
+
+9)  We need an additional output arg to hashvalue(): where parsing ended.
+    This would simplify the usage of this function, and will make the life
+    of interfacer to PARI simpler.
+
+Enjoy,
+Ilya
+
 --- ./src/language/anal.c~	Thu Jul 23 08:40:30 1998
 +++ ./src/language/anal.c	Fri Sep 11 19:54:22 1998
 @@ -1536,12 +1536,7 @@ findentry(char *name, long len, entree *
@@ -65,6 +125,15 @@
    if (environnement)  
    { 
     /* wait till recover() is done before allocating a new stack.
+@@ -1345,7 +1346,7 @@ entree functions_basic[]={
+ {"fibonacci",11,(void*)fibo,4,"L"},
+ {"floor",1,(void*)gfloor,2,"G"},
+ {"for",83,(void*)forpari,11,"vV=GGI"},
+-{"fordiv",84,(void*)fordiv,11,"vGVI"},
++{"fordiv",84,(void*)fordiv,11,"GVI"},
+ {"forprime",83,(void*)forprime,11,"vV=GGI"},
+ {"forstep",86,(void*)forstep,11,"vV=GGGI"},
+ {"forvec",87,(void*)forvec,11,"vV=GID0,L,"},
 --- ./src/kernel/ix86/l0asm.c~	Thu Jul 23 08:40:30 1998
 +++ ./src/kernel/ix86/l0asm.c	Fri Sep 11 16:16:40 1998
 @@ -28,6 +28,12 @@
@@ -136,3 +205,5 @@
  PARI_plot pari_plot, pari_psplot;
  
  #define STRINGRECT (NUMRECT-2)
+
+

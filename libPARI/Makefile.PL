@@ -131,11 +131,15 @@ $inlines = $inlines{$machine} or die "Unknown inlines for '$machine'";
 	     sparcv7	   => '',
 				# Following 2 guys should be fixed on linux/NS
 	     sparcv8micro  => ($sparc_cvt 
-			       ? ['sparc8/level0.s', 1,
-				  'sparc8/level0_sparcv8_micro.s', 1] 
-			       : ['sparc8/level0.s', 0, 
-				  'sparc8/level0_sparcv8_micro.s', 0]),
-	     sparcv8super  => '',
+			       ? ['sparcv8/level0.s', 1,
+				  'sparcv8/level0_sparcv8_micro.s', 1] 
+			       : ['sparcv8/level0.s', 0, 
+				  'sparcv8/level0_sparcv8_micro.s', 0]),
+	     sparcv8super  => ($sparc_cvt 
+			       ? ['sparcv8/level0.s', 1,
+				  'sparcv8/level0_sparcv8_super.s', 1] 
+			       : ['sparcv8/level0.s', 0, 
+				  'sparcv8/level0_sparcv8_super.s', 0]),
 	     alpha	   => '',
 	     hppa	   => ['none/level0.c', 0],
 	     i386	   => ['ix86/l0asm.c', 1],
@@ -161,7 +165,7 @@ $level0c	= $level0convert ? 'level0.s' : $level0;
 ($level0h	= $level0) =~ s/\.c$/.h/;
 $level0h	= '' unless -r $level0h;
 ($level0path	= $level0) =~ s/[^\/]*\.c$//;
-$kernel1	= $kernel1c = $level0machine->[2];
+$kernel1	= $kernel1c = "$main_paridir/src/kernel/$level0machine->[2]";
 $kernel1c	= 'kernel1.s'
   if $level0machine->[3];  
 
@@ -282,20 +286,38 @@ $mycflags .= " -DDYNAMIC_PLOTTING";
 # OMF build needs no underscores:
 $mycflags .= " -D__NO_AOUT" if $^O eq 'os2' and !$OS2::is_aout;
 
+%assflags = (
+	     alpha  => "-O1",
+	     sparc  => ($Config{osname} eq 'solaris' 
+			? "-P -T -I."
+			: "-P -I."),
+	     hppa   => "+DA1.1",
+	    );
+
+$assflags{$machine} = $assflags{sparc} if $machine =~ /sun3|sparc/;
+
+if ($machine =~ /sparc|alpha|hppa/) {
+  $asscmd = '$(AS) $(ASFLAGS)';	#  $(CCCDLFLAGS)?
+} else {
+  $asscmd = '$(CCCMD) $(CCCDLFLAGS)';
+}
+
 WriteMakefile(
     NAME	=> 'Math::PARI::libPARI',
     LINKTYPE	=> 'static',
     LIBS	=> $libs,
     OBJECT	=> join(' ', @obj_files), 
     macro	=> { 
-		    MP_CFLAGS	 => $mp_cflags,
-		    SOL_UNDER	 => $sol_under, 
-		    ADD_AR_OPT	 => ($add_ar_flags || ''),
-		    CPP => $Config{cppstdin},
-		    CPPMINUS => $Config{cppminus},
+		    MP_CFLAGS	  => $mp_cflags,
+		    SOL_UNDER	  => $sol_under, 
+		    ADD_AR_OPT	  => ($add_ar_flags || ''),
+		    CPP		  => $Config{cppstdin},
+		    CPPMINUS	  => $Config{cppminus},
+		    ASSCMD	  => $asscmd,
+		    ASFLAGS	  => $assflags{$machine} || '',
 		   },
     DEFINE	=> $mycflags,
-    INC		=> "-I$main_paridir/src/headers -I$main_paridir/src/graph",
+    INC		=> "-I$main_paridir/src/headers -I$main_paridir/src/graph -I.",
     C		=> \@cfiles,
     SKIP	=> [qw( distclean test dist makeaperl xs_o static)],
     clean	=> {'FILES' => 
@@ -303,10 +325,21 @@ WriteMakefile(
 );
 
 sub MY::top_targets {
+  my $converted = '';
+  $converted = <<EOC if $kernel1c eq 'kernel1.s';
+level0.s: $level0 $level0h
+	\$(CPP) -I. \$(INC) -I$level0path \$(DEFINE) \$(CPPMINUS) < $level0 | perl -ne "s/%\s+/%/g; print unless /^\s*#/" > \$@
+
+kernel1.s: $kernel1
+	\$(CPP) -I. \$(INC) -I$level0path \$(DEFINE) \$(CPPMINUS) < $kernel1 | perl -ne "s/%\s+/%/g; print unless /^\s*#/" > \$@
+
+EOC
   '
 all :: libPARI$(LIB_EXT)
 
 static ::       libPARI$(LIB_EXT)
+
+test:
 
 libPARI$(LIB_EXT): $(OBJECT)
 	-$(RM_F) libPARI$(LIB_EXT)
@@ -317,20 +350,16 @@ libPARI$(LIB_EXT): $(OBJECT)
 pariinl.h: @inlines
 	\$(PERL) -pe1 @inlines > pariinl.h
 
-level0.s: $level0 $level0h
-	\$(CPP) -I. \$(INC) -I$level0path \$(DEFINE) \$(CPPMINUS) < $level0 | perl -ne "s/%\s+/%/g; print unless /^\s*#/" > \$@
-
-kernel1.s: $kernel1
-	\$(CPP) -I. \$(INC) -I$level0path \$(DEFINE) \$(CPPMINUS) < $kernel1 | perl -ne "s/%\s+/%/g; print unless /^\s*#/" > \$@
+$converted
 
 mp\$(OBJ_EXT): $mp pariinl.h
 	\$(CCCMD) \$(CCCDLFLAGS) \$(DEFINE) -o \$@ $mp
 
 kernel\$(OBJ_EXT): $level0c pariinl.h
-	\$(CCCMD) \$(CCCDLFLAGS) \$(DEFINE) -o \$@ $level0c
+	\$(ASSCMD) \$(DEFINE) -o \$@ $level0c
 
 kernel1\$(OBJ_EXT): $kernel1c pariinl.h
-	\$(CCCMD) \$(CCCDLFLAGS) \$(DEFINE) -o \$@ $kernel1c
+	\$(ASSCMD) \$(DEFINE) -o \$@ $kernel1c
 
 mpinl\$(OBJ_EXT): $mpinl $mpinlh pariinl.h
 	\$(CCCMD) \$(CCCDLFLAGS) \$(DEFINE) -o \$@ $mpinl
@@ -342,4 +371,20 @@ $_\$(OBJ_EXT): $cfiles{$_} pariinl.h paricfg.h
 EOF
 }
 
+
+
+sub MY::const_config
+{
+ my $self = shift;
+ my $flags = $self->{'CCCDLFLAGS'}; # Tmp var needed with Perl4 !
+ $flags =~ s/(-[fK]?\s*)pic\b/${1}PIC/; 
+ $flags =~ s/-KPIC/-K PIC/;	# Apparently needed on Solaris...
+ $self->{'CCCDLFLAGS'} = $flags;
+ if ($^O eq 'MSWin32' && $Config{'ccflags'} =~ /-DPERL_OBJECT/)
+  {
+   $self->{'LDFLAGS'} =~ s/-(debug|pdb:\w+)\s+//g;
+   $self->{'LDDLFLAGS'} =~ s/-(debug|pdb:\w+)\s+//g;
+  }
+ return $self->MM::const_config;
+}
 

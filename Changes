@@ -118,14 +118,7 @@ after 0.95_03:
 	undef allowed as a value of an optional argument.
 	Minor massage of codes to move 'l' and 'v' forward.
 	setseriesprecision() implemented.
+	sv2pari() was not calling mg_get().
 
-Failed Test  Status Wstat Total Fail  Failed  List of failed
--------------------------------------------------------------------------------
-t/ell_will_fail               3    1  33.33%  2
-t/nf_will_fail.              12    4  33.33%  4, 8, 11-12
-1 test skipped, plus 191 subtests skipped.
-Failed 2/17 test scripts, 88.24% okay. 5/1392 subtests failed, 99.64% okay.
-
-	All these failures look like real bugs now.
-	Known failures filtered from PARI tests and moved to
-		Math::Pari tests.
+All tests successful, 1 test skipped, plus 156 subtests skipped.
+Files=17,  Tests=1393, 204 secs ( 0.00 cusr  0.00 csys =  0.00 cpu)

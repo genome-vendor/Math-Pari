@@ -581,7 +581,7 @@ a link between Math::Pari and Term::Gnuplot by calling link_gnuplot().
 You can change the output filehandle by calling set_plot_fh(), and
 output terminal by calling plotterm(), as in
 
-    use Math::Pari ':all';
+    use Math::Pari qw(:graphic asin);
 
     open FH, '>out.tex' or die;
     link_gnuplot();
@@ -759,7 +759,7 @@ sub AUTOLOAD {
 $initmem = $initmem || 4000000;		# How much memory for the stack
 $initprimes = $initprimes || 500000;	# Calculate primes up to this number
 
-$VERSION = '2.001402';
+$VERSION = '2.001403';
 
 bootstrap Math::Pari;
 
@@ -828,6 +828,7 @@ sub import {
       $tag = -1, @pre = (@EXPORT_OK,@EXPORT) if ($tag eq 'all');
       $tag = -1 if ($tag eq 'PARI');
       $tag = $sections{$tag} if $tag !~ /^-?\d+$/ and exists $sections{$tag};
+      push @pre, 'link_gnuplot', 'set_plot_fh' if $tag eq 10;
       if ($tag =~ /^prec=(\d+)$/) {
 	setprecision($1);
 	();
@@ -837,7 +838,7 @@ sub import {
 	push @const, $overloaded_const_word{$tag} => $overloaded_const{$tag};
 	# print "Constants: $overloaded_const_word{$tag} => $overloaded_const{$tag} \n";
 	();
-      } elsif (defined $tag) {
+      } elsif (defined $tag and $tag =~ /^-?\d+$/) {
 	(@pre, listPari($tag));
       } else {
 	die "Unknown section '$sect' specified";

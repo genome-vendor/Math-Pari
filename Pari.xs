@@ -72,6 +72,28 @@ typedef entree * PariName;		/* For changevalue.  */
 typedef char * PariExpr;
 typedef GEN * GEN_Ptr;
 
+#if defined(MYMALLOC) && defined(EMBEDMYMALLOC) && defined(UNEMBEDMYMALLOC)
+
+Malloc_t
+malloc(register size_t nbytes)
+{
+    return Perl_malloc(nbytes);
+}
+
+Free_t
+free(void *mp)
+{
+    Perl_mfree(mp);			/* What to return? */
+}
+
+Malloc_t
+realloc(void *mp, size_t nbytes)
+{
+    return Perl_realloc(mp, nbytes);
+}
+
+#endif
+
 /* We make a "fake" PVAV, not enough entries.  */
 
 #define setSVpari(sv, in, oldavma) do {				\
@@ -214,7 +236,7 @@ PARIvar(char *s)
 		     functions_hash + hash);
       manage_var(0,ep);
 #if 0
-      ep = (entree *)malloc(sizeof(entree) + 7*BYTES_IN_LONG 
+      ep = (entree *)gpmalloc(sizeof(entree) + 7*BYTES_IN_LONG 
 			    + s - olds + 1);
       ep->name = (char *)ep + sizeof(entree) + 7*BYTES_IN_LONG;
       for (u = ep->name, v = olds; v < s;) *u++ = *v++; *u = 0;
@@ -329,7 +351,7 @@ findVariable(SV *sv, int generate)
       return ep;
     }
   }
-  ep = (entree *)malloc(sizeof(entree) + 7*BYTES_IN_LONG 
+  ep = (entree *)gpmalloc(sizeof(entree) + 7*BYTES_IN_LONG 
 			+ s - olds + 1);
   ep->name = (char *)ep + sizeof(entree) + 7*BYTES_IN_LONG;
   for (u = ep->name, v = olds; v < s;) *u++ = *v++; *u = 0;
@@ -654,7 +676,7 @@ installPerlFunctionCV(SV* cv, char *name, I32 numargs, char *help)
     } else if (numargs >= 256) {
 	croak("Import of Perl function with too many arguments");
     } else {
-	code = (char *)malloc(numargs*6 - req*5 + 2);
+	code = (char *)gpmalloc(numargs*6 - req*5 + 2);
 	code[0] = 'x';
 	memset(code + 1, 'G', req);
 	s = code + 1 + req;
@@ -940,7 +962,8 @@ fill_argvect(entree *ep, char *s, long *has_pointer, GEN *argvec,
 			if (j < items)
 			    j++;
 
-			if (*s == 'G' || *s == '&') { 
+			if ( *s == 'G' || *s == '&' 
+			     || *s == 'I' || *s == 'V') { 
 			    argvec[i++]=DFT_GEN; s++; 
 			    break; 
 			}
@@ -974,7 +997,9 @@ fill_argvect(entree *ep, char *s, long *has_pointer, GEN *argvec,
 			s++;			/* Skip ',' */
 		    }
 		else
-		    if (*s == 'G' || *s == '&' || *s == 'n') break;
+		    if (*s == 'G' || *s == '&' || *s == 'n'
+			|| *s == 'I' || *s == 'V') 
+			break;
 		while (*s++ != ',');
 		break;
 
@@ -1779,7 +1804,26 @@ PariExpr	arg3
    RETVAL
 
 GEN
-interface28(arg1,arg2)
+interface28(arg1,arg2=0,arg3=0)
+long	oldavma=avma;
+GEN	arg1
+PariVar	arg2
+PariExpr	arg3
+ CODE:
+  {
+    dFUNCTION(GEN);
+
+    if (!FUNCTION) {
+      croak("XSUB call through interface did not provide *function");
+    }
+
+    RETVAL = FUNCTION(arg1, arg2, arg3);
+  }
+ OUTPUT:
+   RETVAL
+
+GEN
+interface28_old(arg1,arg2)
 long	oldavma=avma;
 GEN	arg1
 GEN	arg2
@@ -1973,7 +2017,7 @@ PariExpr	arg4
    RETVAL
 
 GEN
-interface49(arg0,arg00,arg1,arg2,arg3)
+interface49(arg0,arg00,arg1=0,arg2=0,arg3=0)
 long	oldavma=avma;
 GEN	arg0
 GEN	arg00
@@ -1984,7 +2028,7 @@ PariExpr	arg3
   {
     dFUNCTION(GEN);
 # arg1 and arg2 may finish to be the same entree*, like after $x=$y=PARIvar 'x'
-    if (arg1 == arg2) {
+    if (arg1 == arg2 && arg1) {
 	if (ST(2) == ST(3)) 
 	    croak("Same iterator for a double loop");
 # ST(3) is localized now
@@ -2098,12 +2142,11 @@ long	oldavma=avma;
 
 
 GEN
-interface45(arg1, arg2, arg3, arg4)
+interface45(arg1, arg2, arg3=0)
 long	oldavma=avma;
     long arg1
     GEN arg2
-    GEN arg3
-    long arg4
+    long arg3
  CODE:
   {
     dFUNCTION(GEN);
@@ -2112,7 +2155,7 @@ long	oldavma=avma;
       croak("XSUB call through interface did not provide *function");
     }
 
-    RETVAL=FUNCTION(arg1, arg2, arg3, arg4, prec);
+    RETVAL=FUNCTION(arg1, arg2, arg3);
   }
  OUTPUT:
    RETVAL
@@ -2139,7 +2182,7 @@ long	oldavma=avma;
 
 
 GEN
-interface73(arg1, arg2, arg3, arg4, arg5, arg6, arg7)
+interface73(arg1, arg2, arg3, arg4, arg5, arg6=0, arg7=0)
 long	oldavma=avma;
     long arg1
     PariVar arg2
@@ -2603,7 +2646,7 @@ loadPari(name)
 	 RETVAL = newXS(subname,subaddr,file);
 	 if (proto)
 	     sv_setpv((SV*)RETVAL, proto);
-	 CvXSUBANY(RETVAL).any_dptr = flexible ? (void*)ep : (void*)func;
+	 XSINTERFACE_FUNC_SET(RETVAL, flexible ? (void*)ep : (void*)func);
        } else {
 	 croak("Cannot load a Pari macro `%s'", olds);
        }

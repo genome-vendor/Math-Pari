@@ -614,6 +614,26 @@ A few of PARI functions are available indirectly only.
 
 These tests expose several bugs.
 
+=item *
+
+Using overloading constants with Perl below 5.005_57 could lead to
+segfaults (at least without -D usemymalloc), as in:
+
+  use Math::Pari ':int';
+  for ( $i = 0; $i < 10 ; $i++ ) { print "$i\n" }
+
+=item *
+
+C<++> floatifies.
+
+=item *
+
+pari2iv() has a 32-bit upper bound on 64-bit perls.
+
+=item *
+
+problems with refcounting of array elements and Mod().
+
 =back
 
 =head1 AUTHOR
@@ -677,7 +697,11 @@ use subs qw(
    _exp
    _log
    _sqrt
-);				# For overloading
+   _gbitand
+   _gbitor
+   _gbitxor
+   _gbitneg
+);		# Otherwise overload->import would complain...
 
 sub _shiftl {
   my ($left,$right) = (shift,shift);
@@ -690,6 +714,13 @@ sub _shiftr {
   ($left,$right) = ($right, $left) if shift;
   floor($left / 2**$right);
 }
+
+$initmem = $initmem || 4000000;		# How much memory for the stack
+$initprimes = $initprimes || 500000;	# Calculate primes up to this number
+
+$VERSION = '2.001804';
+
+bootstrap Math::Pari;
 
 use overload qw(
    neg _gneg
@@ -720,10 +751,21 @@ use overload qw(
    >>  _shiftr
 );
 
+if (pari_version_exp() >= 2000018) {
+  'overload'->import( qw(
+			 | _gbitor
+			 & _gbitand
+			 ^ _gbitxor
+			 ~ _gbitneg
+			) );
+}
+
 sub AUTOLOAD {
   $AUTOLOAD =~ /^(?:Math::Pari::)?(.*)/;
+  # warn "Autoloading $1...\n";
+  # exit 4 if $1 eq 'loadPari';
   my $cv = loadPari($1);
-  
+
 #  goto &$cv;
 #  goto &$AUTOLOAD;
 #  &$cv;
@@ -758,13 +800,6 @@ sub AUTOLOAD {
 #     eval "sub $AUTOLOAD { $val }";
 #     goto &$AUTOLOAD;
 # }
-
-$initmem = $initmem || 4000000;		# How much memory for the stack
-$initprimes = $initprimes || 500000;	# Calculate primes up to this number
-
-$VERSION = '2.001702';
-
-bootstrap Math::Pari;
 
 # Preloaded methods go here.  Autoload methods go after __END__, and are
 # processed by the autosplit program.
@@ -804,12 +839,22 @@ sub _hex_cvt {
   my $ret = 0;
   my $shift = 1<<(4*7);
 
-  $in =~ s/^0(x)?// or die;
+  $in =~ s/^0([xb])?// or die;
   my $hex = $1;
+  if ($hex and $1 eq 'b') {
+    my $b = '0' x (15 * length($in) % 16) . $in;
+    $hex = '';
+    while ($b) {
+      my $s = substr $b, 0, 16;
+      substr($b, 0, 16) = '';
+      $hex .= pack 'h4', unpack 'b16', $s;
+    }
+  }
   $shift = 1<<(3*7) unless $hex;
   while ($in =~ s/([a-fA-F\d]{1,7})$//) {
-    my $part = $hex ? hex $1 : oct $1;
-    
+    # In 5.6.0 hex() can return a floating number:
+    my $part = int($hex ? hex $1 : oct $1);
+
     $ret += $part * $mult;
     $mult *= $shift;
   }
@@ -856,9 +901,11 @@ sub import {
   # print "EXPORT_OK: @EXPORT_OK\n";
   push @EXPORT_OK,
       grep( ($_ ne ':DEFAULT' 
-	     and not $export_ok{$_}
+	     and not $export_ok{$_}++
 	     and (eval {loadPari($_), 1} or warn $@), !$@) ,
 	    @_);
+  # Invalidate Exporter cache, so that new %EXPORT_OK is noticed:
+  undef %EXPORT;
   # print "EXPORT_OK: @EXPORT_OK\n";
   &Exporter::export($p,(caller(0))[0],@_);
 }

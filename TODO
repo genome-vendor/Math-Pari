@@ -1,1 +1,3 @@
 ULONG test is not robust enough.
+
+Compile of Pari.c requires pariinl.h, which may be not built yet.

@@ -324,3 +324,39 @@ Files=15,  Tests=1378, 108 secs (86.46 cusr  3.82 csys = 90.28 cpu)
 2.010201:
 	Allow trailing K, M, G in :stack=, :primes= directives of PariInit.pm.
 	Recognize that GP/PARI may be in a directory named 'pari' (CVS).
+
+2.010202:
+	Would compile whatnow.o.  On the architectures with barely
+	working dynalinking (cygwin only?) leads to unresolved symbols.
+	Document the possible -fPIC limitation.
+
+2.010300:
+	On OS/2 DLOPEN was not supported well enough.
+	More verbose messages about generation of paricfg.h.
+	Support PARI_DOUBLE_TYPE.
+	Support type 'M' of arguments (only numberic arguments, though).
+
+2.010301:
+	Better support of GNU as.
+	New Makefile.PL options PARIDIR=directory
+	Treat underscores in assembler files better.
+	Recode brutcopy in terms of gcopy_av (not exported?).
+	In 2.2.* branch: plotting and objet:22 tests segfault...
+	Create XS functions good for left-right shift (buggy in 2.2.2?).
+
+2.010302:
+	Support quick <<, >> with newer PARI (2.2.*).
+	Some tests still segfault with newer PARI...
+
+2.010303:
+	Set AMSINLINE if needed.
+	Put obsolete files and utils in a subdirectory.
+
+2.010304:
+	Move a lot of code of Makefile.PL to Math::PariBuild.pm.
+	(But DEFINE= processing still extremely messy.)
+	New option force_download to Makefile.PL.
+	PARIDIR= and MACHINE= were not removed from @ARGV.
+	Sanity check: correspondence between numeric and string interfaces.
+	Define GCC_INLINE if the compiler is gcc.
+	New target `build_tests' for make.

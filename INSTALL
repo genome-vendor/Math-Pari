@@ -29,7 +29,8 @@ have a "good enough" binary of Perl running on your machine.
 Compiling any Perl module involves a heavy usage of the Config module
 coming with Perl.  If your Perl is copied from another machine with an
 incompatible configuration, expect problems.  [Typical syndroms:
-glob failing; /usr/ucb/cc used instead of a real compiler, etc.]
+glob failing; /usr/ucb/cc used instead of a real compiler, make trying
+to run `cl' you do not have etc.]
 
 ==================================================================
 GP/PARI detects the type of the assembler files needed for your
@@ -71,9 +72,9 @@ Makefile.PL does.
   b) uncompress the distribution; optionally run 'Configure' script
 	sh ./Configure
 
-     (Running 'Configure' is required if you manually copy 'paricfg.h'.)
+     (Running 'Configure' is required only if you manually copy 'paricfg.h'.)
 
-  c) Math::Pari does not care whether you made GP/PARI, but you can do
+  c) Math::Pari does not care whether you did `make' GP/PARI, but you can do
      it nevertheless:
 	make test
      in toplevel PARI directory;
@@ -99,6 +100,9 @@ Makefile.PL does.
      You may also want to add Configure argument (see above).  At this
      moment you may want to manually copy paricfg.h if all the rest fails...)
 
+     This step autogenerates many files, such as POD documentation of GP/PARI
+     and the module test suite, from the GP/PARI distribution.
+
   g) then
 
 	make
@@ -114,5 +118,6 @@ x) Patches to some versions of GP/PARI may be needed (in `patches11',
    or 'patch12', etc.  depending on the version of GP/PARI 2.0.*).
    This may be done automatically during auto-download of GP/PARI.
 
-x) We skip "compatibility" tests, and do not support "compatibility" mode.
+x) We skip "compatibility" tests, and do not support "compatibility" mode
+   (with very old versions of GP/PARI).
 

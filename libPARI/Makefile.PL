@@ -146,7 +146,7 @@ $inlines = $inlines{$machine} or die "Unknown inlines for '$machine'";
 	     alpha	   => '',
 	     hppa	   => ['none/level0.c', 0],
 	     i386	   => ['ix86/l0asm.c', 1],
-	     port	   => ["$asmarch/level0.c", 0],
+	     port	   => ["none/level0.c", 0],
 	    );
 
 %asmarch = (

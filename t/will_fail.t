@@ -7,6 +7,9 @@ $y = PARIvar 'y';
 
 # In fact this would segfault if moved to the end...
 $bnf = buchinitfu($x**2-$x-57,0.2,0.2);
+print "# bnf=$bnf\n";
+print "# bnf[6]=$bnf->[6]\n";
+
 eval {
   isideal($bnf->[-1+7],PARImat_tr([[5,1], [0,1]]));
 };
@@ -32,8 +35,10 @@ print "ok $test\n";
 
 # If uncommented, it segfaults
 $test++;
-print "# Skipping next one, would segfault:\nnot ok $test\n";
-#rnfdiscf($nf2,$p);
+# print "# Skipping next one, would segfault:\nnot ok $test\n";
+eval { $d = rnfdiscf($nf2,$p) };
+print "not " if $@ or $d ne PARI '[[416134375,212940625,388649575;0,3125,550;0,0,25],[-1280,5,5]~]';
+print "ok $test\n";
 
 $nfpol = $x**5 - 5 * $x**3 + 5 * $x + 25;
 $nf = initalg($nfpol);

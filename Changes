@@ -58,3 +58,14 @@ after 0.7:
 	matrix() could have been called with the same variable for two
 		iterators (4 not ok/30 skip, but segfaults on exit)
 	T: move failing tests to will_fail.t;
+
+after 0.8:
+	Hi-resolution plotting works if one has Term::Gnuplot v. 0.4,
+		one needs to call link_gnuplot() before doing this;
+	foncpari.pl now suggests the code for a missing interface (in simplest
+		cases);
+	interfaces for most functions added (except buch*, string and addhelp);
+	indirect variables (like PARIvar('x')) can be indexed like $x->[2];
+	T: Interactive plotting test added (ignored if no Term::Gnuplot);
+	Bug in libPARI/plotport.c corrected;
+	Minor changes to chap3_to_pod;

@@ -156,7 +156,7 @@ sub process_test {
     } elsif ($in =~ /
 		      (
 			\b 
-			( while | if | for | goto | label | changevar | forvec | forstep | gettime )
+			( while | if | for | goto | label | changevar | gettime | forstep )
 			\b 
 		      |
 			\w+ \( \w+ \) = 
@@ -172,9 +172,10 @@ sub process_test {
 		      )
 		    /x) {
       # It is not clear why changevar gives a different answer in GP
-      print "# Skipping (converting '$1' needs additional work) `$in'\nok $c\n";
+      print "# Skipping (converting test for '$1' needs additional work) `$in'\nok $c\n";
       return;
     } elsif ($in =~ / \b ( rnfdiscf | rnfpseudobasis | idealhermite2 | isideal ) \b /x) {
+#    } elsif ($in =~ / \b ( rnfhermitebasis | rnfsteinitz | idealhermite2 | isideal ) \b /x) {
       # Will result in segfault or wrong answer
       print "# Skipping (would fail, checked in different place) `$in'\nok $c\n";
       return;
@@ -251,13 +252,7 @@ sub process_test {
 		  |
 		    intopen 
 		  |
-		    for 
-		    (?!
-		      vec 
-		    |
-		      step
-		    )
-		    \w+
+		    for \w+
 		  )
 		  \( 
 		  (?:
@@ -314,7 +309,7 @@ sub process_test {
     print "# eval", ($noans ? "-noans" : '') ,": $in\n";
     $printout = '';
     my $have_floats = ($in =~ /\d+\.\d*|\d{10,}/ 
-		       or $in =~ /\b(zeta|bin|comprealraw|frac|lseriesell|powrealraw|legendre|suminf)\b/);
+		       or $in =~ /\b(zeta|bin|comprealraw|frac|lseriesell|powrealraw|legendre|suminf|forstep)\b/);
     # Remove the value from texprint:
     pop @$out if $in =~ /texprint/ and @$out == 2;
     $res = eval "$in";
@@ -322,6 +317,10 @@ sub process_test {
     $rres = pari_print $res if defined $res and ref $res;
     if ($doprint) {
       $rout = join "\t", @$out, "";
+      if ($have_floats) {
+	$printout = massage_floats $printout, "14f";
+	$rout = massage_floats $rout, "14f";
+      }
     } else {
       $rout = mformat @$out;
       if (not $doprint and $rout =~ /\[.*[-+,]\s/) {
@@ -344,8 +343,8 @@ sub process_test {
       print "not ok $c # in='$in'\n#    out='", $rres, 
       "'\n# expect='$rout', type='", ref $res,"'\n";
     } elsif ($doprint and $printout ne $rout) {
-      print "not ok $c # in='$in', printout='", $printout, 
-      "', expect='$rout', type='", ref $res,"'\n";
+      print "not ok $c # in='$in'\n# printout='", $printout, 
+      "'\n#   expect='$rout', type='", ref $res,"'\n";
     } else {
       print "ok $c\n";
       @seen{keys %seen_now} = values %seen_now;
@@ -396,6 +395,7 @@ sub my_print {
   @_ = map {(ref) ? (pari_print $_) : $_} @_;
   $printout .= join '', @_;
   $printout .= "\t" if $nl;
+  return;
 }
 
 sub my_pprint {
@@ -403,6 +403,7 @@ sub my_pprint {
   @_ = map {(ref) ? (pari_pprint $_) : $_} @_;
   $printout .= join '', @_;
   $printout .= "\t" if $nl;
+  return;
 }
 
 sub my_texprint {
@@ -410,5 +411,6 @@ sub my_texprint {
   @_ = map {(ref) ? (pari_texprint $_) : $_} @_;
   $printout .= join '', @_;
   $printout .= "\t" if $nl;
+  return;
 }
 

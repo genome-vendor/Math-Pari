@@ -138,8 +138,16 @@ recplothraw(long drawrect, GEN frame, GEN data, long flags, long prec)
 GEN
 recplothmultin(long graphrect, entree *ep, GEN a, GEN b, char *ch, long prec, uLong flags, long testpoints)
 {
-  long av = avma,av2,i,j,sig,nc, offset = 0, lbot, points;
+  long av = avma,av2,i,j,sig,nc, offset = 0, points;
   GEN p1,p2,ysml,ybig,xsml,xbig,x,ydiff,xdiff,dx,y,dr,res;
+
+  ysml=cgetr(3);ybig=cgetr(3);
+  xsml=cgetr(3);xbig=cgetr(3);
+  res = cgetg(5,17);
+  res[1] = (long)xsml;
+  res[2] = (long)xbig;
+  res[3] = (long)ysml;
+  res[4] = (long)ybig;
 
   if (!testpoints) {
     points = 2 * (rectgraph[graphrect]->sizex +
@@ -152,8 +160,6 @@ recplothmultin(long graphrect, entree *ep, GEN a, GEN b, char *ch, long prec, uL
 
   newvalue(ep,cgetr(prec)); x=(GEN)(ep->value);
   gaffect(a,x);p1=lisexpr(ch);
-  ysml=cgetr(3);ybig=cgetr(3);
-  xsml=cgetr(3);xbig=cgetr(3);
   if (flags & PLOT_PARAMETRIC) {
     dx=gdivgs(gsub(b,a), testpoints - 1);
   } else {
@@ -239,16 +245,10 @@ recplothmultin(long graphrect, entree *ep, GEN a, GEN b, char *ch, long prec, uL
 
   rectplothrawin(graphrect, xsml, xbig, ysml, ybig, y, prec, flags);
 
-  avma = av;
   killvalue(ep);
+  avma = (long)res;
 
-  lbot = avma;
-  res = cgetg(5,17);
-  res[1] = (long)xsml;
-  res[2] = (long)xbig;
-  res[3] = (long)ysml;
-  res[4] = (long)ybig;
-  return gerepile(av,lbot,res);
+  return res;
 }
 
 /* 

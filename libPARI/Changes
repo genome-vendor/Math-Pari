@@ -93,8 +93,8 @@ Currently supported under gnuplot only.
 work if gnuplot is not built, though there are some provisions to build it.
 48) testouts modified to reflect changed memory allocation due to new
 rectangles.
-49) new functions rpoints, rlines, rpointtype, rlinetype, plotrawlines,
-rploth, rcopy added to interpreter.
+49) new functions rpoints, rlines, rpointtype, rlinetype, plothrawlines,
+rploth, rplothraw, rcopy added to interpreter.
 50) The logic in identifier and skipidentifier is changed to use the
 ep->code field if present.
 51) all code uses ep->help instead of helpmessages (time to move

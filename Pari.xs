@@ -122,10 +122,24 @@ make_PariAV(SV *sv)
     AV *av = (AV*)SvRV(sv);
     char *s = SvPVX(av);
     IV i = SvIVX(av);
+    MAGIC *mg;
+    SV *new = newRV_noinc((SV*)av);	/* cannot use sv, it may be 
+					   sv_restore()d */
+
     SvUPGRADE((SV*)av, SVt_PVAV);    
     SvPVX(av)	= s;
     SvIVX(av)	= i;
-    sv_magic((SV*)av, sv, 'P', Nullch, 0);
+    sv_magic((SV*)av, new, 'P', Nullch, 0);
+    SvREFCNT_dec(new);			/* now RC(new)==1 */
+	/* We avoid an reference loop, so should be careful on DESTROY */
+#if 0
+    if ((mg = SvMAGIC((SV*)av)) && mg->mg_type == 'P' /* be extra paranoid */
+	&& (mg->mg_flags & MGf_REFCOUNTED)) {
+/*      mg->mg_flags &= ~MGf_REFCOUNTED;	*/
+/*	SvREFCNT_dec(sv);			*/
+	sv_2mortal((SV*)av);		/* We restore refcount on DESTROY */
+    }
+#endif
 }
 
 SV*
@@ -1666,7 +1680,7 @@ PariExpr	arg3
       croak("XSUB call through interface did not provide *function");
     }
 
-    RETVAL=FUNCTION(arg1, arg2, arg3);
+    RETVAL = FUNCTION(arg1, arg2, arg3);
   }
  OUTPUT:
    RETVAL
@@ -2740,7 +2754,19 @@ DESTROY(rv)
 					  * to function having the SV as
 					  * argument. */
 	 long howmany;
-       
+#if 1
+	 if (SvMAGICAL(sv) && SvTYPE(sv) == SVt_PVAV) {
+	     MAGIC *mg = mg_find(sv, 'P');
+	     SV *obj;
+
+		/* Be extra paranoid: is refcount is artificially low? */
+	     if (mg && (obj = mg->mg_obj) && SvROK(obj) && SvRV(obj) == sv) {
+		 mg->mg_flags &= ~MGf_REFCOUNTED;
+		 SvREFCNT_inc(sv);
+		 SvREFCNT_dec(obj);
+	     }
+	 }
+#endif
 	 SvPVX(sv) = GENheap;		/* To avoid extra free() in moveoff.... */
 	 if (type == GENheap)	/* Leave it alone? XXXX */
 	 /* break */ ;

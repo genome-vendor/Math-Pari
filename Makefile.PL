@@ -117,6 +117,7 @@ $sou = "$sou-";
 for $test (@tests) {
   next if $test =~ /^\.\.?$/;
   next if $test =~ /compat/;
+  next if -d "$paritests/$test" and $test eq 'CVS';
   next if $test =~ /(~|\.(bak|orig|rej))$/;
   $targ = "t/$test.t";
   if (-f $targ) {
@@ -194,7 +195,7 @@ sub MY::const_config
   }
  return $self->MM::const_config;
 }
- 
+
 sub get_pari {
   $host = 'megrez.math.u-bordeaux.fr';
   $dir  = '/pub/pari/unix/';
@@ -230,7 +231,7 @@ EOP
   $ftp->binary() or die "Cannot switch to binary: $!";
   @lst = $ftp->ls() or die "Cannot list: $!";
   #print "list = `@lst'\n";
-  
+
   for $file (@lst) {
     next unless $file =~ /pari.*(\d+\.\d+\.\d+).*\.t(ar\.)?gz$/;
     $version = $1;
@@ -242,9 +243,9 @@ EOP
       $gamma{$version} = $file;
     }
   }
-  
+
   sub fmt_version {sprintf "%03d%03d%03d", split /\./, shift}
-  
+
   for $type (qw(alpha beta golden)) {
     if (%$type) {
       $have{$type}++;
@@ -262,13 +263,13 @@ EOP
   if (!%golden and $latest_beta eq '2.0.11' and $latest_alpha eq '2.0.14') {
     $best = 'alpha';		# It is tested!
   }
-  
+
   if ($best) {
     $file = $ {"latest_${best}_file"};
     $version = $ {"latest_$best"};
     print qq(Picking $best version $version, file $file\n);
     if (-f $file) {
-      print qq(Well, I already have it, using the disk copy...\n);      
+      print qq(Well, I already have it, using the disk copy...\n);
     } else {
       print qq(Downloading...\n);
       $ftp->get($file) or die "Cannot get: $!";
@@ -316,7 +317,7 @@ EOP
       print "Finished patching...\n";
     }
   }
-  
+
   $ftp->quit or die "Cannot quit: $!";
   $dir;
 } 

@@ -194,3 +194,12 @@ Files=15,  Tests=1378, 108 secs (86.46 cusr  3.82 csys = 90.28 cpu)
 	Link with Term::Gnuplot was using a wrong version of link_gnuplot().
 	Better reports if run with redirections.
 	Updated for 2.0.16.
+
+2.001701:
+	Change references to PARI types to t_FOO style.
+	Assignment to elements of arrays implemented (probably wasteful).
+		   (Can more tests be unskipped?).
+
+2.001702:
+	Update for new 'E' key of the interface string.
+	Do not consider CVS as a test.

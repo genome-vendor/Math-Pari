@@ -1,0 +1,268 @@
+Description of the main changes between versions 1.38 and 1.39
+
+In addition to the new programs and improvements described below, 
+numerous bugs have been corrected and other improvements have been made.
+See the file Changes for details. However, one bug is too important not
+to be mentioned here: the division routine of NON 68k versions was bugged.
+This was noticed by Bill Dubuque. A few more minor but still annoying
+kernel bugs have also been detected. Hopefully the kernel routines are
+now bugfree (the 68k kernel has not been changed).
+
+The use of a few functions may have been changed, so your old GP or Pari 
+programs may have to be slightly modified accordingly. These modifications
+are preceded by the mention WARNING below.
+
+1) Elementary functions
+
+a) New programs
+
+gdivround (division with rounding), with the corresponding operator `\/'
+under GP, gpolvar (polvar under GP: main variable name of an object),
+padicprec (absolute p-adic precision).
+
+b) Improvements
+
+For the 68k versions, the small functions such as typ(), lg(), etc...
+have been replaced by macros (idea due to D. Grayson), which speeds up 
+by 8%. In all versions, whenever possible, the functions setsigne() etc...
+have been replaced by evalsigne() etc.., which speeds up by another 1.5%.
+The kernel 0 routines have been changed in the port version (thanks in
+part to P. Montgomery), resulting in a speedup of up to 15%.
+
+2) Transcendental functions
+
+a) New programs
+
+b) Improvements
+
+3) Arithmetic functions
+
+a) New programs
+
+quaddisc (discriminant of a quadratic field), dirmul and dirdiv 
+(multiplication annd division of Dirichlet series), addprimes (add a few
+big primes to the initialized prime table), znstar (structure of the
+group (Z/nZ)^*)
+
+b) Improvements
+
+chinese now accepts any two types, including polynomials and 
+vectors/matrices.
+
+4) Functions related to elliptic curves
+
+a) New programs
+
+b) Improvements
+
+5) Functions related to number fields
+
+a) New programs
+
+signunit (find the signs of the real embeddings of the fundamental units),
+compositum (compositum of two number fields, when this makes sense),
+initzeta, zetak, lambdak (computation of the Dedekind Zeta function of a
+number field, dirzetak (Dirichlet series of the Dedekind zeta function of
+a number field), buchforcefu and buchinitforcefu (force to find the 
+fundamental units, even if they are huge), idealnorm (norm of an ideal),
+idealdivexact (division of two ideals when the quotient is known to be
+integral), idealtwoelt (two-element representation of an ideal),
+idealhermite (hermite normal form of an ideal given in any form), 
+idealhermite2 (hermite normal form of an ideal given by 2 generators),
+idealaddone (if I+J=Z_K, find i in I and j in J such that i+j=1),
+idealaddmultone (same for several ideals), idealappr (find b such that
+v_p(b)=v_p(I) for all prime ideals p dividing I), idealapprfact (same but
+some v_p can be asked to be equal to zero), idealtwoelt2 (two-element
+representation of an ideal with the first element given, using 
+idealapprfact), idealcoprime, idealcoprimeinv (find an integral ideal in
+the ideal class of the first ideal (or its inverse) and coprime to the
+second), basistoalg, algtobasis (polymod to integral basis recursive
+conversions), threetotwo, twototwo (see manual), nfmul, nfdiv, nfval 
+(operations on elements of a number field), nfker, nfgauss, nfsuppl
+(linear algebra in a number field), nfreducemodpr (reduction in a finite
+field), nfidealdet1 (see manual), nfhermite (Hermite Normal Form reduction
+in number fields), rnfbasis, rnfdiscf, rnfhermitebasis, rnfpseudobasis,
+rnfbasis, rnfisfree, rnfsteinitz (programs for relative number field
+extensions, see manual), nfdetint, nfhermitemod (modular HNF in number
+fields), nfsmith (Smith normal form in number fields), polredabs (find
+one of the polynomials defining the number field with the smallest 
+T2-norm), buchnarrow (narrow class group), isprincipalgen and isprincipal
+(isprincipalgen is the same as the old isprincipal, while isprincipal gives
+only the position in the class group), buchfu (find the fundamental units if
+you forgot to ask for them), galoisconjforce (list of Galois conjugates,
+guaranteed to give them all), galoisapply (apply a Galois automorphism),
+isisomfast and isinclfast (much faster versions of isisom and isincl, but
+does not guarantee the result if negative).
+
+b) Improvements
+
+The integral basis finding algorithm included in early releases of
+version 1.38 was a bugged version of Round 4. This is now corrected, and
+also considerably sped up through the combined use of Round 4 and 
+Dedekind's test (thanks are due to P. Letard). This single modification
+improves by up to 20% the speed of gp<testin.
+
+In 1.38, the buchxxx programs still contained numerous bugs. This has
+been corrected (more hidden bugs may still remain!). The buchxxx programs
+have been considerably improved, and can be 10 times faster than before.
+
+IMPORTANT: The buchxxx programs now accept from 1 to 7 parameters under
+GP (exactly 7 parameters in library mode for buchall).
+
+The isprincipal function is now able to handle any ideals, and not
+only those which split on the factor base after reduction.
+
+Ideal inversion does not require the different ideal, only the 
+codifferent! Hence the programs idealinv, initalg and initalgred have been
+improved.
+
+WARNING: The GP functions base and base2 have been renamed basis and
+basis2 (the library functions keep their old name). Similarly factoredbase
+is now factoredbasis and smallbase is smallbasis (the library functions
+unchanged).
+
+WARNING: It has appeared with practical experience that the old function
+initalg0 was much more used than initalg. Hence the function initalg
+is now what was before called initalg0 (polynomial unchanged), the
+previous initalg has been renamed initalgred (polynomial changed by
+polred) and initalg2 has been renamed initalgred2.
+
+The galoisconj program has been rewritten and should now work much better
+WARNING: the programs galoisconj and galoisconj1 (which is the old galoisconj)
+need a number field nf as output by initalg, and not only a polynomial.
+The new program galoisconjforce also needs nf, but will work only if nf is
+Galois over Q, otherwise it loops indefinitely.
+
+6) Polynomials and power series
+
+a) New programs
+
+roots2 (roots by Laguerre's method), isirreducible (as its name says, for
+univariate polynomials), sylvestermatrix (Sylvester's matrix of two 
+polynomials).
+
+b) Improvements
+
+The extended Euclidean algorithm (Bezout functions) is now done using the
+subresultant algorithm, whence an enormous gain (before, only the 
+Euclidean algorithm was done that way).
+
+roots is more robust since in case of failure it tries the completely
+different roots2 function.
+
+Polymods of polymods or of inexact objects is now much less bugged.
+
+The choice of factorisation procedure was a joke. This is now much more
+serious. In addition, one can directly factor over Q(i) or a quadratic
+number field.
+
+7) Linear algebra and sets
+
+a) New programs
+
+Simple programs for handling sets: isset(), set(), setintersect(), 
+setminus(), setsearch(), setunion(). New hnf programs: hermitehavas(), 
+hermitebatut(), hermiteperm(). It is not yet clear what is the ideal HNF 
+program, but do NOT use hermite() anymore (a good compromise is 
+hermitemod(detint())), lllintpartial (fast and simple partial lll, useful
+in many cases), permuteInv (permute2num under GP: reciprocal function
+to permute)
+
+b) Improvements
+
+Under GP, filling in vectors and matrices can now be orders of magnitude
+faster, (thanks to Ilya Zakharevitch): in the preceding versions of
+GP, when you modified a single element of a vector or matrix, the whole
+vector or matrix was copied, so filling a vector of length N was a
+O(N^2) job. If now we reserve a vector or matrix (with vector() or 
+matrix()) by allowing sufficient space for everything that it will 
+contain, the vector/matrix will not be copied, whence an enormous gain.
+However, this must be used with care. Use the GP commmand \[ if you have
+trouble (see Chapter 2 of the manual).
+
+8) Sums, products, etc...
+
+a) New programs
+
+b) Improvements
+
+Using ideas of F. Villegas and D. Zagier, the sumalt (and to a lesser
+extent the sumpos) function is now far superior.
+
+PARI is now able to perform integration of rational functions in
+characteristic zero and exact objects, when the result is again a rational
+function.
+
+9) Plotting functions
+
+a) New programs
+
+b) Improvements
+
+10) Programming
+
+a) New programs
+
+allocatemem (allocate a new stack size without waiting for the stack
+doubling mechanism), gerepilemany (gerepile wheen many objects are to
+be kept), gitoascii (conversion of a PARI integer to a string; will become
+obsolete with gen2str), gen2str (conversion of a PARI object to a string),
+forvec (multidimensional for loop)
+
+b) Improvements
+
+The SIGBUS and SIGSEGV signals are now caught. This means that if a bus
+error or segmentation fault occurs, you get back in GP (or the calling 
+program) in principle without losing previous accumulated results. 
+However, beware that since such an event occurred, this means that there
+was a bug somewhere hence that some variables MAY have been corrupted. 
+So be careful afterwards.
+
+Under GP, the output (whether printed or not) is now be automatically
+simplified by default to the simplest type (this feature can be turned 
+off and on by the command \y). Intermediate GP results are NOT simplified.
+
+Under GP, there is a debug level (which by default is at zero) which can
+be set by the command \g. Some messages (in French) are printed if the 
+level is sufficiently high. A good suggested level is \g 2, when some
+debugging information is wanted, but not too much.
+
+For library mode, all error and warning messages are now sent to the 
+global file errfile (initialized to stderr), which can be changed as
+desired.
+
+The GP command \w now prints to a file without blanks, so that the file
+can be read later on with no modification with the function lisexpr.
+
+If the GP command \r cannot find a filename, it appends a .gp before
+giving up.
+
+Under a GP session outside of emacs, TAB now is a partial filename 
+completion and help system (under an emacs session, completion is
+obtained via M-TAB and help with M-?)
+
+WARNING: In addition to the modifications above, in library mode the syntax
+of the functions primeform, gabs, gpui, gpuigs has changed and is as follows:
+GEN primeform(GEN D, GEN p, long prec), GEN gabs(GEN x, long prec),
+GEN gpui(GEN x, GEN y, long prec), GEN gpuigs(GEN x, long n), where prec is
+the required precision. If prec is not used, set it for example to 0.
+
+11) Documentation and coding
+
+a) New style and platforms
+
+The DEC Alpha 64-bit machines are now fully supported. We have decided to use
+the same 32-bit random number generator in this case. This can easily be
+changed by changing the value of the constant BITS_IN_RANDOM to 64 in the
+file gencom.h (inside the #ifdef LONG_IS_64BIT section of course).
+In any case, the results of functions using Pari real arithmetic (like
+all transcendental functions, roots, etc...) are not exactly the same as
+for 32-bit machines, even with the same default precision, since often
+an extra word is taken to ensure maximum accuracy, and this means more
+precision with 64-bit machines.
+
+b) Improvements
+
+Numerous improvements and corrections to the manual.
+
+

@@ -1,0 +1,43 @@
+Installation on DOS:
+--------------------
+
+1. Get and install EMX.
+   EMX is Eberhard Mattes' Unix emulation for DOS and OS/2. You can it
+   by anonymous ftp from rusmv1.rus.uni-stuttgart.de or ftp.hobbes.nmsu.edu.
+
+2. Make sure that \EMX\BIN is in your path, before any directory that
+   contains programs named CPP.EXE or AS.EXE. Set the environment variables
+   C_INCLUDE_PATH and LIBRARY_PATH. For example:
+
+         PATH=C:\EMX\BIN;%PATH%
+         SET C_INCLUDE_PATH=c:/emx/include
+         SET LIBRARY_PATH=c:/emx/lib
+
+   This must be done before executing ANY executable produced by EMX
+   except GP.EXE which will be created in a special way.
+
+   Also install a `working' MAKE.EXE, e.g. GNU make. If you have problems
+   with "make", try "make -n > h.bat" and then executing "h".
+
+3. Unpack the PARI sources.
+
+4. Build the readline library (You will get simple features only):
+
+         cd readline
+         copy makefile.dos makefile
+         make
+         cd ..
+
+4'. Or, if you have compiled readline2.0 library, uncomment corresponding
+lines in Makefile.DOS.
+
+5. Build GP.EXE :
+
+         copy makefile.dos makefile
+         make
+
+5'. If you have gnuplot3.5 built but not cleaned yet, you may consider compile
+gnuplot support in. Edit the corresponding part of Makefile.DOS.
+
+6. To compile as C++, give make additional parameter thusly:
+	make "CPlPl=-x c++"

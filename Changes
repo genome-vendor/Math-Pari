@@ -1,0 +1,11 @@
+0.5:
+	Standalone installation, does not require that libPARI is installed;
+	use overload fixed;
+	(temporarily?) removed plotting support to simplify standalone install;
+	'defined ref' fixed;
+	listPari(tag) added;
+	import tags (:all and like :4) added;
+
+	DejaNews search: pari & math* &! leo* &! ftpadmin &! natarajan &! mutuel &! uucp &! ~g (muc.archive.* | soc.culture.* | sfnet.* | news.newuser*)	
+	Pari-die-handler was using die() instead of croak();
+	pari_print, pari_pprint and pari_texprint implemented;

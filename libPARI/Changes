@@ -1,0 +1,108 @@
+(Modifications de 1.38 a 1.39 dans le fichier Changes1.38-1.39)
+--------------------------------------------------------------------------
+Modifications a la version 1.39.
+
+Code: B: bug, M: modification, N: nouveau programme, D: erreur de doc.
+1 a 3: de peu important a tres important
+
+1) [B1] base3.c, element_inv: dans le cas scalaire, mettre le type 18 au lieu de 17.
+2) [B3] gencom.h: corriger la macro log2(x) dans le cas du C en mettant la
+parenthese avant le /LOG2 et pas apres.
+3) [N] buch2.c et base2.c: ecrit buchray(), zidealstar(), zidealstarinit(),
+   zideallog().
+4) [B1] trans1.c, gsqrt: changer signe() en gsigne() pour les types 1,2,4,5.
+5) [B2] trans2.c, gsin() et gash(): corrige la determination.
+6) [B1] trans1.c, cxlngamma(): corrige la determination.
+7) [B2] trans3.c, polylogd(): corrige p1 en p2 dans le cas m impair.
+8) [N] buch2.c: ecrit buchrayinit(), isprincipalray(), isprincipalraygen().
+9) [N] plotX.c: introduit un peu de couleur et ecrit plothmult().
+10) [B2] trans2.c, garg(): change signe en gsigne.
+11) [B3] es.c, ecrireall(): le test de debordement etait incorrect.
+12) [M1] trans1.c, mppi(): change constpi(prec) en constpi(prec+1), et
+   analogue pour mpeuler().
+12) [B3] partout: enleve les objets partages non permanents, en particulier
+   les p-adiques. Il reste peut-etre encore des fonctions p-adiques a traiter.
+13) [N] bibli1.c: polredabs modifie, et appele polredabsfast l'ancien.
+14) [N] base2.c: subcyclo().
+15) [M2] base2.c, initalgred2(): modifie pour retourner aussi l'initalg, ce qui
+   est bien sur plus utile.
+16) [M3] base3.c, idealmulxxx(): modifications pour utiliser ideal_two_elt.
+   Indispensable de conserver l'ancien sous le nom de hermiteidealmul. A voir
+   a l'usage.
+17) [B2] buch2.c, getfu(): la precision de xarch etait detruite; modification
+   de l'appel a getfu.
+18) [M2] base1.c, initalgred2(): modifie la sortie pour avoir simultanement 
+   initalgred.
+19) [N] buch2.c: ecrit certifybuchall() (buchcertify() dans GP).
+20) [B2] mpin.c: oublie de repercuter dans mpin.c la bug 204 de 
+   Changes1.38-1.39
+21) [M1] trans3.c: corrige erfc(x) quand x<0.
+22) [N] base1.c: ecrit gsmith() (smithpol() dans GP).
+
+Ilya:
+
+23) Changes for picky C++ compilers included. (in init.c I surrounded
+volatile in `volatile void' by ifdef GNUC, since Sparc compiler thinks
+it is incomplete type, that is quite believable to a layman like me).
+24) LONG_IS_32BIT is deleted anywhere, changed to !LONG_IS_64BIT
+25) #define HAVEEXP2 deleted, changed to !NOEXP2.
+26) ulong => uLong converted globally. ULONG_NOT_DEFINED busted.
+27) better documentation in gphelp, supports compressed manual, but is
+still unsupported.
+28) files mpinline.h, INLINE.h and NOINLINE.h added, inlined section
+deleted from mpin.h. noinlin.h contains declarations of functions in
+mpinline.h (needed if not inlined). mpin.h renamed into mpansi.
+29) trimspaces works in non-stdin mode and/or no-READLINE-mode too.
+30) New global variable added for control of setjmp'ing and signal
+setting in init(). It should be controlled by INIT_JMP_on INIT_SIG_on
+INIT_JMP_off INIT_SIG_off. Default is still the same: catch signals, setjmp
+31) Nasty bug that did not allow HAVEEXP2 in c-- caught (no
+declaration for exp2 and log2 => int exp2()).
+32) Portable realization of assembler routines moved out of
+versionport.c, since it is in mpinline.h (avoid dublication of code!)
+If an extension uses a low-level function with C++, it should
+-D__HAS_NO_ASM__.
+33) /* plothraw draws lines, not points. */ - corrected
+34) different position of plot in plothraw (centered). ????? GOOD?
+35) in ploth function 0 is not automatically included into the ranges,
+so ploth(x=1,1.01,x) should look better.
+36) ploth2 takes array of even length, making multiple plots possible.
+37) So far all the plotting happens in the same (rect) color. ???? How
+to fix?
+38) All the plotting code (at least in plotX.c) is converted to use
+rectangles. Now only rectdraw should be architecture-dependent.
+39) Fields in GEN changed. Now Pere takes 3 bits, Type 5, the rest is
+for length. Thus arrays of length 2^24-1 is allowed. No speed penalty
+detected on SparcMicro. To return to old behavior, compile with
+-DSHORT_ARRAY.
+40) New file rect.h is included that gives definitions of Rect
+structure. So far only init.c and plotX.c are changed to use these
+definitions.
+41) Additional, 17th and 18th rectangles are allocated for usage
+during drawing.
+42) Additional function added: plothrawlines: the same as plothraw, but
+connects points by lines.
+43) rect* functions converted to rect.h interface.
+44) plotting into gnuplot terminal works.
+45) Two new functions added: rectpointtype and rectlinetype to change
+style of drawing in a rectangele. Lines -2 are for frames, -1 for
+axes, >=0 for the rest. Point -1 is a point, >0 is something else.
+Currently supported under gnuplot only.
+46) testout renamed to testouts (to simplify clean on dos and os/2).
+47) Makemakefile modified for gnuplot support. Probably it would not
+work if gnuplot is not built, though there are some provisions to build it.
+48) testouts modified to reflect changed memory allocation due to new
+rectangles.
+49) new functions rpoints, rlines, rpointtype, rlinetype, plotrawlines,
+rploth, rcopy added to interpreter.
+50) The logic in identifier and skipidentifier is changed to use the
+ep->code field if present.
+51) all code uses ep->help instead of helpmessages (time to move
+helpmessages to fonctions?).
+52) addhelp added.
+53) Signals are reset before freeall to make \q work even when bug is present.
+54) Kill moved to a function killep(). Somehow the stack size after
+test lowered from 230072 to 230048 (?!).
+55) Foreign functions added. The function in foreignHandler are called
+if a suitable char is in the code for the function.
+56) freeep and installep added.

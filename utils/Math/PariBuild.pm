@@ -27,6 +27,7 @@ require Exporter;
 	     ep_hash_report
 	     ep_in_version
 	     code_C_translator
+	     build_funclists
 	    );
 
 use strict;
@@ -998,8 +999,28 @@ sub assembler_flags {
 
 sub extra_includes {
   my $pari_dir = shift;
-  return '' unless -d "$pari_dir/src/systems/$^O";
-  return "-I $pari_dir/src/systems/$^O";
+  # Some #include directives assume us inside $pari_dir/OARCH; replace by src
+  return join ' -I ', '', grep -d, "$pari_dir/src/systems/$^O", "$pari_dir/src";
+}
+
+sub build_funclists {
+  my $pari_dir = shift;
+  return unless -d "$pari_dir/src/desc"; # Old version, no autogeneration
+  return if -f "$pari_dir/src/language/init.h"
+        and -f "$pari_dir/src/desc/pari.desc";
+  open FL, "> $pari_dir/src/funclist" and close FL	# Ignore errors
+    unless -f "$pari_dir/src/funclist";
+  (system("cd $pari_dir/src/desc && make")
+     and system("cd $pari_dir/src/desc && make SHELL=cmd")
+   or not -s "$pari_dir/src/desc/pari.desc") and
+      (unlink("$pari_dir/src/desc/pari.desc"),
+       die <<EOW);
+###
+###  Apparently, we failed to build function descriptions of GP/PARI.
+###  Try editing $pari_dir/src/desc/Makefile - a typical reason
+###  is a wrong value of SHELL for your system.  You can run make in
+###  $pari_dir/src/desc manually too...
+EOW
 }
 
 =item ep_codes_from_file($filename,%hash,%names)

@@ -71,6 +71,10 @@ STRLEN n___a;
 #  define SvPV_nolen(sv)	SvPV((sv),n___a)
 #endif
 
+#ifndef PERL_UNUSED_VAR
+#  define PERL_UNUSED_VAR(var) if (0) var = var
+#endif
+
 /* Here is the rationals for managing SVs which keep GENs: when newly
    created SVs from GENs on stack, the same moved to heap, and
    originally from heap. We assume that we do not need to free stuff

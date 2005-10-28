@@ -46,7 +46,8 @@ if ($machine =~ /sparc|alpha|hppa/) {
 }
 
 $Using_gnu_as = is_gnu_as();
-print STDERR "...Assembler is GNU assembler\n" if $Using_gnu_as;
+print STDERR
+  "...Assembler is " . ($Using_gnu_as ? "" : "not ") . "GNU assembler\n";
 
 $asmcpp_define = '';
 if ($Using_gnu_as and $^O eq 'solaris' and $asmarch =~ /^sparc/) {

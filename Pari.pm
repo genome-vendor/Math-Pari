@@ -914,7 +914,11 @@ sub _shiftr {
 $initmem ||= 4000000;		# How much memory for the stack
 $initprimes ||= 500000;		# Calculate primes up to this number
 
-$VERSION = '2.010604';
+$VERSION = '2.010700';
+
+my $true = 1;
+# Propagate sv_true, sv_false to SvIOK:
+my $dummy = pack 'ii', $true == 1, $true == 0;
 
 bootstrap Math::Pari;
 

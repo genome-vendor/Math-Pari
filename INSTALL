@@ -93,6 +93,7 @@ else fails.
 ==================================================================
 Other recognized options:
   force_download		Download PARI/GP even if a directory is found
+  paridir=PATH_TO_DIST_DIR	Use the directory with Pari distribution
   pari_tgz=PATH_TO_TAR_GZ	To extract a local pari*.tar.gz and patch
 		(if needed) the resulting directory tree.
 
@@ -177,3 +178,36 @@ KNOWN PROBLEMS:
 	*) rm libPARI/*.o
 	*) make
       The symptom: _hiremainder _overflow are reported to be multiply defined.
+
+=======================================================
+If you get problems with `overflow' and `hiremainder' symbols not defined:
+there may be (at least) two reasons:
+
+  a) Your Perl is not built on "this machine", so its %Config{} hash
+     does not reflect the real configuration of this machine;
+
+  b) Generation of kernel*.o files (or whatever the object file extension is
+     on your system) is wrong: either Math::Pari build process is out of sync
+     with the GP/PARI one, or Math::Pari::Build is just plain buggy.
+
+If you are completely sure that "a" is not applicable, you can do the
+following to help in fixing this problem:
+
+  a) Build GP/PARI (it is not necessary to install it); redirect the output
+     of build process to a file.  (You may need to set CC=cc_compiler_of_perl
+     in environment since GP/PARI may prefer gcc otherwise.)
+
+  b) Run `nm' on kernel*.o in libPARI and in the GP/PARI architecture-specific
+     directory (names of object files may differ slightly, as in digits
+     appended).  The intent of Math::Pari::Build is to have "the same
+     reports" generated.  At least `overflow' and `hiremainder' should
+     appear with same number of underscores (0 or 1) prepended, and with
+     the same "class type" letter before them.
+
+  c) If outputs of `nm' in "b" differ, you found a bug.  Inspect the
+     files with redirected output of build processes of Math::Pari, and find
+     how kernel*.o files were build.  Note the differences.
+
+If the information in "b" and "c" is enough for you to fix Math::Pari::Build,
+do so; please report your fix.  Otherwise just report the discrepancies of "b"
+and "c".   A lot of thanks!!!

@@ -555,3 +555,19 @@ os2$(OBJ_EXT): $(PARI_DIR)/src/systems/os2/os2.c pariinl.h paricfg.h
 		not defined.
 	Unless MATH_PARI_REPORT_CODES is set and TRUE, do not report ep
 		codes mismatches (we do not use them now?).
+2.010701:
+	An attempt to avoid a memory leak when we are loaded from mod_perl
+		(call reset_on_reload(1) to enable.  It kinda works,
+		 but confuses perl_debug_mstats() - some memory problem).
+	Make memory leak on restart down to about 425K (47577388 after 100).
+	Remove the C fix for IOK of sv_true sv_false starting from perl5.6
+		(tested with 5.00553 - needed to manually fix .c to avoid
+		 a bug in xsubpp).
+	Make tests work with 5.00553 too.
+	(Finally!) add patch (to 2.1.7) to enable -g.
+	Misprint in error message of interface_flexible_int().
+	We were redirecting "_lex" as if lexcmp() had interface "lGG".
+	loadPari() error message was failing for prototype errors
+		in "directly linked" functions.
+	Make generated tests start with "55_".
+	Remove generated tests on "clean".

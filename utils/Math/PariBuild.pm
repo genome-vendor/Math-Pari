@@ -334,7 +334,9 @@ sub patches_for ($) {
 		 '2.2.2' =>  ['patches/diff_2.2.2_interface'],
 		 '2.1.6' =>  ['patches/diff_2.1.6_ploth64',
 			      'patches/diff_2.1.6_no-common'],
-		 '2.1.7' =>  ['patches/diff_2.1.6_no-common'],
+		 '2.1.7' =>  ['patches/diff_2.1.6_no-common',
+			      'patches/diff_2.1.7_-O',
+			      'patches/diff_2.1.7_restart'],
 		);
   print "Looking for patches for $v...\n";
   my @p = $patches{$v} ? @{$patches{$v}} : ();
@@ -462,7 +464,7 @@ sub build_tests {
     next if $test =~ /compat/;
     next if -d "$paritests/$test" and $test eq 'CVS';
     next if $test =~ /(~|\.(bak|orig|rej))$/;
-    $targ = "t/$test.t";
+    $targ = "t/55_$test.t";
     if (-f $targ) {
       chmod 0666, $targ;
       unlink $targ;

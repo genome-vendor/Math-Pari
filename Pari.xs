@@ -668,14 +668,16 @@ sv2pari(SV* sv)
   else if (SvIOK(sv)) return stoi(SvIV(sv));
   else if (SvNOK(sv)) {
       double n = (double)SvNV(sv);
+#if !defined(PERL_VERSION) || (PERL_VERSION < 6)
       /* Earlier needed more voodoo, since sv_true sv_false are NOK,
 	 but not IOK.  Now we propagate them to IOK in Pari.pm;
-         This works at least with 5.6.1 onwards. */
+         This works at least with 5.5.640 onwards. */
       /* With 5.00553 they are (NOK,POK,READONLY,pNOK,pPOK).
 	 This would special-case all READONLY double-headed stuff;
 	 let's hope it is not too frequent... */
       if (SvREADONLY(sv) && SvPOK(sv) && (n == 1 || n == 0))
 	  return stoi((long)n);
+#endif	/* !defined(PERL_VERSION) || (PERL_VERSION < 6) */
       return dbltor(n);
   }
   else if (SvPOK(sv)) return lisexpr(SvPV(sv,na));
@@ -1491,6 +1493,16 @@ extern  void v_set_term_ftable(void *a);
 
 #define s_type_name(x) type_name(typ(x));
 
+static int reset_on_reload = 0;
+
+int
+s_reset_on_reload(int newvalue)
+{
+  int old = reset_on_reload;
+  if (newvalue >= 0)
+      reset_on_reload = newvalue;
+  return old;
+}
 
 MODULE = Math::Pari PACKAGE = Math::Pari PREFIX = Arr_
 
@@ -1671,6 +1683,7 @@ SV*	cv
 char   *name
 I32	numargs
 char   *help
+     PROTOTYPE: DISABLE
 
 # In what follows if a function returns long, we do not need anything
 # on the stack, thus we add a cleanup section.
@@ -1782,7 +1795,7 @@ long	oldavma=avma;
 		 sv_OUT, gen_OUT, &OUT_cnt);
 
     if (rettype != RETTYPE_INT)
-	croak("Expected long return type, got code '%s'", ep->code);
+	croak("Expected int return type, got code '%s'", ep->code);
     
     RETVAL=FUNCTION_real(argvec[0], argvec[1], argvec[2], argvec[3],
 	          argvec[4], argvec[5], argvec[6], argvec[7], argvec[8]);
@@ -2057,6 +2070,29 @@ bool	inv
  CODE:
   {
     dFUNCTION(long);
+
+    if (!FUNCTION) {
+      croak("XSUB call through interface did not provide *function");
+    }
+
+    RETVAL = inv? FUNCTION(arg2,arg1): FUNCTION(arg1,arg2);
+  }
+ OUTPUT:
+   RETVAL
+ CLEANUP:
+   avma=oldavma;
+
+# With fake arguments for overloading, int return
+
+int
+interface2091(arg1,arg2,inv)
+long	oldavma=avma;
+GEN	arg1
+GEN	arg2
+bool	inv
+ CODE:
+  {
+    dFUNCTION(int);
 
     if (!FUNCTION) {
       croak("XSUB call through interface did not provide *function");
@@ -3114,7 +3150,7 @@ loadPari(name, v = 99)
 		   break;
 	       case 'l':
 		   if (strEQ(name,"_lex")) {
-		       valence=209;
+		       valence=2091;
 		       func=(void (*)(void*)) lexcmp;
 		   } else if (strEQ(name,"_log")) {
 		       valence=199;
@@ -3219,6 +3255,7 @@ loadPari(name, v = 99)
 	   CASE_INTERFACE(299);
 	   CASE_INTERFACE(209);
 	   CASE_INTERFACE(2099);
+	   CASE_INTERFACE(2091);
 	   CASE_INTERFACE(2199);
 	   CASE_INTERFACE(3);
 	   CASE_INTERFACE(30);
@@ -3260,6 +3297,9 @@ loadPari(name, v = 99)
 	   CASE_INTERFACE(9900);
 
 	 default: 
+	     if (!ep)
+		 croak("Unsupported interface %d for \"direct-link\" Pari function %s",
+		       valence, olds);
 	     if (!ep->code)
 		 croak("Unsupported interface %d and no code for a Pari function %s",
 		       valence, olds);
@@ -3392,6 +3432,7 @@ listPari(tag)
 
 BOOT:
 {
+   static int reboot;
    SV *mem = perl_get_sv("Math::Pari::initmem", FALSE);
    SV *pri = perl_get_sv("Math::Pari::initprimes", FALSE);
    if (!mem || !SvOK(mem)) {
@@ -3400,14 +3441,24 @@ BOOT:
    if (!pri || !SvOK(pri)) {
        croak("$Math::Pari::initprimes not defined!");
    }
+   if (reboot) {
+	detach_stack();
+	if (reset_on_reload)
+	    freeall();
+	else
+	   allocatemoremem(1008);
+   }
    INIT_JMP_off;
    INIT_SIG_off;
    /* These guys are new in 2.0. */
    init_defaults(1);
+   if (!(reboot++)) {
 #ifndef NO_HIGHLEVEL_PARI
-   pari_addfunctions(&pari_modules, functions_highlevel,helpmessages_highlevel);
-   init_graph();
+       pari_addfunctions(&pari_modules,
+			 functions_highlevel, helpmessages_highlevel);
+       init_graph();
 #endif
+   }
 
    primelimit = SvIV(pri);
    parisize = SvIV(mem);
@@ -3696,3 +3747,7 @@ MODULE = Math::Pari PACKAGE = Math::Pari	PREFIX = s_
 char *
 s_type_name(x)
     GEN x
+
+int
+s_reset_on_reload(newvalue = -1)
+    int newvalue

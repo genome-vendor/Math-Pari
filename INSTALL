@@ -179,6 +179,8 @@ KNOWN PROBLEMS:
 	*) make
       The symptom: _hiremainder _overflow are reported to be multiply defined.
 
+      Try applying the patch in patches/diff_2.1.6_no-common
+
 =======================================================
 If you get problems with `overflow' and `hiremainder' symbols not defined:
 there may be (at least) two reasons:

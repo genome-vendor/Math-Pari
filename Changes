@@ -578,3 +578,20 @@ os2$(OBJ_EXT): $(PARI_DIR)/src/systems/os2/os2.c pariinl.h paricfg.h
 	The patch for -no-common would break "port" build (in some situations?)
 		remove from auto-patches, and add the note to INSTALL.
 	Patches for -g and restart were omitted.
+
+2.010703:
+	Support Yet Another Scheme to Generate headers from function
+		descriptors (for 2.2.11)
+	Cast off `const' in s_type_name() (XXXX Do older xsubpp support const?)
+	Support headers/paripriv.h (if present).
+	Do not build function descriptions etc if they are already present.
+      Partial support for 2.2.13 (only with -DNO_HIGHLEVEL_PARI; t/55_intnum.t
+		locks; if killed,
+ Failed 3/21 test scripts, 85.71% okay. 20/872 subtests failed, 97.71% okay.
+ Failed Test    Stat Wstat Total Fail  Failed  List of Failed
+ -------------------------------------------------------------------------------
+ t/55_intnum.t     0    15    50   31  62.00%  11 23-25 27 38-50
+ t/55_ploth.t                 34    1   2.94%  4
+ t/55_program.t               37    1   2.70%  2
+ 6 tests and 78 subtests skipped.
+		)

@@ -1016,24 +1016,84 @@ sub extra_includes {
   return join ' -I ', '', grep -d, "$pari_dir/src/systems/$^O", "$pari_dir/src";
 }
 
+sub build_funclists_ourselves ($) {
+  my $pari_dir = shift;
+
+  chdir "$pari_dir/src/desc"
+    or die "Can't chdir to `$pari_dir/src/desc'";
+  unless (-f 'pari.desc') {
+    my $t = 'tmp-pari.desc';
+    #warn "Running `$^X merge_822 ../functions/*/* > $t'...\n";
+    system "$^X merge_822 ../functions/*/* > $t"
+      and die "Can't run `$^X merge_822 ../functions/*/* > $t'";
+    rename $t, 'pari.desc' or die "rename failed: $t => 'pari.desc'";
+  }
+
+  my %recipies;
+  if (-f 'gen_help') {		# pre-2.2.13
+    %recipies = (  'language/members.h'	  => [[qw(gen_member)]],
+		   'language/init.h'	  => [[qw(gen_proto basic)],
+					      [qw(gen_help basic)]],
+		   'gp/highlvl.h'	  => [[qw(gen_proto highlevel)],
+					      [qw(gen_help highlevel)]],
+		   'gp/gp_init.h'	  => [[qw(gen_proto gp)],
+					      [qw(gen_help gp)]],
+		 );
+  } else {
+    %recipies = (  'language/members.h'	  => [[qw(gen_member)]],
+		   'language/init.h'	  => [[qw(gen_proto basic)]],
+		   'gp/highlvl.h'	  => [[qw(gen_proto highlevel)]],
+		   'gp/gp_init.h'	  => [[qw(gen_proto gp)]],
+		 );
+  }
+  for my $outfile (keys %recipies) {
+    next if -r $outfile;
+    my $append = '>';
+    for my $step (@{$recipies{$outfile}}) {
+      #warn "Running `$^X @$step pari.desc $append ../$outfile-tmp'...\n";
+      system "$^X @$step pari.desc $append ../$outfile-tmp"
+	and die "Can't run `$^X @$step pari.desc $append ../$outfile-tmp'";
+      $append = '>>';
+    }
+    rename "../$outfile-tmp", "../$outfile"
+      or die "rename failed: ../$outfile-tmp => ../$outfile";
+  }
+  1;
+}
+
 sub build_funclists {
   my $pari_dir = shift;
   return unless -d "$pari_dir/src/desc"; # Old version, no autogeneration
   return if -f "$pari_dir/src/language/init.h"
         and -f "$pari_dir/src/desc/pari.desc";
-  open FL, "> $pari_dir/src/funclist" and close FL	# Ignore errors
-    unless -f "$pari_dir/src/funclist";
-  (system("cd $pari_dir/src/desc && make")
+  if (-f "$pari_dir/src/desc/Makefile") { # Old development version
+    # Keeps checksum to update when needed; fake it
+    open FL, "> $pari_dir/src/funclist" and close FL # Ignore errors
+      unless -f "$pari_dir/src/funclist";
+    (system("cd $pari_dir/src/desc && make")
      and system("cd $pari_dir/src/desc && make SHELL=cmd")
-   or not -s "$pari_dir/src/desc/pari.desc") and
-      (unlink("$pari_dir/src/desc/pari.desc"),
-       die <<EOW);
+     or not -s "$pari_dir/src/desc/pari.desc") and
+       (unlink("$pari_dir/src/desc/pari.desc"),
+	die <<EOW);
 ###
 ###  Apparently, we failed to build function descriptions of GP/PARI.
 ###  Try editing $pari_dir/src/desc/Makefile - a typical reason
 ###  is a wrong value of SHELL for your system.  You can run make in
 ###  $pari_dir/src/desc manually too...
 EOW
+     } else {
+       require Cwd;
+       my $cwd = Cwd::cwd();
+       my $res = eval { build_funclists_ourselves $pari_dir };
+       chdir $cwd;
+       die <<EOD unless $res;
+$@
+###
+###  We do not know how to build function descriptions of GP/PARI.
+###  Please build them manually (e.g., by building GP/PARI).
+###
+EOD
+     }
 }
 
 =item ep_codes_from_file($filename,%hash,%names)

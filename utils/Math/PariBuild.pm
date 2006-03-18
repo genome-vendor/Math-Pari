@@ -334,7 +334,8 @@ sub patches_for ($) {
 		 '2.2.2' =>  ['patches/diff_2.2.2_interface'],
 		 '2.1.6' =>  ['patches/diff_2.1.6_ploth64',
 			      'patches/diff_2.1.6_no-common'],
-		 '2.1.7' =>  [# 'patches/diff_2.1.6_no-common',
+		 '2.1.7' =>  [
+			($^O =~ /darwin/i ? 'patches/diff_2.1.6_no-common' : ()),
 			      'patches/patch-pari-unnormalized-float',
 			      'patches/diff_2.1.7_-O',
 			      'patches/diff_2.1.7_restart'],
@@ -717,7 +718,9 @@ sub find_machine_architecture () {
   } elsif ($os eq 'linux') {
     chomp($machine = `uname -m`);
     $machine = 'sparcv9' if $machine eq 'sparc64';
-    if (-e '/proc/cpuinfo') {
+    $machine = 'hppa' if $machine eq 'parisc';
+    $machine = 'hppa' if $machine eq 'parisc64';
+    if (-e '/proc/cpuinfo' && -R '/proc/cpuinfo') {
       open IN, '/proc/cpuinfo' or die "open /proc/cpuinfo: $!";
       local $/ = undef;		# Needed?
       my $info = <IN>;

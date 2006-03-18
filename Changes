@@ -595,3 +595,16 @@ os2$(OBJ_EXT): $(PARI_DIR)/src/systems/os2/os2.c pariinl.h paricfg.h
  t/55_program.t               37    1   2.70%  2
  6 tests and 78 subtests skipped.
 		)
+
+2.010704:
+	Make getHeap() use PerlIO, and consistently use bytes for output.
+	The patch for -no-common installed on Darwin only.
+	Integer conversion was wrong between 2^31 and 2^32;
+		tests on 64-bit might provide wrong positives???
+		Provided another one if sizeof(long) < sizeof(IV).
+	Change all occurences of 2002013 to 2002012
+	User contributed: adds hppa support to the linux section of
+		PariBuild.pm. Additionally, it adds
+		a read flag check to the opening of /proc/cpuinfo, which on
+		hardened linux boxes may fail.
+	To pacify a warning, put ((void)0) instead of empty argument to a macro

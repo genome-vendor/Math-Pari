@@ -3,13 +3,14 @@ use Config '%Config';
 
 #BEGIN {unshift @INC, 'utils'}
 use Math::PariBuild;
+use strict;
 
 ExtUtils::MakeMaker::WriteEmptyMakefile(), return 1 if $common::parilib;
 
 *MY::top_targets  = \&xMY::top_targets;		# will break WriteEmptyMakefile
 *MY::const_config = \&xMY::const_config;
 
-$main_paridir = $common::main_paridir;
+my $main_paridir = $common::main_paridir;
 die "Please start Makefile.PL at toplevel, not in libPARI"
   unless $main_paridir;
 
@@ -19,8 +20,8 @@ if ($main_paridir =~ m,^([a-z]:)?[/\\],i) {
   $main_paridir = "../$common::main_paridir";
 }
 
-$pari_version = $common::pari_version;
-$machine = $common::machine unless defined $machine;
+my $pari_version = $common::pari_version;
+my $machine = $common::machine;
 
 if (defined $machine) {
   print "...Via command-line: processor family `$machine'\n";
@@ -33,55 +34,64 @@ if ( $machine eq 'port'			# Set by find_machine_architecture()
 }
 
 # Choose which assembler files to use
-$asmarch = choose_and_report_assembler($machine);
+my $asmarch = choose_and_report_assembler($machine, $pari_version);
 # $machine used as a coarse-grain factor below, $asmarch as a fine-grain
 $machine = 'port' if $asmarch eq 'none';
 
 # This part is based on analysing Makefile.SH in */kernel/* subdirectories.
 
+my $asscmd;
 if ($machine =~ /sparc|alpha|hppa/) {
   $asscmd = '$(AS) $(ASFLAGS)';	#  $(CCCDLFLAGS)?
 } else {
   $asscmd = '$(CCCMD) $(CCCDLFLAGS)';
 }
 
-$Using_gnu_as = is_gnu_as();
+my $Using_gnu_as = is_gnu_as();
 print STDERR
   "...Assembler is " . ($Using_gnu_as ? "" : "not ") . "GNU assembler\n";
 
-$asmcpp_define = '';
+my $asmcpp_define = '';
 if ($Using_gnu_as and $^O eq 'solaris' and $asmarch =~ /^sparc/) {
   $asmcpp_define = '-DNO_UNDERSCORE';
   $asmcpp_define .= ' -D__GNUC__' if $Config{gcc};
 }
 
 # Which files to compile and how to build levels1/2 kernel
-$kernels = kernel_files($asmarch, $pari_version, $Using_gnu_as);
-kernel_fill_data($kernels, \%kernel);
+my $kernels = kernel_files($asmarch, $pari_version, $Using_gnu_as, $main_paridir);
+kernel_fill_data($kernels, \ my %kernel);
 
 # remaining kernel C files
-$kernel_dir  = '$(PARI_DIR)/src/kernel';
-$mp	     = "$kernel_dir/none/mp.c";
-$mpinl	     = "$kernel_dir/none/level1.c"; # Non-inlined versions of inlines
-$mpinlh	     = "$kernel_dir/none/level1.h"; # Put as a dependence
+my $kernel_dir = '$(PARI_DIR)/src/kernel';
+my $mp	       = "$kernel_dir/none/mp.c";
+my $mpinl      = "$kernel_dir/none/level1.c"; # Non-inlined versions of inlines
+my $mpinlh     = "$kernel_dir/none/level1.h"; # Put as a dependence
+if ($pari_version >= 2003000) {
+  $mpinl = "$kernel_dir/none/mpinl.c";
+  $mpinlh = '';
+}
 
 
-@cfiles =			# Remaining C files
+my @cfiles =			# Remaining C files
   grep !m(/ ( plot (?!port|gnuplot)
 	    | ix86 | version | mpin | dummy
 	    | gp_(rl|init) | kerntest | whatnow | gp\. )
 	 )x,	<$main_paridir/src/*/*.c>, # kernel C files deeper in the tree
 		<$main_paridir/src/systems/$^O/*.c>;
-@cat_cfiles =			# Remaining kernel C files
+push @cfiles, "$main_paridir/src/graph/plotnull.c"
+  unless -f "$main_paridir/src/graph/plotgnuplot.c";
+my @cat_cfiles =			# Remaining kernel C files
   grep !m(/ ( level \d+ | mp ) )x,  <$main_paridir/src/kernel/none/*.c>;
 
 
 @cfiles = grep ! m(/test/[^/]+\.c$), @cfiles;
 map s/^\Q$main_paridir/\$(PARI_DIR)/, @cfiles;
-%cfiles = map {m,/([^/.]*)\.c$,i; ($1,$_)} @cfiles; # By basename
+my %cfiles = map {m,/([^/.]*)\.c$,i; ($1,$_)} @cfiles; # By basename
 
-$noexp2 = '';			# Not used any more - but would be nice!
-$libs="-lm";
+my $noexp2 = '';		# Not used any more - but would be nice!
+my $libs="-lm";
+my $mycflags = '';
+
 if ($Config{osname} eq 'solaris') {
 #  @sc_dirs = '/opt/SUNWspro/lib' if -d '/opt/SUNWspro/lib';
 #  @sc_dirs = </opt/SUNWspro/SC*/lib> unless @sc_dirs;
@@ -100,13 +110,13 @@ if ($Config{osname} eq 'solaris') {
 # We remove optimize options, since Perl probably knows them
 # and one can specify "OPTIMIZE=-O2 -m486" on the command line
 
-my $extra_inc = extra_includes($paridir);
+my $extra_inc = extra_includes($main_paridir);
 
 my $inc = '';
 if ($Config{cc} eq 'gcc') {
   # We do not put -ansi to avoid versioncflags
   $mycflags="";			#$mycflags="-O2 -g";
-  if ($Config{osname} eq 'os2' and not $extra_inc) {
+  if ($Config{osname} eq 'os2' and not $extra_inc =~ /os2(?!\S)/) {
     # 2.1.3 does not include dlctl.h
     $mycflags .= ' -DRTLD_LAZY=0 -DRTLD_GLOBAL=0';
     $inc .= ' -I$(PERL_INC)';
@@ -123,6 +133,7 @@ if ($Config{cc} eq 'gcc') {
 # $mycflags .= ' -Dshifts=pari_shifts'; # Conflict with libnsl
 
 $mycflags .= ' -Derr=pari_err'; # On linux it can get a wrong dynamic loading
+my $add_ar_flags = '';
 
 if ($machine eq 'alpha') {
   #$mycflags .= " -DLONG_IS_64BIT";	# Moved to BuildPari...
@@ -144,7 +155,8 @@ if ($Config{gccversion}
 }
 $mycflags .= ' -DGCC_INLINE' if $Config{gccversion};
 
-@obj_files = map { "$_\$(OBJ_EXT)" } keys(%cfiles), qw(kernel mp mpinl);
+my @obj_files = map { "$_\$(OBJ_EXT)" } keys(%cfiles), qw(mp mpinl);
+push @obj_files, 'kernel$(OBJ_EXT)' if $kernel{converted1};
 push @obj_files, 'kernel2$(OBJ_EXT)' if $kernel{converted2};
 
 $mycflags .= " -DDYNAMIC_PLOTTING";
@@ -160,7 +172,7 @@ if (defined $Config{gccversion} and $Config{gccversion} =~ /^2\.9[46]/
   @opt = ( OPTIMIZE => $opt );
 }
 
-build_funclists($paridir);
+build_funclists($main_paridir);
 
 
 my $Using_ms_vc = ($^O =~ /win32/i and $Config{cc} =~ /cl/i);
@@ -174,7 +186,7 @@ WriteMakefile(
     @opt,
     macro	=> {
 		    PARI_DIR	  => $main_paridir,
-		    ADD_AR_OPT	  => ($add_ar_flags || ''),
+		    ADD_AR_OPT	  => $add_ar_flags,
 		    CPP		  => $Config{cpp},
 		    # CPPMINUS	  => $Config{cppminus},
 		    ASSCMD	  => $asscmd,
@@ -214,7 +226,9 @@ WriteMakefile(
 # Create a library;
 sub xMY::top_targets {
   my $converted = '';
-  my @inlines = inline_headers($asmarch, $pari_version);
+  my @inlines2 = inline_headers2($asmarch, $pari_version, $main_paridir);
+  my $inlines_cond = $inlines2[0];
+  my $inlines = $inlines2[1];
   $converted = <<EOC if $kernel{convert};
 $kernel{converted1}: $kernel{file1} $kernel{header1}
 	\$(CPP) -I. \$(INC) -I$kernel{dir1} \$(DEFINE) \$(ASSCPPDEFINE) $kernel{file1} | perl -ne "s/%\\s+/%/g; print unless /^\\s*#/" > \$@
@@ -235,6 +249,14 @@ mp.c: @dep
 	\$(PERL) -pe1 @dep > \$@
 EOS
   }
+  my $prepend_inl = "\t\$(PERL) -wle0 > \$@\n"; # So that `>>' works...
+  if (@$inlines_cond) {
+    $prepend_inl = <<EOI;
+	\$(PERL) -wle "print q(#ifndef ASMINLINE)" > \$@
+	\$(PERL) -pe1 @$inlines_cond		  >> \$@
+	\$(PERL) -wle "print q(#endif)"		  >> \$@
+EOI
+  }
   return '
 all :: libPARI$(LIB_EXT)
 
@@ -249,8 +271,8 @@ libPARI$(LIB_EXT): $(OBJECT)
 
 ' . qq{
 $create_mp
-pariinl.h: @inlines
-	\$(PERL) -pe1 @inlines > pariinl.h
+pariinl.h: @$inlines_cond @$inlines
+$prepend_inl	\$(PERL) -pe1 @$inlines			  >> \$@
 
 $converted
 

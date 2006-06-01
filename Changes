@@ -613,3 +613,24 @@ os2$(OBJ_EXT): $(PARI_DIR)/src/systems/os2/os2.c pariinl.h paricfg.h
 	Test negative integer conversion too.
 	Test ':int'.
 	download_pari(), find_pari_dir(): skip versions 2.3.*
+	force_download won't prompt.
+
+2.010706:
+	Better error message if ftp->quit fails; do it sooner.
+	in uname: SunOS name 5.9 Generic_118558-26 sun4u sparc SUNW,Ultra-5_10
+		allow for Generic* to be skipped (if 'sparc' present).
+	Update find_machine_architecture() to 2.3.0 logic (so disable sparcv7).
+	Append _64 to assembler architecture if needed.
+	use strict in Makefile.PL.
+	New function inline_headers2() in Math::BuildPari.
+	Support 2.3.0 method of building pariinl.h, kernel.o, mpinl.o
+		 - only in the case if no MakeLVL1.SH present.
+	Link in plotnull.c if plotgnuplot.c is missing.
+	Protect numeric constants in intnum too.
+	One line in intnum test is wrapped.
+	intnum.t would skip allocatemem().
+	allocatemem() was not restoring the cached values of avma.
+
+             t/55_intnum.t                51    2   3.92%  12 50
+             t/55_ploth.t                 34    1   2.94%  4
+             t/55_program.t               37    1   2.70%  2

@@ -919,7 +919,7 @@ setprecision(long digits)
   return m;
 }
 
-#if PARI_VERSION_EXP < 2002012
+#if PARI_VERSION_EXP < 2002012 || PARI_VERSION_EXP >= 2003000
 long
 setseriesprecision(long digits)
 {
@@ -928,7 +928,7 @@ setseriesprecision(long digits)
   if(digits>0) {precdl = digits;}
   return m;
 }
-#endif	/* PARI_VERSION_EXP < 2002012 */
+#endif	/* PARI_VERSION_EXP < 2002012 || PARI_VERSION_EXP >= 2003000 */
 
 static IV primelimit;
 static UV parisize;
@@ -1206,6 +1206,7 @@ allocatemem(UV newsize)
     if (newsize) {
 	detach_stack();
 	parisize = allocatemoremem(newsize);
+	perlavma = sentinel = avma;
     }
     return parisize;
 }
@@ -1612,9 +1613,15 @@ typedef int (*FUNC_PTR)();
 typedef void (*TSET_FP)(char *s);
 
 #ifdef NO_HIGHLEVEL_PARI
+#  define NO_GRAPHICS_PARI
+#  define have_highlevel()	0
+#else
+#  define have_highlevel()	1
+#endif
+
+#ifdef NO_GRAPHICS_PARI
 #  define set_gnuterm(a,b,c) croak("This build of Math::Pari has no plotting support")
 #  define int_set_term_ftable(a) croak("This build of Math::Pari has no plotting support")
-#  define have_highlevel()	0
 #else
 #  if PARI_VERSION_EXP < 2000013
 #    define set_gnuterm(a,b,c) \
@@ -1627,7 +1634,6 @@ extern void set_term_funcp3(FUNC_PTR change_p, void *term_p, TSET_FP tchange);
 #  endif	/* PARI_VERSION_EXP < 2000013 */
 
 #  define int_set_term_ftable(a) (v_set_term_ftable((void*)a))
-#  define have_highlevel()	1
 #endif
 
 extern  void v_set_term_ftable(void *a);

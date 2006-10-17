@@ -131,7 +131,10 @@ $define .= ' -Derr=pari_err'; # On linux it can get a wrong dynamic loading
 $define .= ' -DHAVE_LADD' if $opts{have_ladd};
 $define .= ' -DGCC_INLINE' if $Config{gccversion} and not $Config{optimize} =~ /-g\b/;
 $define .= ' -DHAVE_PARIPRIV' if -f "$paridir/src/headers/paripriv.h";
-$define .= ' -DNO_GRAPHICS_PARI' unless -f "$paridir/src/graph/plotgnuplot.c";
+#$define .= ' -DNO_GRAPHICS_PARI' unless -f "$paridir/src/graph/plotgnuplot.c";
+
+# XXXX otherwise segfaults trying to install highlevel functions???
+$define .= ' -DNO_HIGHLEVEL_PARI' if $pari_version >= 2003000;
 
 my $extra_inc = extra_includes($paridir);
 

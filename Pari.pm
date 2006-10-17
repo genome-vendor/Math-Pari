@@ -839,7 +839,7 @@ setprimelimit(), with performance penalties for recalculation/reallocation.
 
 =head1 AUTHOR
 
-Ilya Zakharevich, I<perl-module-math-pari@ilyaz.org>
+Ilya Zakharevich, I<ilyaz@cpan.org>
 
 =cut
 
@@ -926,7 +926,7 @@ sub _shiftr {
 $initmem ||= 4000000;		# How much memory for the stack
 $initprimes ||= 500000;		# Calculate primes up to this number
 
-$VERSION = '2.010706';
+$VERSION = '2.010707';
 
 my $true = 1;
 # Propagate sv_true, sv_false to SvIOK:

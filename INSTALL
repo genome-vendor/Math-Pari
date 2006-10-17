@@ -124,7 +124,8 @@ Makefile.PL does.
 
 	sun3 sparcv7 sparcv8micro sparcv8super alpha hppa i386 port
 
-     the current version should autorecognize them in most situations;
+     (many more for v2.3.0 and later) the current version should
+     autorecognize them in most situations;
 
   f) do (assuming your architecture is hppa)
 
@@ -150,7 +151,7 @@ Makefile.PL does.
      should make this extension available to the perl programs.
 
 x) Patches to some versions of GP/PARI may be needed (in `patches11',
-   or 'patch12', etc.  depending on the version of GP/PARI 2.0.*).
+   or 'patch12', etc.  depending on the version of GP/PARI 2.*.*).
    This may be done automatically during auto-download of GP/PARI.
 
 x) We skip "compatibility" tests, and do not support "compatibility" mode

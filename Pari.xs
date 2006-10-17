@@ -664,7 +664,7 @@ my_UVtoi(UV uv)
 {
   long oldavma = avma;
   GEN a = my_ulongtoi((ulong)(uv>>(8*sizeof(ulong))));
-  GEN b = my_ulongtoi((ulong)(uv & ((((UV)1)<<(8*sizeof(ulong))) - 1));
+  GEN b = my_ulongtoi((ulong)(uv & ((((UV)1)<<(8*sizeof(ulong))) - 1)));
 
   a = gshift(a, (8*sizeof(ulong)));
   return gerepileupto(oldavma, gadd(a,b));

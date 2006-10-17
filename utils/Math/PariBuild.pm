@@ -1,5 +1,7 @@
 package Math::PariBuild;
 
+$VERSION = '1.000';
+
 require Exporter;
 @ISA = 'Exporter';
 @EXPORT = qw(get_pari_version
@@ -84,7 +86,11 @@ sub pari_formatted_version {
   } else {
     warn(<<EOW);
 Could not extract version from '$dir/config/version';
-trying extract from the directory name...
+
+   Do you remember that paridir should be location of PARI/GP source tree,
+   not the location of compiled+installed files?
+
+Trying extract from the directory name...
 EOW
   }
   return sprintf '%d%03d%03d',$1, $2, $3
@@ -151,11 +157,12 @@ sub download_pari {
   print "Did not find GP/PARI build directory around.\n" unless defined $srcfile;
 
   my $match = '((?:.*\/)?pari\W*(?!2\\.3\\.)(\d+\.\d+\.\d+).*\.t(?:ar\.)?gz)$';
+  my $match1 = '((?:.*\/)?pari\W*(\d+\.\d+\.\d+).*\.t(?:ar\.)?gz)$';
 
   my %archive;
   my $match_pari_archive = sub {
-    my $file = shift;
-    return unless $file =~ /$match/o;
+    my ($file, $ok23) = (shift, shift);
+    return unless $ok23 ? $file =~ /$match1/o : $file =~ /$match/o;
     $file = $1;
     my $version = $2;
     if ($file =~ /alpha/) {
@@ -169,17 +176,22 @@ sub download_pari {
 
   if ($srcfile and -s $srcfile) {
     die "The FILE supplied via the pari_tgz=$srcfile option did not match /$match/"
-      unless $match_pari_archive->($srcfile);
+      unless $match_pari_archive->($srcfile, 'ok2.3');
   } else {
     if ($force) {
       print "Forced autofetching...\n"
     } elsif (-t STDIN and (-t STDOUT or -p STDOUT)) { # Interactive
       $| = 1;
       my $mess = <<EOP;
+
 Do you want to me to fetch GP/PARI automatically?
+
   (If you do not, you will need to fetch it manually, and/or direct me to
    the directory with GP/PARI source via the command-line option paridir=/dir)
-Make sure you have a large scrollback buffer to see the messages.
+
+Make sure you have a large scrollback buffer to see the messages, or `tee'
+the STDOUT/STDERR to a file.
+
 Fetch? (y/n, press Enter)
 EOP
       chomp $mess;
@@ -187,8 +199,23 @@ EOP
       my $ans = <STDIN>;
       if ($ans !~ /y/i) {
         print <<EOP;
+
 Well, as you wish...
-Rerun Makefile.PL when you fetched GP/PARI manually.
+
+Rerun Makefile.PL when you fetched GP/PARI archive manually to the
+current directory, or a (grand)parent directory of it.
+
+  [Keep in mind that version of Math::Pari module corresponds to
+   the last versions of GP/PARI it was tested with.]
+
+    Alternatively, you may specify
+      pari_tgz=PATH_TO_TAR_GZ
+    option to Makefile.PL.  (There is no need to extract the archive, or
+    build GP/PARI; but if you have it extracted [and patched, if needed],
+    you may specify
+      paridir=PATH_TO_DIST_DIR
+    option to Makefile.PL)
+
 EOP
         return;
       }
@@ -197,27 +224,34 @@ EOP
     }
 
     $base_url = "ftp://$host$dir";
+    my @extra_chdir = qw(OLD);
     print "Getting GP/PARI from $base_url\n";
 
     eval {
-      require Net::FTP;
+      require Net::FTPxx;
 
       $ftp = Net::FTP->new($host) or die "Cannot create FTP object: $!";
       $ftp->login("anonymous","Math::Pari@")
         or die "Cannot login anonymously (",$ftp->message(),"): $!";
-      $ftp->cwd($dir) or die "Cannot cwd (",$ftp->message(),"): $!";
-      $ftp->binary() or die "Cannot switch to binary (",$ftp->message(),"): $!";
-      my @lst = $ftp->ls();
-      @lst or ($ftp->pasv() and @lst = $ftp->ls()) or die "Cannot list (",$ftp->message(),"): $!";
-      #print "list = `@lst'\n";
-
       my $c = 0;
-      %archive = ();
-      for my $file (@lst) {
-        $c++ if $match_pari_archive->($file);
+      my @Extra = @extra_chdir;
+      while (not $c) {
+	$ftp->cwd($dir) or die "Cannot cwd (",$ftp->message(),"): $!";
+	$ftp->binary() or die "Cannot switch to binary (",$ftp->message(),"): $!";
+	my @lst = $ftp->ls();
+	@lst or ($ftp->pasv() and @lst = $ftp->ls()) or die "Cannot list (",$ftp->message(),"): $!";
+	#print "list = `@lst'\n";
+
+	%archive = ();
+	for my $file (@lst) {
+	  $c++ if $match_pari_archive->($file);
+	}
+	unless ($c) {
+	  die "Did not find any file matching /$match/ via FTP" unless @Extra;
+	  $dir = shift @Extra;
+	  print "Not in this directory, now chdir('$dir')...\n";
+	}
       }
-      die "Did not find any file matching /$match/ via FTP"
-        unless $c;
     };
     if ($@) {
       undef $ftp;
@@ -225,29 +259,37 @@ EOP
       # second try with LWP::UserAgent
       eval { require LWP::UserAgent; require HTML::LinkExtor }
         or die "You do not have LWP::UserAgent and/or HTML::LinkExtor installed, cannot download, exiting...";
-      $ua = LWP::UserAgent->new;
-      $ua->env_proxy;
-      my $req = HTTP::Request->new(GET => $base_url);
-      my $resp = $ua->request($req);
-      $resp->is_success
-        or die "Can't fetch directory listing from $base_url: " . $resp->as_string;
       my $c = 0;
-      %archive = ();
-      if ($resp->content_type eq 'text/html') {
-        my $p = HTML::LinkExtor->new;
-        $p->parse($resp->content);
-        for my $link ($p->links) {
-          my($tag, %attr) = @$link;
-          next if $tag ne 'a';
-          $c++ if $match_pari_archive->($attr{href});
-        }
-      } else {
-        foreach my $file (split /\n/, $resp->content) {
-          $c++ if $match_pari_archive->($file);
-        }
+      my @Extra = @extra_chdir;
+      while (not $c) {
+	$ua = LWP::UserAgent->new;
+	$ua->env_proxy;
+	my $req = HTTP::Request->new(GET => $base_url);
+	my $resp = $ua->request($req);
+	$resp->is_success
+	  or die "Can't fetch directory listing from $base_url: " . $resp->as_string;
+	%archive = ();
+	if ($resp->content_type eq 'text/html') {
+	  my $p = HTML::LinkExtor->new;
+	  $p->parse($resp->content);
+	  for my $link ($p->links) {
+	    my($tag, %attr) = @$link;
+	    next if $tag ne 'a';
+	    $c++ if $match_pari_archive->($attr{href});
+	  }
+	} else {
+	  foreach my $file (split /\n/, $resp->content) {
+	    $c++ if $match_pari_archive->($file);
+	  }
+	}
+	unless ($c) {
+	  die "Did not find any file matching /$match/ via FTP"
+	    unless @Extra;
+	  my $dir = shift @Extra;
+	  $base_url .= "$dir/";
+	  print "Not in this directory, trying `$base_url'...\n";
+	}
       }
-      die "Did not find any file matching /$match/ via FTP"
-        unless $c;
     }
   }
 
@@ -282,17 +324,18 @@ EOP
     if (-f $file) {
       print qq(Well, I already have it, using the disk copy...\n);
     } else {
-      print qq(Downloading...\n);
+      print qq(Downloading `$base_url$file'...\n);
       if ($ftp) {
         $ftp->get($file) or die "Cannot get via FTP (",$ftp->message(),"): $!";
 	$ftp->quit or die "Cannot quit FTP: ", ftp->message();
       } else {
-	my $req = HTTP::Request->new(GET => "$base_url/$file");
+	my $req = HTTP::Request->new(GET => "$base_url$file");
 	my $resp = $ua->request($req);
 	$resp->is_success
 	  or die "Can't fetch $base_url/$file: " . $resp->as_string;
 	my $base = basename($file);
 	open(F, ">$base") or die "Can't write to $base: $!";
+	binmode F or die "Can't binmode(): $!";
 	print F $resp->content;
 	close F;
       }
@@ -731,6 +774,9 @@ sub find_machine_architecture () {
     $machine = 'mips';
   } elsif ($os eq 'nextstep' or -d '/NextApps') {
     chomp($machine = `file /bin/sh | sed 's/.*(for architecture \(.*\))/\1/'`);
+  } elsif ($os eq 'darwin') {
+    chomp($machine = `uname -p`);
+    $machine = 'ppc' if $machine eq 'powerpc';
   } elsif ($os eq 'osf1') {
     $machine = 'alpha' if (split ' ', $Config{myuname})[4] eq 'alpha';
   } elsif ($os =~ /^cygwin/) {
@@ -805,7 +851,8 @@ sub find_machine_architecture () {
 sub is_gnu_as {
   local $/;
   my $ass = $ENV{AS} || 'as';
-  open ASS, "$ass --version 2>&1 |";
+  my $devnul = -e '/dev/null' ? '< /dev/null' : '';
+  open ASS, "$ass --version 2>&1 $devnul |";
   my $assout;
   eval {
     local $SIG{ALRM} = sub {die};
@@ -813,7 +860,8 @@ sub is_gnu_as {
     $assout = <ASS>;
     close ASS;
     unless ($assout) {
-      open ASS, "$ass -v 2>&1 |";
+      eval {alarm 10};			# Be extra safe...
+      open ASS, "$ass -v 2>&1 $devnul |";
       $assout = <ASS>;
       close ASS;
     }
@@ -882,16 +930,13 @@ sub inline_headers {
 sub generic_build_method {
   my ($asmarch, $pari_version, $paridir) = (shift, shift, shift);
   $pari_version >= 2003000
-    and not -f "$paridir/src/kernel/$asmarch/MakeLVL1.SH";
+    and (not -f "$paridir/src/kernel/$asmarch/MakeLVL1.SH"
+	 or $asmarch eq 'none');
 }
 
-sub inline_headers_by_dir {	# logic of 2.3.0
-  my ($asmarch, $pari_version, $paridir) = (shift, shift, shift);
-  my $dir = "$paridir/src/kernel";
-  unless (generic_build_method($asmarch, $pari_version, $paridir)) {
-    die "Do not know how to process MakeLVL1.SH";
-  }
-  my $f = "$dir/$asmarch/asm0.h";
+sub inline_headers_by_file {	# logic of 2.3.0
+  my($dir,$f) = (shift, shift);
+  die "I expect to have $f present" unless -f $f;
   #local $/ = "\n";
   open F, "< $f" or die "Error opening `$f' for read: $!";
   my @I = ([], [$f]);		# INL, NOINL
@@ -902,6 +947,17 @@ sub inline_headers_by_dir {	# logic of 2.3.0
     push @$arr, map "$dir/none/$_.h", split ' ', $2;
   }
   close F or die "Error closing `$f' for read: $!";
+  return @I;
+}
+
+sub inline_headers_by_dir {	# logic of 2.3.0
+  my ($asmarch, $pari_version, $paridir) = (shift, shift, shift);
+  my $dir = "$paridir/src/kernel";
+  #$asmarch ='none' if $asmarch eq 'port';
+  unless (generic_build_method($asmarch, $pari_version, $paridir)) {
+#    die "Do not know how to process MakeLVL1.SH";
+  }
+  my @I = inline_headers_by_file $dir, "$dir/$asmarch/asm0.h";
   push @{$I[1]}, map "$dir/none/$_.h", qw(tune int level1);
   return @I;
 }
@@ -1024,7 +1080,7 @@ sub sparcv7_kernel_files {
 sub kernel_files {
   my ($asmarch, $pari_version, $Using_gnu_as, $paridir) = (@_);
 
-  return [] if generic_build_method($asmarch, $pari_version, $paridir);
+  return [] if $pari_version >= 2003000;
 
   return sparcv8_kernel_files_old($asmarch, $pari_version, $Using_gnu_as)
     if $asmarch =~ /^sparcv8/ and $pari_version < 2002006;

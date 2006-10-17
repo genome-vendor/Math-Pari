@@ -148,6 +148,25 @@ OK), force download.
 
 =cut
 
+sub manual_download_instructions {
+  <<EOP;
+Rerun Makefile.PL when you fetched GP/PARI archive manually to the
+current directory, or a (grand)parent directory of it.
+
+  [Keep in mind that version of Math::Pari module corresponds to
+   the last versions of GP/PARI it was tested with.]
+
+    Alternatively, you may specify
+      pari_tgz=PATH_TO_TAR_GZ
+    option to Makefile.PL.  (There is no need to extract the archive, or
+    build GP/PARI; but if you have it extracted [and patched, if needed],
+    you may specify
+      paridir=PATH_TO_DIST_DIR
+    option to Makefile.PL)
+
+EOP
+}
+
 sub download_pari {
   my ($srcfile, $force) = (shift, shift);
   my $host = 'megrez.math.u-bordeaux.fr';
@@ -198,23 +217,9 @@ EOP
       print "$mess ";
       my $ans = <STDIN>;
       if ($ans !~ /y/i) {
-        print <<EOP;
+        print <<EOP . manual_download_instructions();
 
 Well, as you wish...
-
-Rerun Makefile.PL when you fetched GP/PARI archive manually to the
-current directory, or a (grand)parent directory of it.
-
-  [Keep in mind that version of Math::Pari module corresponds to
-   the last versions of GP/PARI it was tested with.]
-
-    Alternatively, you may specify
-      pari_tgz=PATH_TO_TAR_GZ
-    option to Makefile.PL.  (There is no need to extract the archive, or
-    build GP/PARI; but if you have it extracted [and patched, if needed],
-    you may specify
-      paridir=PATH_TO_DIST_DIR
-    option to Makefile.PL)
 
 EOP
         return;
@@ -228,7 +233,7 @@ EOP
     print "Getting GP/PARI from $base_url\n";
 
     eval {
-      require Net::FTPxx;
+      require Net::FTP;
 
       $ftp = Net::FTP->new($host) or die "Cannot create FTP object: $!";
       $ftp->login("anonymous","Math::Pari@")
@@ -283,8 +288,8 @@ EOP
 	  }
 	}
 	unless ($c) {
-	  die "Did not find any file matching /$match/ via FTP"
-	    unless @Extra;
+	  die "Did not find any file matching /$match/ via FTP.\n\n"
+	    . manual_download_instructions() unless @Extra;
 	  my $dir = shift @Extra;
 	  $base_url .= "$dir/";
 	  print "Not in this directory, trying `$base_url'...\n";

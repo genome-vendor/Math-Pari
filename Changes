@@ -652,7 +652,7 @@ os2$(OBJ_EXT): $(PARI_DIR)/src/systems/os2/os2.c pariinl.h paricfg.h
 	Allow specification of 2.3.0 via pari_tgz, so manual override
 		(for testing purposes only so far!) is easier.
 	Add version to BuildPari.pm.
-	Accomodate Darwin AS which tries to read from STDIN.
+	Accomodate Darwin $AS which tries to read from STDIN.
 	Temporary disable skip if LVL1 is found (in 2.3.0); leads to
 		Test returned status 0 (wstat 10, 0xa) on Darwin/port.
 	On darwin, diagnoze arch via uname -p.  (SIGBUS during build)
@@ -663,3 +663,8 @@ os2$(OBJ_EXT): $(PARI_DIR)/src/systems/os2/os2.c pariinl.h paricfg.h
 2.010708:
 	Accidentally, a version which would not use Net::FTP was released.
 	Print manual download instructions of failure of autofetching too.
+
+2.010709:
+	Remove #error on LONG_LARGER_THAN_... (sp?).
+	Warn on pitfalls of 2.3.*.
+	On Solaris, support MakeLVL0.sh-style build too.

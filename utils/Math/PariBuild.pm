@@ -962,7 +962,13 @@ sub inline_headers_by_dir {	# logic of 2.3.0
   unless (generic_build_method($asmarch, $pari_version, $paridir)) {
 #    die "Do not know how to process MakeLVL1.SH";
   }
-  my @I = inline_headers_by_file $dir, "$dir/$asmarch/asm0.h";
+  my @I = ([],[]);
+  @I = inline_headers_by_file $dir, "$dir/sparcv8_micro/asm0-common.h"
+    if $asmarch =~ /^sparcv8_/;
+  my @I1 = inline_headers_by_file $dir, "$dir/$asmarch/asm0.h";
+  for (0,1) {
+    push @{$I[$_]}, @{$I1[$_]};
+  }
   push @{$I[1]}, map "$dir/none/$_.h", qw(tune int level1);
   return @I;
 }

@@ -57,6 +57,21 @@ EOP
 Found GP/PARI build directory in $paridir
      (integer-formatted version $pari_version).
 EOP
+  print <<EOP if $pari_version =~ /^2003/;
+
+  ### Math::Pari support of GP/PARI library version 2.3.* should be
+  ###   considered cursory only.  One may need to downgrade to 2.1.7,
+  ###   or run Makefile.PL with option machine=none if the tests fail.
+
+  ### The test t/55_intnum.t takes a very long time to complete.
+
+  ### The following subtests are known to fail:
+
+  ###        t/55_intnum.t                51    2   3.92%  12 50
+  ###        t/55_ploth.t                 34    1   2.94%  4
+  ###        t/55_program.t               37    1   2.70%  2
+
+EOP
   $common::pari_version = $pari_version;
   $common::main_paridir = $paridir;
   *MY::postamble = \&xMY::postamble;

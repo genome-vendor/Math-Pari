@@ -658,7 +658,6 @@ my_ulongtoi(ulong uv)
 }
 
 #ifdef LONG_SHORTER_THAN_IV
-#  error "LONG_SHORTER_THAN_IV not implemented"
 GEN
 my_UVtoi(UV uv)
 {

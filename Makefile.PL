@@ -80,6 +80,7 @@ EOP
 $os = $Config{osname};
 
 $define .= " -DPARI_VERSION_EXP=$pari_version -DDEBUG_PARI";
+$define .= " -DUSE_SLOW_ARRAY_ACCESS -DUSE_SLOW_NARGS_ACCESS" if $] >= 5.009;
 $libs = "-lm";
 $libs .= " $common::parilib" if $common::parilib;
 $noexp2 = '';			# Should be used for generation of paricfg.h

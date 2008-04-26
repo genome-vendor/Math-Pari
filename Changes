@@ -668,3 +668,27 @@ os2$(OBJ_EXT): $(PARI_DIR)/src/systems/os2/os2.c pariinl.h paricfg.h
 	Remove #error on LONG_LARGER_THAN_... (sp?).
 	Warn on pitfalls of 2.3.*.
 	On Solaris, support MakeLVL0.sh-style build too.
+
+2.010800:
+	Test suite was sub()ifying argument to sumnuminit().
+	Test suite would not correctly sub()ify intnum() if limits had "()".
+	Test suite calculated Pi Euler too early; Now only these fail
+    t/55_intnum.t               51    1   1.96%  12
+    t/55_ploth.t                34    1   2.94%  4
+
+  # eval-noans: $oo=[  PARI(1) ];
+  # eval-noans: setprecision(96)
+  # eval-noans: $tab=intfuncinit($t,[-$oo,4.5],[$oo,4.5], sub{gamma(2+ I*$t)**3},1);
+  # eval: intmellininvshort(2,4,$tab)-$A
+  not ok 12 # in='intmellininvshort(2,4,$tab)-$A'
+  #    out='-0.00162288630645762090148373314245888997812239836220952087633884330352714288074453852820714919691012-6.88133524E-101*I', type='Math::Pari'
+  # pari==='-3.072350108 E-97 + 9.90717831 E-100*I'
+  # re_out='\-3\.072350108,?\s*E\-97,?\s*\+,?\s*9\.90717831,?\s*E\-100\*I'
+
+	Why this succeeds?
+  # eval: intnum($x,-1,1, sub{intnum($y,-sqrt(1-$x**2),sqrt(1-$x**2),$x**2+$y**2,$tab)},$tab)- Pi/2
+	Actually, $x**2+$y**2 is converted to a string as in '0.09+y^2',
+	 which is interpreted by GP/PARI.
+	Add warnings to the test suite for detection of #@_ 
+	 in Perl-in-PARI-in-Perl calls.
+	Attempt to support v5.10 (based on code contributed by ???)

@@ -63,13 +63,8 @@ EOP
   ###   considered cursory only.  One may need to downgrade to 2.1.7,
   ###   or run Makefile.PL with option machine=none if the tests fail.
 
-  ### The test t/55_intnum.t takes a very long time to complete.
-
-  ### The following subtests are known to fail:
-
-  ###        t/55_intnum.t                51    2   3.92%  12 50
-  ###        t/55_ploth.t                 34    1   2.94%  4
-  ###        t/55_program.t               37    1   2.70%  2
+  ### For example, the test t/55_intnum.t takes a very long time to complete,
+  ###   and plotting functions are not supported.
 
 EOP
   $common::pari_version = $pari_version;
@@ -111,7 +106,8 @@ unless ($common::parilib) {
   build_tests $paridir;		# Convert the test suite
   make_pod 'libPARI.pod', '-to_pod', $paridir; # Now the docs
   make_pod 'libPARI.dumb.pod', '-to_dumb_pod', $paridir;
-  %opts = build_paricfg($paridir, $common::do_configure); # ... and paricfg.h
+  # ... and paricfg.h
+  %opts = build_paricfg($paridir, $common::do_configure, $pari_version);
 
   if ($ENV{MATH_PARI_REPORT_CODES}) {
     # Check the correspondence between string interfaces and numeric interfaces

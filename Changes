@@ -681,6 +681,10 @@ os2$(OBJ_EXT): $(PARI_DIR)/src/systems/os2/os2.c pariinl.h paricfg.h
   # eval-noans: $tab=intfuncinit($t,[-$oo,4.5],[$oo,4.5], sub{gamma(2+ I*$t)**3},1);
   # eval: intmellininvshort(2,4,$tab)-$A
   not ok 12 # in='intmellininvshort(2,4,$tab)-$A'
+
+    >>>>>>========================================>>>>>
+      probably -$oo is not interpreted correct, since $oo is not overloaded
+
   #    out='-0.00162288630645762090148373314245888997812239836220952087633884330352714288074453852820714919691012-6.88133524E-101*I', type='Math::Pari'
   # pari==='-3.072350108 E-97 + 9.90717831 E-100*I'
   # re_out='\-3\.072350108,?\s*E\-97,?\s*\+,?\s*9\.90717831,?\s*E\-100\*I'
@@ -691,4 +695,20 @@ os2$(OBJ_EXT): $(PARI_DIR)/src/systems/os2/os2.c pariinl.h paricfg.h
 	 which is interpreted by GP/PARI.
 	Add warnings to the test suite for detection of #@_ 
 	 in Perl-in-PARI-in-Perl calls.
-	Attempt to support v5.10 (based on code contributed by ???)
+	Attempt to support v5.10 (based on code contributed by Nicholas Clark)
+
+
+2.010801:
+  build_paricfg() takes a version argument
+  write_paricfg(): likewise.
+  Emit paricfg.h which supports GP/PARI v2.3.4.
+  Remove the section on CPAN mirroring from README.
+  INSTALL: Explain how to google when server is down.
+  Skip another subtest in ploth.t.
+  Fix treatment of -oo in tests.  Still fails, but now with
+     not ok 12 # in='intmellininvshort(2,4,$tab)-$A'
+     #    out='-3.364954880E-97+9.90717831E-100*I', type='Math::Pari'
+     # pari==='-3.072350108 E-97 + 9.90717831 E-100*I'
+     # re_out='\-3\.072350108,?\s*E\-97,?\s*\+,?\s*9\.90717831,?\s*E\-100\*I'
+  Consider `intfuncinit' as requiring "unsane" precision of limits
+	(bug in GP/PARI???).  Now all tests pass???

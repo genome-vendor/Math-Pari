@@ -926,7 +926,7 @@ sub _shiftr {
 $initmem ||= 4000000;		# How much memory for the stack
 $initprimes ||= 500000;		# Calculate primes up to this number
 
-$VERSION = '2.010801';
+$VERSION = '2.010802';
 
 my $true = 1;
 # Propagate sv_true, sv_false to SvIOK:

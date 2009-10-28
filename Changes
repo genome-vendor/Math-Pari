@@ -704,6 +704,7 @@ os2$(OBJ_EXT): $(PARI_DIR)/src/systems/os2/os2.c pariinl.h paricfg.h
   Emit paricfg.h which supports GP/PARI v2.3.4.
   Remove the section on CPAN mirroring from README.
   INSTALL: Explain how to google when server is down.
+	Apparently, patch by Nicholas Clark for narg was not mentioned in 
   Skip another subtest in ploth.t.
   Fix treatment of -oo in tests.  Still fails, but now with
      not ok 12 # in='intmellininvshort(2,4,$tab)-$A'
@@ -712,3 +713,14 @@ os2$(OBJ_EXT): $(PARI_DIR)/src/systems/os2/os2.c pariinl.h paricfg.h
      # re_out='\-3\.072350108,?\s*E\-97,?\s*\+,?\s*9\.90717831,?\s*E\-100\*I'
   Consider `intfuncinit' as requiring "unsane" precision of limits
 	(bug in GP/PARI???).  Now all tests pass???
+
+2.010802:
+  Confusing variable name in Makefile.PL (===> $perl_int_size).
+  AUTOMATED_TESTING taken into account when Makefile.PL asks the operator
+  More clear self-documentation of Makefile.PL for manual download.
+  Try to un-targz PARI archive also with Archive::Tar (may help with
+	smoke testing on MSWin32).
+  Convert patches diff_2.1.7_restart diff_2.1.7_-O to Unix line-endings
+  multi-arch build; assembler not supported on such builds.
+  support v5.10 better: now take into account IVsize vs ptrsize
+	(fixes "panic: PARI narg value not attached")

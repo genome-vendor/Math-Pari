@@ -150,19 +150,26 @@ OK), force download.
 
 sub manual_download_instructions {
   <<EOP;
-Rerun Makefile.PL when you fetched GP/PARI archive manually to the
-current directory, or a (grand)parent directory of it.
+One can rerun Makefile.PL after fetching GP/PARI archive (e.g., pari-2.1.7.tgz,
+or pari-2.3.4.tar.gz) manually to the current directory, or a (grand)parent
+directory of the current directory.
 
-  [Keep in mind that version of Math::Pari module corresponds to
-   the last versions of GP/PARI it was tested with.]
+  [Keep in mind that the numbers "inside version" of Math::Pari module
+   correspond to the last versions of GP/PARI it was tested with (additionally,
+   2.0108* works best with the last 2.1.* version, 2.1.7).
 
-    Alternatively, you may specify
-      pari_tgz=PATH_TO_TAR_GZ
-    option to Makefile.PL.  (There is no need to extract the archive, or
-    build GP/PARI; but if you have it extracted [and patched, if needed],
-    you may specify
-      paridir=PATH_TO_DIST_DIR
-    option to Makefile.PL)
+   As an alternative to having archive in CWD or its (grand)parent, specify
+       pari_tgz=PATH_TO_TAR_GZ
+   option to Makefile.PL.
+
+   There is no need to extract the archive, or build GP/PARI; but if you
+   have it extracted [and patched, if needed], you may specify
+       paridir=PATH_TO_DIST_DIR
+   option to Makefile.PL instead of `pari_tgz'.  However, in this case
+   the files WON'T be auto-patched.
+
+   As a last-resort solution, there is also a possibility to use an already
+   compiled PARI library.  See the documentation in README and INSTALL files.]
 
 EOP
 }
@@ -198,8 +205,8 @@ sub download_pari {
       unless $match_pari_archive->($srcfile, 'ok2.3');
   } else {
     if ($force) {
-      print "Forced autofetching...\n"
-    } elsif (-t STDIN and (-t STDOUT or -p STDOUT)) { # Interactive
+      print "Forced autofetching...\n\n"
+    } elsif (not $ENV{AUTOMATED_TESTING} and -t STDIN and (-t STDOUT or -p STDOUT)) { # Interactive
       $| = 1;
       my $mess = <<EOP;
 
@@ -217,7 +224,7 @@ EOP
       print "$mess ";
       my $ans = <STDIN>;
       if ($ans !~ /y/i) {
-        print <<EOP . manual_download_instructions();
+        print <<EOP;
 
 Well, as you wish...
 
@@ -225,8 +232,9 @@ EOP
         return;
       }
     } else {
-      print "Non-interactive session, autofetching...\n"
+      print "Non-interactive session, autofetching...\n\n"
     }
+    print manual_download_instructions();
 
     $base_url = "ftp://$host$dir";
     my @extra_chdir = qw(OLD);
@@ -350,7 +358,13 @@ EOP
     my $zcat = "gzip -dc";	# zcat may be the old .Z-extractor
     print  "$zcat $file | tar -xvf -\n";
     system "$zcat $file | tar -xvf -"
-      and die "Cannot extract: $!, exitcode=$?.\n";
+      and do {
+	  print "Can't un-targz PARI: \$!=$!, exitcode=$?.\n";
+	  my @cmd = ($^X, qw(-MArchive::Tar -wle),
+		     'Archive::Tar->new(shift)->extract()', $file);
+	  print '  Now retry with "', join('" "', @cmd), "\"\n";
+	  system @cmd and die "Can't un-targz PARI: \$!=$!, exitcode=$?.\n"
+        };
     ($dir = $file) =~ s,(?:.*[\\/])?(.*)\.t(ar\.)?gz$,$1,
       or die "malformed name `$file'";
     -d $dir or die "Did not find directory $dir!";
@@ -843,6 +857,10 @@ sub find_machine_architecture () {
 
   $machine = 'port'		# No assembler for 64bit - unless alpha/ia64
     if $machine !~ m(alpha|64) and ($Config{longsize} || 0) == 8;
+
+  print("I detect multi-arch build; assembler not supported on such builds.\n\n"),
+    $machine = 'port'	# No assembler for repeated -arch (multi-arch build)
+      if $Config{ccflags} =~ /(^|\s)-arch\s.*\S\s+-arch\s/;
 
   # For older PARI:
   ###  $machine = 'sparcv8super'

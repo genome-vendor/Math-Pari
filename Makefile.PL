@@ -60,7 +60,7 @@ EOP
   print <<EOP if $pari_version =~ /^2003/;
 
   ### Math::Pari support of GP/PARI library version 2.3.* should be
-  ###   considered cursory only.  One may need to downgrade to 2.1.7,
+  ###   considered beta-quality only.  One may need to downgrade to 2.1.7,
   ###   or run Makefile.PL with option machine=none if the tests fail.
 
   ### For example, the test t/55_intnum.t takes a very long time to complete,
@@ -134,10 +134,10 @@ $offset = 3 if $offset > 3;	# SvFLAGS is actually I32
 $define .= " -DLSB_in_U32=$offset";
 
 my $longsize = length(eval { pack 'l!', 1 } or pack 'l', 1);
-my $pari_int_size = $Config{'ivsize'} || $Config{'intsize'}
-	or die "Can't deduce PARI int size";
+my $perl_int_size = $Config{'ivsize'} || $Config{'intsize'}
+	or die "Can't deduce Perl int size";
 
-$define .= ' -DLONG_SHORTER_THAN_IV' if $pari_int_size > $longsize;
+$define .= ' -DLONG_SHORTER_THAN_IV' if $perl_int_size > $longsize;
 
 $define .= ' -Derr=pari_err'; # On linux it can get a wrong dynamic loading
 $define .= ' -DHAVE_LADD' if $opts{have_ladd};

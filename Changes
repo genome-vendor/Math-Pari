@@ -721,6 +721,27 @@ os2$(OBJ_EXT): $(PARI_DIR)/src/systems/os2/os2.c pariinl.h paricfg.h
   Try to un-targz PARI archive also with Archive::Tar (may help with
 	smoke testing on MSWin32).
   Convert patches diff_2.1.7_restart diff_2.1.7_-O to Unix line-endings
-  multi-arch build; assembler not supported on such builds.
+  multi-arch build; assembler not supported ==> auto machine=port.
   support v5.10 better: now take into account IVsize vs ptrsize
-	(fixes "panic: PARI narg value not attached")
+	(fixes "panic: PARI narg value not attached"; assumes int fits in void*
+	 without checking XXXX)
+
+2.010803:
+  "More clear self-documentation of Makefile.PL for manual download" was busted
+  Wrap slow access to stored IV via INT2PTR(), same for quick access.
+  Auto-patch 2.1.7 for "Error: suffix or operands invalid for `div'"
+  Auto-patch 2.1.6--7 for "kernel1.s:18: Error: alignment not a power of 2"
+  Add missing empty lines to patches; clean traces of -p (on Solaris, patch
+    is too stupid).
+		*_restart fails?
+  set DL_DFLT_NAME define in Makefile if option Configure is given.
+  Change is_gnu_ass() to not_gnu_ass() in PariBuild.pm; return the
+    usage message if present.
+  assembler_flags_via(): as assembler_flags() with inverted second arg
+	(may be a usage message from assembler);
+  (DISABLED: causes segfaults on Solaris): try to guess for -K PIC for ASFLAGS.
+  New test 000_load-problem.t reports build parameters (for smoke testing;
+	taken from Numeric-Array).
+
+2.010804:
+  000_load-problem.t was busted...

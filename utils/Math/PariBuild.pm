@@ -1,6 +1,6 @@
 package Math::PariBuild;
 
-$VERSION = '1.001';
+$VERSION = '2.010803';
 
 require Exporter;
 @ISA = 'Exporter';
@@ -20,11 +20,12 @@ require Exporter;
 	     known_asmarch
 	     inline_headers
 	     inline_headers2
-	     is_gnu_as
+	     not_gnu_as
 	     choose_and_report_assembler
 	     kernel_files
 	     kernel_fill_data
 	     assembler_flags
+	     assembler_flags_via
 	     extra_includes
 	     ep_codes_from_file
 	     ep_hash_report
@@ -229,12 +230,12 @@ EOP
 Well, as you wish...
 
 EOP
+	print manual_download_instructions();
         return;
       }
     } else {
       print "Non-interactive session, autofetching...\n\n"
     }
-    print manual_download_instructions();
 
     $base_url = "ftp://$host$dir";
     my @extra_chdir = qw(OLD);
@@ -260,7 +261,8 @@ EOP
 	  $c++ if $match_pari_archive->($file);
 	}
 	unless ($c) {
-	  die "Did not find any file matching /$match/ via FTP" unless @Extra;
+	  die "Did not find any file matching /$match/ via FTP\n\n"
+	    . manual_download_instructions() unless @Extra;
 	  $dir = shift @Extra;
 	  print "Not in this directory, now chdir('$dir')...\n";
 	}
@@ -408,11 +410,14 @@ sub patches_for ($) {
 		 '2.1.5' =>  ['patches/diff_2.1.4_interface'],
 		 '2.2.2' =>  ['patches/diff_2.2.2_interface'],
 		 '2.1.6' =>  ['patches/diff_2.1.6_ploth64',
+			      'patches/diff_2.1.6_align_power_of_2',
 			      'patches/diff_2.1.6_no-common'],
 		 '2.1.7' =>  [
 			($^O =~ /darwin/i ? 'patches/diff_2.1.6_no-common' : ()),
 			      'patches/patch-pari-unnormalized-float',
 			      'patches/diff_2.1.7_-O',
+			      'patches/diff_2.1.7_div',
+			      'patches/diff_2.1.6_align_power_of_2',
 			      'patches/diff_2.1.7_restart'],
 		);
   print "Looking for patches for $v...\n";
@@ -882,7 +887,7 @@ sub find_machine_architecture () {
   return $machine;
 }
 
-sub is_gnu_as {
+sub not_gnu_as {
   local $/;
   my $ass = $ENV{AS} || 'as';
   my $devnul = -e '/dev/null' ? '< /dev/null' : '';
@@ -901,7 +906,8 @@ sub is_gnu_as {
     }
     eval {alarm 0};
   };
-  return ($assout and $assout =~ /GNU/);
+  ($assout and $assout =~ /GNU/) and return;	# GNU
+  $assout or 1;
 }
 
 # Which files to catenate to produce pariinl.h.  Apparently, the only
@@ -1184,8 +1190,8 @@ sub kernel_fill_data {
 
 }
 
-sub assembler_flags {
-  my ($machine, $Using_gnu_as) = (shift, shift);
+sub assembler_flags_via {
+  my ($machine, $not_gnu_as) = (shift, shift);
   my %assf  = (
 	       # alpha  => "-O1",		# Not supported any more
 	       sparc  => ($Config{osname} eq 'solaris'
@@ -1195,8 +1201,18 @@ sub assembler_flags {
 	      );
   my $assflags  = $assf{$machine =~ /sun3|sparc/ ? 'sparc' : $machine} || '';
   $assflags .= ' -D__GNUC__'	# hiremainder problem with gcc on Solaris
-    if not $Using_gnu_as and $Config{gccversion};
+    if $not_gnu_as and $Config{gccversion};
+  # Tested with Sun WorkShop 6 update 2 Compiler Common 6.2 Solaris_9_CBE 2001/04/02:
+  $assflags .= ' -K PIC'	# check assembler message for hints
+		# disable: leads to segfaults on Solaris
+    if 0 and $not_gnu_as and $Config{cccdlflags} =~ /(^|\s)-K\s*(pic|PIC)\b/
+      and $not_gnu_as =~ /(^|\W)-K\s+\{?(\w+,)PIC\b/;	# in GNU as, default???
   return $assflags;
+}
+
+sub assembler_flags {		# Backward compatibility
+  my ($machine, $is_gnu_as) = (shift, shift);
+  assembler_flags_via($machine, not $is_gnu_as);
 }
 
 sub extra_includes {

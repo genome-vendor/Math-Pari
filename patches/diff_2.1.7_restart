@@ -1,31 +1,6 @@
---- ./src/language/anal.c~	Fri Sep 16 09:50:48 2005
-+++ ./src/language/anal.c	Sat Oct 29 08:37:28 2005
-@@ -1998,6 +1998,8 @@ manage_var(long n, entree *ep)
- 
-   if (n) /* special behaviour */
-   {
-+    int leave_vars = 1;			/* x undestructible */
-+
-     switch(n)
-     {
-       case 2: return nvar=0;
-@@ -2010,10 +2012,12 @@ manage_var(long n, entree *ep)
-         setlg(polvar, nvar);
-         return --nvar;
-       }
-+      case 100:
-+	leave_vars = 0;
-     }
- 
-     /* user wants to delete one of his/her/its variables */
--    if (max_avail == MAXVARN-1) return 0; /* nothing to delete */
-+    if (max_avail == MAXVARN-leave_vars) return 0; /* nothing to delete */
-     free(polx[++max_avail]); /* frees both polun and polx */
-     return max_avail+1;
-   }
---- ./src/language/init.c~	Fri Oct 28 17:45:22 2005
-+++ ./src/language/init.c	Sat Oct 29 08:55:22 2005
-@@ -394,6 +394,7 @@ reset_traps(int warn)
+--- src/language/init.c.orig	2005-09-16 09:50:49.000000000 -0700
++++ src/language/init.c	2009-10-29 18:13:55.000000000 -0700
+@@ -394,6 +394,7 @@
    for (i=0; i <= noer; i++) err_catch_array[i] = 0;
  }
  
@@ -33,7 +8,7 @@
  /* initialise les donnees de la bibliotheque PARI. Peut être précédée d'un
   * appel à pari_addfunctions si on ajoute d'autres fonctions au pool de base.
   */
-@@ -407,7 +408,9 @@ pari_init(long parisize, long maxprime)
+@@ -406,7 +407,9 @@
  #ifdef STACK_CHECK
    pari_init_stackcheck(&i);
  #endif
@@ -44,7 +19,7 @@
    if (INIT_JMP && setjmp(environnement))
    {
      fprintferr("  ***   Error in the PARI system. End of program.\n");
-@@ -503,7 +506,7 @@ freeall(void)
+@@ -498,7 +501,7 @@
    long i;
    entree *ep,*ep1;
  
@@ -53,8 +28,8 @@
    for (i = 0; i < functions_tblsz; i++)
    {
      for (ep = functions_hash[i]; ep; ep = ep1)
-@@ -518,17 +521,28 @@ freeall(void)
-     members_hash[i] = NULL;
+@@ -511,17 +514,28 @@
+     }
    }
    free((void*)varentries); free((void*)ordvar); free((void*)polvar);
 -  free((void*)polx[MAXVARN]); free((void*)polx); free((void*)polun);

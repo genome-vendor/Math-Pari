@@ -745,3 +745,7 @@ os2$(OBJ_EXT): $(PARI_DIR)/src/systems/os2/os2.c pariinl.h paricfg.h
 
 2.010804:
   000_load-problem.t was busted...
+
+2.010805:
+  check PERL_MM_USE_DEFAULT in addition to AUTOMATED_TESTING.
+  report more on environment when user does not answer `y'.

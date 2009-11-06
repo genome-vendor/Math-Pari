@@ -23,6 +23,8 @@ grep {/^paridir=(.*?)[\/\\]?$/i	 and $paridir = $1}	     @ARGV;
 grep {/^pari_tgz=(.*?)[\/\\]?$/i	 and $parisrc = $1}	     @ARGV;
 grep {/^force_download$/i	 and $force_download = 1}    @ARGV;
 grep {/^parilib=(.*)$/i		 and $common::parilib = $1}  @ARGV;
+# REx anchored-matching versions to skip
+$common::skip_versions = '2\.(?:[3-9]|\d\d+)\.';
 
 @ARGV = grep !/^((machine|paridir|pari_tgz|parilib)=.*|configure|force_download)$/i, @ARGV;
 

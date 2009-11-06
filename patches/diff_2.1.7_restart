@@ -1,5 +1,5 @@
---- src/language/init.c.orig	2005-09-16 09:50:49.000000000 -0700
-+++ src/language/init.c	2009-10-29 18:13:55.000000000 -0700
+--- ./src/language/init.c.orig	2005-09-16 09:50:49.000000000 -0700
++++ ./src/language/init.c	2009-10-29 18:13:55.000000000 -0700
 @@ -394,6 +394,7 @@
    for (i=0; i <= noer; i++) err_catch_array[i] = 0;
  }

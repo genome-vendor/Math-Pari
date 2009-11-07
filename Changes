@@ -756,3 +756,10 @@ os2$(OBJ_EXT): $(PARI_DIR)/src/systems/os2/os2.c pariinl.h paricfg.h
   Get log of command `ftp' if using Perl modules fails
 	(if MATHPARI_USEFTP is TRUE, actually use the downloaded file).
   Patch for restart did not have leading "./" - problem with some `patch'es.
+
+2.01080601:
+  PariBuild: return results of patching.
+  Add a "fake" Makefile macro to report results of patching.
+  "Just in case": change the leading component to "." in "diff_2.1.6_no-common".
+  New argument to Makefile.PL: version23_ok=NUMBER (default 0).
+  Add ftp-cmd to clean Makefile target.

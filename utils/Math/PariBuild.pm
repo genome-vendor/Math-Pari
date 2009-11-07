@@ -1,6 +1,6 @@
 package Math::PariBuild;
 
-$VERSION = '2.010806';
+$VERSION = '2.01080601';
 
 require Exporter;
 @ISA = 'Exporter';
@@ -479,41 +479,47 @@ sub patches_for ($) {
 
 Applies known necessary fixes to GP/PARI build directory $dir if needed.
 
+Returns empty if no patching is needed, otherwise the string encoding
+return values of patch commands.
+
 =cut
 
 sub patch_pari {
   my ($dir, $version) = (shift, shift);
   $version = get_pari_version($dir) unless defined $version;
-  my @patches = patches_for($version);
-  if (@patches) {
-    print "Patching...\n";
-    my $p;
-    my $patch = $Config{gnupatch} || 'patch';
-    foreach $p (@patches) {
-      my $cmd = "cd $dir ; $patch -p1 < ../$p";
-      print "$cmd\n";
-      system "$cmd"
-	and warn "...Could not patch: \$?=$?, $!; continuing anyway...\n";
-    }
-    print "Finished patching...\n";
+  my @patches = patches_for($version) or return;
+  print "Patching...\n";
+  my ($rc, $p) = '';
+  my $patch = $Config{gnupatch} || 'patch';
+  foreach $p (@patches) {
+    my $cmd = "cd $dir ; $patch -p1 < ../$p";
+    print "$cmd\n";
+    system "$cmd"
+      and warn "...Could not patch: \$?=$?, $!; continuing anyway...\n";
+    $rc .= "'$p' => $?, "
   }
+  print "Finished patching...\n";
+  $rc =~ s/,\s+$//;
+  $rc
 }
 
 =item download_and_patch_pari()
 
 Using FTP connection, downloads the latest version of GP/PARI,
 extracts it, and applies known necessary fixes if needed.  Returns the
-GP/PARI build directory.
+GP/PARI build directory (in scalar context), otherwise the directory
+and the result of patching.
 
 Same optional arguments as for download_pari().
 
 =cut
 
 sub download_and_patch_pari {
-  my ($file, $force) = (shift, shift);
+  my ($file, $force, @rc) = (shift, shift);
   my ($dir, $version) = download_pari($file, $force);
-  patch_pari($dir, $version) if defined $dir;
-  $dir;
+  @rc = patch_pari($dir, $version) if defined $dir;
+  return $dir unless wantarray;
+  ($dir, @rc);
 }
 
 =item C<make_pod($podfile, $gphelp_opt, $dir)>

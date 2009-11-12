@@ -1,8 +1,9 @@
 --- #YAML:1.0
 name:               Math-Pari
-version:            2.01080601
-abstract:           ~
-author:  []
+version:            2.01080602
+abstract:           Perl interface to PARI.
+author:
+    - Ilya Zakharevich <ilyaz@cpan.org>
 license:            unknown
 distribution_type:  module
 configure_requires:

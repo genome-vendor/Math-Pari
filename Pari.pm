@@ -1,6 +1,6 @@
 =head1 NAME
 
-C<Math::Pari> - Perl interface to PARI.
+Math::Pari - Perl interface to PARI.
 
 =head1 SYNOPSIS
 
@@ -926,7 +926,7 @@ sub _shiftr {
 $initmem ||= 4000000;		# How much memory for the stack
 $initprimes ||= 500000;		# Calculate primes up to this number
 
-$VERSION = '2.01080601';
+$VERSION = '2.01080602';
 
 my $true = 1;
 # Propagate sv_true, sv_false to SvIOK:

@@ -198,6 +198,7 @@ sub process_cond {
 
 sub process_test {
   my ($in, $noans, $out) = @_;
+  my $ini_time = time;
   my $doprint;
   $doprint = 1 if $noans eq 'print';
   my $was_prev = $prev;
@@ -627,7 +628,9 @@ sub process_test {
 				      forstep )\b/x);
     # Remove the value from texprint:
     # pop @$out if $in =~ /texprint/ and @$out == 2;
+    my $pre_time = time() - $ini_time;
     $res = eval "$in";
+    my $run_time = time() - $ini_time - $pre_time;
     $rres = $res;
     $rres = pari_print $res if defined $res and ref $res;
     my $re_out;
@@ -697,11 +700,14 @@ sub process_test {
       if ($@ =~ /^Undefined subroutine &main::(\w+)/
 	  and $not_yet_defined{$1}) {
 	print "# in='$in'\nok $current_num # Skipped: `$1' is known to be undefined\n";
+      } elsif ($@ =~ /high resolution graphics disabled/
+	       and not Math::Pari::have_graphics()) {
+	print "# in='$in'\nok $current_num # Skipped: graphic is disabled in this build\n";
       } elsif ($@ =~ /gnuplot-like plotting environment not loaded yet/
 	       and $skip_gnuplot) {
 	print "# in='$in'\nok $current_num # Skipped: Term::Gnuplot is not loaded\n";
-      } else {
-	print "not ok $current_num # in='$in', err='$@'\n";
+      } else {			# XXXX Parens needed???
+	nok_print( $current_num, $in, "not ok $current_num # in='$in', err='$@'\n" );
       }
       return;
     }
@@ -715,27 +721,35 @@ sub process_test {
 	return;
       }
     }
+    my $post_time = time() - $ini_time - $pre_time - $run_time;
     if (not $noans and defined $re_out
 	     and (not defined $rres or not $cmp)) {
       $out->[0] =~ s/\n/\t/g;	# @$out usually has 1 elt
-      print "not ok $current_num # in='$in'\n#    out='", $rres, "', type='", ref $res,
+      nok_print $current_num, $in, "not ok $current_num # in='$in'\n#    out='", $rres, "', type='", ref $res,
       "'\n# pari==='", join("\t", @$out), "'\n# re_out='$re_out'\n";
     } elsif (not $noans and defined $re_out) {
-      print "ok $current_num\n";
+      print "ok $current_num #  run_time=$run_time, post_time=$post_time, pre_time=$pre_time\n";
       @seen{keys %seen_now} = values %seen_now;
       $prev = $res;
     } elsif (not $noans and (not defined $rres or $rres ne $rout)) {
-      print "not ok $current_num # in='$in'\n#    out='", $rres, "', type='", ref $res,
+      nok_print $current_num, $in, "not ok $current_num # in='$in'\n#    out='", $rres, "', type='", ref $res,
       "'\n# expect='$rout'\n";
     } elsif ($doprint and $printout ne $rout) {
-      print "not ok $current_num # in='$in'\n# printout='", $printout,
+      nok_print $current_num, $in, "not ok $current_num # in='$in'\n# printout='", $printout,
       "'\n#   expect='$rout', type='", ref $res,"'\n";
     } else {
-      print "ok $current_num\n";
+      print "ok $current_num #  run_time=$run_time, post_time=$post_time, pre_time=$pre_time\n";
       @seen{keys %seen_now} = values %seen_now;
       $prev = $res;
     }
   }
+}
+
+sub nok_print {
+  my ($n, $in) = (CORE::shift, CORE::shift);
+  print(@_), return unless $ENV{AUTOMATED_TESTING};
+  warn("# in = `$in'\n", @_);
+  print("not ok $n\n");
 }
 
 sub process_error {

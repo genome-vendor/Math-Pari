@@ -763,3 +763,34 @@ os2$(OBJ_EXT): $(PARI_DIR)/src/systems/os2/os2.c pariinl.h paricfg.h
   "Just in case": change the leading component to "." in "diff_2.1.6_no-common".
   New argument to Makefile.PL: version23_ok=NUMBER (default 0).
   Add ftp-cmd to clean Makefile target.
+
+2.0304_001080601:
+  Change the default for $ok23 to 1.
+
+2.01080601+
+  Add 5.005-new keywords to Makefile.PL.
+  Consistently put space after -I in C include paths (needed???).
+  Nicer output when debugging faulty LWP and Net::FTP.
+  Make test engine look in */32/* directory too on 64-bit builds.
+  Remove POD ornaments to make ABSTRACT_FROM work.
+
+2.0304_00108060101
+  Change the default for $ok23 to 1.
+
+2.01080601++
+  Reword warning about slow intnum: only 75% longer than on PARI/GP.
+	(overhead of the internal sub call in subtest 30 looks like 10x
+	 overhead of an empty subroutine call).
+  New advice that upgrade to 2.3.* may fix `overflow' and `highremainder'.
+  Exchange order of initialization of PARI and of `functions_highlevel'
+	with >= 2.3.0; allows installation of highlevel functions
+	(in particular, install() and PostScript printing).
+  New function have_graphics() (not exported).
+  The test engine takes into account have_graphics().
+
+2.0304_00108060102
+  Change the default for $ok23 to 1.
+
+2.01080602
+  If AUTOMATED_TESTING, delete (bogus?) environment variable DISPLAY.
+  If AUTOMATED_TESTING, report results of failing tests on STDERR.

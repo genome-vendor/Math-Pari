@@ -120,7 +120,7 @@ if ($Config{cc} eq 'gcc') {
   if ($Config{osname} eq 'os2' and not $extra_inc =~ /os2(?!\S)/) {
     # 2.1.3 does not include dlctl.h
     $mycflags .= ' -DRTLD_LAZY=0 -DRTLD_GLOBAL=0';
-    $inc .= ' -I$(PERL_INC)';
+    $inc .= ' -I $(PERL_INC)';
   }
 } elsif ($machine eq 'hppa') {
   $mycflags="-Aa -DHPPA";	#$mycflags="-O -Aa -DHPPA";
@@ -216,7 +216,7 @@ WriteMakefile(
 		    CFG_CCCDLFLAGS => $Config{cccdlflags},
 		   },
     DEFINE	=> $mycflags,
-    INC		=> $extra_inc . ' -I$(PARI_DIR)/src/headers -I$(PARI_DIR)/src/graph -I.'
+    INC		=> $extra_inc . ' -I $(PARI_DIR)/src/headers -I $(PARI_DIR)/src/graph -I .'
 			. $inc,
     C		=> \@cfiles,
     SKIP	=> [qw( distclean test dist makeaperl xs_o static)],
@@ -237,10 +237,10 @@ sub xMY::top_targets {
   my $inlines = $inlines2[1];
   $converted = <<EOC if $kernel{convert};
 $kernel{converted1}: $kernel{file1} $kernel{header1}
-	\$(CPP) -I. \$(INC) -I$kernel{dir1} \$(DEFINE) \$(ASSCPPDEFINE) $kernel{file1} | perl -ne "s/%\\s+/%/g; print unless /^\\s*#/" > \$@
+	\$(CPP) -I . \$(INC) -I $kernel{dir1} \$(DEFINE) \$(ASSCPPDEFINE) $kernel{file1} | perl -ne "s/%\\s+/%/g; print unless /^\\s*#/" > \$@
 
 kernel2.s: $kernel{file2}
-	\$(CPP) -I. \$(INC) -I$kernel{dir1} \$(DEFINE) \$(ASSCPPDEFINE) $kernel{file2} | perl -ne "s/%\\s+/%/g; print unless /^\\s*#/" > \$@
+	\$(CPP) -I . \$(INC) -I $kernel{dir1} \$(DEFINE) \$(ASSCPPDEFINE) $kernel{file2} | perl -ne "s/%\\s+/%/g; print unless /^\\s*#/" > \$@
 
 EOC
   my $create_mp = '';

@@ -523,11 +523,22 @@ pari2pv(GEN in)
   return worksv;
 }
 
+int fmt_nb;
+
 #ifdef LONG_IS_64BIT
-#define fmt_nb 38
+#  define def_fmt_nb 38
 #else
-#define fmt_nb 28
+#  define def_fmt_nb 28
 #endif
+
+long
+setprecision(long digits)
+{
+  long m = fmt_nb;
+
+  if(digits>0) {fmt_nb = digits; prec = (long)(digits*pariK1 + 3);}
+  return m;
+}
 
 SV*
 pari_print(GEN in)
@@ -2410,6 +2421,7 @@ BOOT:
    pariStash = gv_stashpv("Math::Pari", TRUE);
    pariEpStash = gv_stashpv("Math::Pari::Ep", TRUE);
    perlavma = sentinel = avma;
+   fmt_nb = def_fmt_nb;
 }
 
 void
@@ -2504,3 +2516,7 @@ void
 set_gnuterm(a,b)
     IV a
     IV b
+
+long
+setprecision(digits=0)
+    long digits

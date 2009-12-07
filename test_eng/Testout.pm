@@ -13,11 +13,13 @@ $file = shift;
   close TO or die "close: $!";
 }
 
-shift @tests;			# Messages
+$mess = shift @tests;		# Messages
 pop @tests;			# \q
 $tests = @tests;
 
 print "1..$tests\n";
+
+prec($3 || $1, 1) if $mess =~ /realprecision = (\d+) significant digits( \((\d+) digits displayed\))?/;  
 
 $| = 1;
 @seen{qw(Pi I Euler a x y z k t q u j l n v p name other mhbi
@@ -26,9 +28,26 @@ $| = 1;
 for (keys %seen) {
   $$_ = PARI($_);
 }
-#while (<>) {
-#  last if /^stacksize/;
-#}
+# Some of these are repeated below (look for XXXX), since they cause
+# an early interpretation of unquoted args
+@not_yet_defined{qw(
+    bernreal eta precision incgam log ln thetanullk polylog round weber
+    besselk hyperu reorder setrand intnum prodinf sumalt sumpos
+    factorpadic polcoeff polcyclo poldegree pollegendre polresultant polroots
+    poltchebi polzagier
+    plotbox plotcolor plotcursor plotdraw ploth plothraw plotinit plotlines 
+    plotmove plotpoints plotrline plotrmove plotrpoint psdraw psploth 
+    psplothraw
+    centerlift shift shiftmul type
+    Qfb addprimes contfrac core coredisc factor factorial ffinit hilbert 
+    lift qfbclassno sigma
+    bnfreg nfdisc nfinit polgalois polred polredabs polsubcyclo zetak
+    Set Vec algdep charpoly concat lindep matker matkerint matsnf trans
+    vecextract vecsort
+    plotkill
+    ellbil ellheight ellinit elllseries ellpow ellwp
+  )} = (1) x 10000;
+
 $started = 0;
 
 main_loop:
@@ -140,7 +159,9 @@ sub process_test {
   $in =~ s/\b(\d+|[a-z]+\(\))\s*\\\s*(\d+(\^\d+)?)/ gdivent($1,$2)/g; # \
   $in =~ s/\b(\d+)\s*\\\/\s*(\d+)/ gdivround($1,$2)/g; # \/
   $in =~ s/\b(\w+)\s*!/ ifact($1)/g; # !
-  if ($in =~ /\\/) {		# \\ for division unsupported
+  if ($in =~ /^\\p\s*(\d+)/) {
+    prec($1);
+  } elsif ($in =~ /\\/) {		# \\ for division unsupported
     $c--;
     process_error($in, $out, '\\');
   } elsif ($in =~ /^(\w+)\s*\([^()]*\)\s*=/ and 0) { # XXXX Not implemented yet
@@ -167,7 +188,8 @@ sub process_test {
 			( while | if | for | goto | label | changevar
                           | gettime | forstep 
                           # XXXX These need to be done ASAP:
-                          | reorder | log | ln | setrand
+                          | reorder | log | ln | setrand | sumalt | prodinf
+			  | truncate
                         )
 			\b 
 		      |
@@ -430,9 +452,14 @@ sub process_test {
       $rout =~ s/\s+/ /g;
     } else {
       $rout = mformat @$out;
-      if (not $doprint and $rout =~ /\[.*[-+,]\s/) {
-	$rout =~ s/,* +/ /g;
-	$rres =~ s/,* +/ /g if defined $res;
+      if (defined $rres and $rres !~ /\n/) {
+	$rout =~ s/\]\s*\[/; /g;
+	$rout =~ s/,\n/, \n/g;	# Spaces were removed 
+	$rout =~ s/\n//g;		# Long wrapped text
+      }
+      if ($rout =~ /\[.*[-+,]\s/) {
+	$rout =~ s/,*\s+/ /g;
+	$rres =~ s/,*\s+/ /g if defined $res;
       }
     }
     if ($have_floats and ref $res) {
@@ -444,8 +471,17 @@ sub process_test {
 	$rout = massage_floats $rout;
       }
     }
+    if (not $doprint) {
+      $rout =~ s/\s*([-+])\s*/$1/g;
+      $rres =~ s/\s*([-+])\s*/$1/g if defined $res;
+    }
     if ($@) {
-      print "not ok $c # in='$in', err='$@'\n";
+      if ($@ =~ /^Undefined subroutine &main::(\w+)/ 
+	  and $not_yet_defined{$1}) {
+	print "# in='$in'\nok $c # Skipped: $1 is known to be undefined\n";
+      } else {
+	print "not ok $c # in='$in', err='$@'\n";
+      }
     } elsif (not $noans and (not defined $rres or $rres ne $rout)) {
       print "not ok $c # in='$in'\n#    out='", $rres, 
       "'\n# expect='$rout', type='", ref $res,"'\n";
@@ -479,7 +515,7 @@ sub process_definition {
 
 sub process_set {
   my ($in, $out) = @_;
-  return process_test("setprecision($1)", 'noans', '') if $in =~ /^\\precision\s*=\s*(\d+)$/;
+  return process_test("setprecision($1)", 'noans', '') if $in =~ /^\\p\s*(\d+)$/;
   $c++;
   print("# `$in'\nok $c # Skipping setting test\n");
 }
@@ -521,3 +557,8 @@ sub my_texprint {
   return;
 }
 
+sub prec {
+  setprecision($_[0]);
+  print "# Setting precision to $_[0] digits.\n";
+  print "ok $c\n" unless $_[1];
+}

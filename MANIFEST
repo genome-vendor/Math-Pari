@@ -10,6 +10,9 @@ comp_funcs.pl
 foncpari.pl
 libPARI/Makefile.PL
 libPARI/gphelp
+libPARI/extract_codes.pl
+libPARI/expected_codes
+libPARI/codes_2014
 paridoc_to_pod
 t/Pari.t
 t/PlotRect.t
@@ -29,3 +32,6 @@ patch12/diff_for_perl_2012
 patch13/diff_for_perl_2013
 patch13/diff_for_gnuplot_2013
 patch14/diff_for_perl_2014
+patch14/diff_extra_2014
+patch14/diff_plot_2014
+patch14/diff_last_2014

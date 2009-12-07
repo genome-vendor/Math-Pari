@@ -170,3 +170,11 @@ Files=15,  Tests=1378, 108 secs (86.46 cusr  3.82 csys = 90.28 cpu)
 	Default to `port' for unknow architectures.
 	perl -MMath::Pari=:int -e 'for ($i = 1; $i < 10; $i++) {print "$i\n"}'
 	     not fixed yet.  (Sometimes segfaults, prints floating points.)
+2.001403:
+	New patch for signatures.
+	Die on a wrong import tag, add link_gnuplot() to :graphic.
+	Support DV and DI argument declarations, and new code 28 for vector().
+	Fix handlers for codes 45 and 49.
+	Now keep log of codes as supported by Math::Pari, as
+	 implemented by PARI, and have a tool to check this (see libPARI/).
+	Make test script creation skip backups and other junk.

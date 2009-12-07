@@ -430,13 +430,25 @@ my $try1 = abs($try);
 
 test 0.1 == PARI $try;		# 128
 
-for my $l (0..22) {		# + 23*9
-  for my $d (1..9) {
+eval <<'EOE' or warn $@;	# 129..131
+  use Math::Pari ':int', ':float';
+  my $i = PARI 12345678901234567890123;
+  test "$i" eq '12345678901234567890123';
+  $i = 12345678901234567890123;
+  test "$i" eq '12345678901234567890123';
+  $i = 2**10000;
+  my $ii = PARI(2)**PARI(10000);
+  test "$i" eq "$ii";
+EOE
+
+for my $l (0..22) {		# + 23*9*2
+  for my $d (1..9, -9..-1) {
     my $n = $d . (0 x $l);
     my $p = eval "PARI($n)";
-    $p = "$p";
+    my $pn = sprintf '%.0f', $n;
+    my $op = $p = "$p";
     $p =~ s/\.0*$//;
-    print "# `$n' ==> `$p'\n" if $n ne $p;
+    print "# `$n' ==> Perl `$pn' ==> Math::Pari `$op'\n" if $n ne $p;
     test ($n eq $p or $p =~ /(0{15}|9{15})\d{0,3}e\d\d$/i);
   }
 }
@@ -458,4 +470,4 @@ BEGIN {
   $^W = $ow;
 }
 
-sub last {128 + 23*9}
+sub last {131 + 23*9*2}

@@ -160,7 +160,16 @@ is equivalent to
 
 (The support for this Perl feature is buggy before the Perl version 5.005_57 -
 unless Perl uses mymalloc options; you can check for this with C<perl
--V:usemymalloc>.)
+-V:usemymalloc>.)  Note also that (at least with some versions of Perl)
+one should enable C<':float'> for conversion of long integer literals
+(I<Perl> may consider them as floats, since they won't fit into Perl
+integers); note that it is PARI which determines which PARI subtype is
+assigned to each such literal:
+
+  use Math::Pari ':float', 'type_name';
+  print type_name 22222222222222222222222;
+
+prints C<t_INT>.
 
 =back
 
@@ -618,7 +627,10 @@ is equivalent to
 Similarly, large integer literals do not lose precision.
 
 This directive is lexically scoped.  There is a similar tag C<:hex>
-which affects hexadecimal, octal and binary constants.
+which affects hexadecimal, octal and binary constants.  One may
+also need to use tag C<:float> for auto-conversion of large integer literals
+which Perl considers as floating point literals (see L<C<use> with arguments>
+for details).
 
 =item doubles
 
@@ -914,7 +926,7 @@ sub _shiftr {
 $initmem ||= 4000000;		# How much memory for the stack
 $initprimes ||= 500000;		# Calculate primes up to this number
 
-$VERSION = '2.010704';
+$VERSION = '2.010705';
 
 my $true = 1;
 # Propagate sv_true, sv_false to SvIOK:

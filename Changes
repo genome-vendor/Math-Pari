@@ -608,3 +608,8 @@ os2$(OBJ_EXT): $(PARI_DIR)/src/systems/os2/os2.c pariinl.h paricfg.h
 		a read flag check to the opening of /proc/cpuinfo, which on
 		hardened linux boxes may fail.
 	To pacify a warning, put ((void)0) instead of empty argument to a macro
+
+2.010705:
+	Test negative integer conversion too.
+	Test ':int'.
+	download_pari(), find_pari_dir(): skip versions 2.3.*

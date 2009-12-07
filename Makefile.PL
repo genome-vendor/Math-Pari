@@ -27,7 +27,8 @@ grep {/^parilib=(.*)$/i		 and $common::parilib = $1}  @ARGV;
 @ARGV = grep !/^((machine|paridir|pari_tgz|parilib)=.*|configure|force_download)$/i, @ARGV;
 
 $paridir   = find_pari_dir() unless defined $paridir or $parisrc or $force_download;
-($paridir) = download_and_patch_pari($parisrc) if !$paridir or $force_download;
+($paridir) = download_and_patch_pari($parisrc, $force_download)
+  if !$paridir or $force_download;
 
 die <<EOD  unless $paridir;
 Could not find GP/PARI build directory, please run Makefile.PL

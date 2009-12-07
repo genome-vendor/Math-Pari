@@ -98,17 +98,26 @@ EOW
 =item find_pari_dir()
 
 Returns the GP/PARI build directory, looking for it as a kid, sibling,
-or parent of the current directory.
+or parent of the current directory.  [Currently skips versions 2.3.* if
+possible.]
 
 =cut
 
 my $latmus = 'src/test/in/nfields';
 
+sub filter_versions_too_new {
+  my $force = shift;
+  my @dirs = grep !m((?:^|[\\/])pari-2\.3\.), @_;
+  print "Filtered out versions too new...\n" if @dirs != @_;
+  return @dirs if $force or @dirs;
+  return @_;			# Not found, not forced
+}
+
 sub find_pari_dir {
   my ($dir, @dirs, @gooddirs);
   # Try to find alongside
   for $dir ('.', '..', '../..', '../../..') {
-    @dirs = <$dir/pari-[234].*>;
+    @dirs = filter_versions_too_new 0, <$dir/pari-[234].*>;
     @dirs = "$dir/pari" if not @dirs and -d "$dir/pari";
     @dirs = grep -e "$_/$latmus", @dirs;
     last if @dirs;
@@ -125,19 +134,22 @@ sub find_pari_dir {
 
 Using FTP connection, downloads the latest version of GP/PARI, and
 extracts it.  Returns the GP/PARI build directory and the version in
-the format C<"2.3.1">.
+the format C<"2.3.1">.  [Currently skips versions 2.3.*]
+
+Optional arguments: name of the tar file with GP/PARI source (undef
+OK), force download.
 
 =cut
 
 sub download_pari {
-  my ($srcfile) = (shift);
+  my ($srcfile, $force) = (shift, shift);
   my $host = 'megrez.math.u-bordeaux.fr';
   my $dir  = '/pub/pari/unix/';
   my($ftp, $ua, $base_url);
 
   print "Did not find GP/PARI build directory around.\n" unless defined $srcfile;
 
-  my $match = '((?:.*\/)?pari\W*(\d+\.\d+\.\d+).*\.t(?:ar\.)?gz)$';
+  my $match = '((?:.*\/)?pari\W*(?!2\\.3\\.)(\d+\.\d+\.\d+).*\.t(?:ar\.)?gz)$';
 
   my %archive;
   my $match_pari_archive = sub {
@@ -158,7 +170,9 @@ sub download_pari {
     die "The FILE supplied via the pari_tgz=$srcfile option did not match /$match/"
       unless $match_pari_archive->($srcfile);
   } else {
-    if (-t STDIN and (-t STDOUT or -p STDOUT)) { # Interactive
+    if ($force) {
+      print "Forced autofetching...\n"
+    } elsif (-t STDIN and (-t STDOUT or -p STDOUT)) { # Interactive
       $| = 1;
       my $mess = <<EOP;
 Do you want to me to fetch GP/PARI automatically?
@@ -248,7 +262,7 @@ EOP
       $latest_version{$type} = (sort {fmt_version($a) cmp fmt_version($b)}
 				keys %{$archive{$type}})[-1];
       $latest_file{$type} = $archive{$type}{$latest_version{$type}};
-      print qq(Latest $type is `$latest_file{$type}'\n);
+      print qq(Latest supported $type is `$latest_file{$type}'\n);
     }
   }
 
@@ -377,11 +391,13 @@ Using FTP connection, downloads the latest version of GP/PARI,
 extracts it, and applies known necessary fixes if needed.  Returns the
 GP/PARI build directory.
 
+Same optional arguments as for download_pari().
+
 =cut
 
 sub download_and_patch_pari {
-  my ($file) = (shift);
-  my ($dir, $version) = download_pari($file);
+  my ($file, $force) = (shift, shift);
+  my ($dir, $version) = download_pari($file, $force);
   patch_pari($dir, $version) if defined $dir;
   $dir;
 }

@@ -206,8 +206,10 @@ following to help in fixing this problem:
 
   c) If outputs of `nm' in "b" differ, you found a bug.  Inspect the
      files with redirected output of build processes of Math::Pari, and find
-     how kernel*.o files were build.  Note the differences.
+     how kernel*.o files were built (including how the intermediate files -
+     such as kernel1.s - are built).  Note the differences.
 
 If the information in "b" and "c" is enough for you to fix Math::Pari::Build,
 do so; please report your fix.  Otherwise just report the discrepancies of "b"
 and "c".   A lot of thanks!!!
+

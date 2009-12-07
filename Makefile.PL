@@ -137,7 +137,7 @@ my $extra_inc = extra_includes($paridir);
 	       VERSION_FROM  => 'Pari.pm',
 	       DEFINE	     => $define,
 	       dist	     => {COMPRESS=>'gzip -9f', SUFFIX=>'gz'},
-	       clean	     => { FILES => 'pari.ps test_eng/ex.t- libPARI.dumb.pod libPARI.pod' },
+	       clean	     => { FILES => 'pari.ps test_eng/ex.t- libPARI.dumb.pod libPARI.pod t/55_*.t' },
 	       macro	     => {
 				 PARI_DIR	  => $paridir,
 				},

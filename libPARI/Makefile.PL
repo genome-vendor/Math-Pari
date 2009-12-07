@@ -4,6 +4,16 @@ use Config '%Config';
 # modified by Babecool 23.7.1993
 # Created by Ilya Zakharevich <ilya@math.ohio-state.edu>
 
+$main_paridir = $common::main_paridir;
+die "Please start Makefile.PL at toplevel, not in libPARI"
+  unless $main_paridir;
+
+if ($main_paridir =~ m,^([a-z]:)?/,i) {
+  $main_paridir = $common::main_paridir;
+} else {
+  $main_paridir = "../$common::main_paridir";
+}
+
 sub process_sparc {
   my $info = shift;
   return 'sparcv8_super' if $info =~ /TMS390Z5[05]|CY605/;
@@ -68,6 +78,7 @@ sub process_machine {
 	     i386	   => ["version386.c",'i386$(OBJ_EXT)'],
 	     port	   => ["versionport.c"],
 	    );
+
 @Chips = keys %Versions;
 
 @know_chip{@Chips} = (1) x @Chips;
@@ -95,26 +106,102 @@ $machine =~ s/[ix]\d86/i386/ if defined $machine;
 print "I think that your processor is of class `$machine'\n" 
   if defined $machine;
 
-$solaris='';
+$sparc_cvt = $Config{osname} =~ /^(linux|nextstep)$/;
+
+%inlines = (
+	     sun3	   => ['none/level0.h','none/level1.h'],
+	     sparcv7	   => ['none/asm0.h','none/level1.h'],
+				# Following 2 guys should be fixed on linux/NS
+	     sparcv8micro  => ( $sparc_cvt
+				? ['none/asm0.h','none/level1.h']
+				: ['sparcv8/level0.h','none/level1.h']),
+	     sparcv8super  => ( $sparc_cvt
+				? ['none/asm0.h','none/level1.h']
+				: ['sparcv8/level0.h','none/level1.h']),
+	     alpha	   => ['none/asm0.h','none/level1.h'],
+	     hppa	   => ['none/asm0.h','none/level1.h'],
+	     i386	   => ['ix86/level0.h','none/level1.h'],
+	     port	   => ['none/level0.h','none/level1.h'],
+	    );
+$inlines = $inlines{$machine} or die "Unknown inlines for '$machine'";
+@inlines = map "$main_paridir/src/kernel/$_", @$inlines;
+
+%level0 = (
+	     sun3	   => '',
+	     sparcv7	   => '',
+				# Following 2 guys should be fixed on linux/NS
+	     sparcv8micro  => ($sparc_cvt 
+			       ? ['sparc8/level0.s', 1,
+				  'sparc8/level0_sparcv8_micro.s', 1] 
+			       : ['sparc8/level0.s', 0, 
+				  'sparc8/level0_sparcv8_micro.s', 0]),
+	     sparcv8super  => '',
+	     alpha	   => '',
+	     hppa	   => ['none/level0.c', 0],
+	     i386	   => ['ix86/l0asm.c', 1],
+	     port	   => '',
+	    );
+
+%asmarch = (
+	     sun3	   => 'm86k',
+				# Following 2 guys should be fixed on linux/NS
+	     sparcv8micro  => 'sparcv8',
+	     sparcv8super  => 'sparcv8',
+	     i386	   => 'ix86',
+	     port	   => 'none',
+	    );
+
+$asmarch = $asmarch{$machine} || $machine;
+
+$level0machine = $level0{$machine} || ["$asmarch/level0.s", 0];
+
+$level0		= "$main_paridir/src/kernel/$level0machine->[0]";
+$level0convert	= $level0machine->[1];
+$level0c	= $level0convert ? 'level0.s' : $level0;
+($level0h	= $level0) =~ s/\.c$/.h/;
+$level0h	= '' unless -r $level0h;
+($level0path	= $level0) =~ s/[^\/]*\.c$//;
+$kernel1	= $kernel1c = $level0machine->[2];
+$kernel1c	= 'kernel1.s'
+  if $level0machine->[3];  
+
+%mp = (
+	     sun3	   => 'none/mp.c',
+	     sparcv7	   => 'none/mp.c',
+	     sparcv8micro  => 'none/mp.c',
+	     sparcv8super  => 'none/mp.c',
+	     alpha	   => 'none/mp.c',
+	     hppa	   => 'none/mp.c',
+	     i386	   => 'none/mp.c',
+	     port	   => 'none/mp.c',
+	    );
+$mp = "$main_paridir/src/kernel/$mp{$machine}";
+
+%mpinl = ( );
+$mpinl_machine = $mpinl{$machine} || 'none/level1.c';
+$mpinl = "$main_paridir/src/kernel/$mpinl_machine";
+($mpinlh = $mpinl) =~ s/\.c$/.h/;
 
 $libs="-lm";
 $sol_under = ''; 
-@plotfiles = ('plotgnuplot.c', 'plotport.c');
 
-@cfiles = ();
-opendir DIR, '.' or die "Cannot opendir . : $!";
-while (defined ($_ = readdir DIR)) {
-  push @cfiles, $_ if /\.c$/i 
-    and not /^(plot|i386|version|mpin|dummy)/;
-}
-closedir DIR or die "Cannot closedir . : $!";
+#@cfiles = ();
+#opendir DIR, '.' or die "Cannot opendir . : $!";
+#while (defined ($_ = readdir DIR)) {
+#  push @cfiles, $_ if /\.c$/i 
+#    and not /^(plot|i386|version|mpin|dummy)/;
+#}
+#closedir DIR or die "Cannot closedir . : $!";
+
+@cfiles = <$main_paridir/src/*/*.c>;
+@cfiles = grep !/\/(plot|i386|version|mpin|dummy)/, @cfiles;
+%cfiles = map {m,/([^/.]*)\.c,i; ($1,$_)} @cfiles;
+
 
 if ($Config{osname} eq 'solaris') {
   @sc_dirs = </opt/SUNWspro/SC*>;
   die "Cannot find SUNWspro dirs, needed for -lsunmath" unless @sc_dirs;
   $libs .= " -L$sc_dirs[-1]/lib -lsunmath";
-  $gccversioncflags=1;
-  $solaris='-DSOLARIS';
   $sol_under = '_nounder';	# Need to filter
 } elsif ($Config{osname} eq 'sunos') {
   # $machine = 'sparcv8super' if $Config{myuname} =~ /\bsun4m\b/o;
@@ -146,16 +233,18 @@ if ($Config{cc} eq 'gcc') {
 } 
 
 $mycflags .= ' -Dshifts=pari_shifts'; # Conflict with libnsl
+$noexp2 = '';
 
 if ($machine eq 'alpha') {
   $mycflags .= " -DLONG_IS_64BIT";
 } elsif ($Config{osname} eq 'solaris') {
   $mycflags .= " -DSOLARIS";
 } elsif ($Config{osname} eq 'os2') {
-  $mycflags .= ' -DNOEXP2 -DMALLOC_PROCS -DHAS_STRICMP';
+  $noexp2 = 1;
+  $mycflags .= ' -DMALLOC_PROCS -DHAS_STRICMP';
   $add_ar_flags = '-p64';	# Need big library. 32 is OK without debugging
 } elsif ($Config{osname} eq 'linux') {
-  $mycflags .= ' -DNOEXP2';
+  $noexp2 = 1;
 }
 
 $mp_cflags = '';
@@ -166,35 +255,51 @@ if ($machine eq 'sun3') {
   $mycflags .= " -D__HAS_NO_ASM__";
 }
 
-push @cfiles, $Versions{$machine}[0], @plotfiles, @portfiles;
-@obj_files = map {($a = $_) =~ s/\.c$/\$(OBJ_EXT)/; $a} @cfiles;
-push @obj_files, $Versions{$machine}[1] if defined $Versions{$machine}[1];
+#@plotfiles = ('plotgnuplot.c', 'plotport.c');
+$cfiles{plotgnuplot} = "$main_paridir/src/graph/plotgnuplot.c";
+$cfiles{plotport} = "$main_paridir/src/graph/plotport.c";
 
-unless (-f 'genpari.h') {
-  $genpari = ($machine eq 'sun3' ? 'genpari68k.h' : 'genpariother.h');
-  eval {link $genpari, 'genpari.h'} or do {
-    require File::Copy; 
-    File::Copy::copy ($genpari, 'genpari.h') 
-      or die "Cannot copy $genpari to genpari.h";
-  }
-}
+#push @cfiles, $Versions{$machine}[0], @plotfiles, @portfiles;
+#@obj_files = map {($a = $_) =~ s/\.c$/\$(OBJ_EXT)/; $a} @cfiles;
+#push @obj_files, $Versions{$machine}[1] if defined $Versions{$machine}[1];
+
+@obj_files = map { "$_\$(OBJ_EXT)" } keys %cfiles;
+push @obj_files, 'kernel$(OBJ_EXT)', 'mp$(OBJ_EXT)', 'mpinl$(OBJ_EXT)', 
+  ($kernel1c 
+   ? 'kernel1$(OBJ_EXT)'
+   : ());
+
+#unless (-f 'genpari.h') {
+#  $genpari = ($machine eq 'sun3' ? 'genpari68k.h' : 'genpariother.h');
+#  eval {link $genpari, 'genpari.h'} or do {
+#    require File::Copy; 
+#    File::Copy::copy ($genpari, 'genpari.h') 
+#      or die "Cannot copy $genpari to genpari.h";
+#  }
+#}
 
 $mycflags .= " -DDYNAMIC_PLOTTING";
+# OMF build needs no underscores:
+$mycflags .= " -D__NO_AOUT" if $^O eq 'os2' and !$OS2::is_aout;
 
 WriteMakefile(
-    'NAME'	=> 'Math::PARI::libPARI',
-    'LINKTYPE'	=> 'static',
-    'LIBS'	=> $libs,
-    'OBJECT'	=> join(' ', @obj_files), 
+    NAME	=> 'Math::PARI::libPARI',
+    LINKTYPE	=> 'static',
+    LIBS	=> $libs,
+    OBJECT	=> join(' ', @obj_files), 
     macro	=> { 
 		    MP_CFLAGS	 => $mp_cflags,
 		    SOL_UNDER	 => $sol_under, 
 		    ADD_AR_OPT	 => ($add_ar_flags || ''),
+		    CPP => $Config{cppstdin},
+		    CPPMINUS => $Config{cppminus},
 		   },
-    'DEFINE'	=> $mycflags,
-    'C'		=> \@cfiles,
-    'SKIP'	=> [qw( distclean test dist makeaperl xs_o static)],
-    'clean'	=> {'FILES' => 'libPARI$(LIB_EXT)'}
+    DEFINE	=> $mycflags,
+    INC		=> "-I$main_paridir/src/headers -I$main_paridir/src/graph",
+    C		=> \@cfiles,
+    SKIP	=> [qw( distclean test dist makeaperl xs_o static)],
+    clean	=> {'FILES' => 
+		    'libPARI$(LIB_EXT) pariinl.h level0.s kernel1.s'},
 );
 
 sub MY::top_targets {
@@ -204,41 +309,37 @@ all :: libPARI$(LIB_EXT)
 static ::       libPARI$(LIB_EXT)
 
 libPARI$(LIB_EXT): $(OBJECT)
+	-$(RM_F) libPARI$(LIB_EXT)
 	$(AR) $(ADD_AR_OPT) cr libPARI$(LIB_EXT) $(OBJECT)
 	$(RANLIB) libPARI$(LIB_EXT)
 
-sparcv7$(OBJ_EXT):	sparcv7.s
-	as -P -o sparcv7$(OBJ_EXT) sparcv7.s
+' . qq{
+pariinl.h: @inlines
+	\$(PERL) -pe1 @inlines > pariinl.h
 
-sparcv8micro$(SOL_UNDER)$(OBJ_EXT):	sparcv8micro$(SOL_UNDER).s
-	as -P -o sparcv8micro$(SOL_UNDER)$(OBJ_EXT) sparcv8micro$(SOL_UNDER).s
+level0.s: $level0 $level0h
+	\$(CPP) -I. \$(INC) -I$level0path \$(DEFINE) \$(CPPMINUS) < $level0 | perl -ne "s/%\s+/%/g; print unless /^\s*#/" > \$@
 
-sparcv8super$(SOL_UNDER)$(OBJ_EXT):	sparcv8super$(SOL_UNDER).s
-	as -P -o sparcv8super$(SOL_UNDER)$(OBJ_EXT) sparcv8super$(SOL_UNDER).s
+kernel1.s: $kernel1
+	\$(CPP) -I. \$(INC) -I$level0path \$(DEFINE) \$(CPPMINUS) < $kernel1 | perl -ne "s/%\s+/%/g; print unless /^\s*#/" > \$@
 
-sparcv8micro_nounder.s: sparcv8micro.s
-	sed s/_//g $? > $@
+mp\$(OBJ_EXT): $mp pariinl.h
+	\$(CCCMD) \$(CCCDLFLAGS) \$(DEFINE) -o \$@ $mp
 
-sparcv8super_nounder.s: sparcv8super.s
-	sed s/_//g $? > $@
+kernel\$(OBJ_EXT): $level0c pariinl.h
+	\$(CCCMD) \$(CCCDLFLAGS) \$(DEFINE) -o \$@ $level0c
 
-alpha$(OBJ_EXT):	alpha.s
-	as -O1 -o alpha$(OBJ_EXT) alpha.s
+kernel1\$(OBJ_EXT): $kernel1c pariinl.h
+	\$(CCCMD) \$(CCCDLFLAGS) \$(DEFINE) -o \$@ $kernel1c
 
-hppa$(OBJ_EXT):	hppa.s
-	cc $(CCFLAGS) -c -o hppa$(OBJ_EXT) hppa.s
+mpinl\$(OBJ_EXT): $mpinl $mpinlh pariinl.h
+	\$(CCCMD) \$(CCCDLFLAGS) \$(DEFINE) -o \$@ $mpinl
 
-i386$(OBJ_EXT):	i386.s
-	$(CC) $(CCFLAGS) -c i386.s
-
-i386.s:	i386.c
-	$(CC) $(CCFLAGS) -E i386.c > i386.s
-
-' . ( $machine eq 'sun3' ?
-'mp$(OBJ_EXT):	mp.s
-	$(CC) $(CCFLAGS) $(MP_CFLAGS) -c mp.s
-
-' : '');
+} . 
+    join "\n", map { <<EOF } keys %cfiles;
+$_\$(OBJ_EXT): $cfiles{$_} pariinl.h paricfg.h
+	\$(CCCMD) \$(CCCDLFLAGS) \$(DEFINE) -o \$@ $cfiles{$_}
+EOF
 }
 
 

@@ -1,3 +1,13 @@
+=====>>> Highly experimental interface to version 2.0 <<<=======
+
+a) Should be installed inside pari-2.* source directory.
+b) Patches to pari (in `patches') should be applied.
+c) A lot of problems should be expected.
+d) Some tests should fail.
+
+What follows is the older README, good for the version 1.39.
+
+================================================================
 Next paragraph is an excerpt from documentation inside Pari.pm:
 
 Package Math::Pari is a Perl interface to famous library PARI for

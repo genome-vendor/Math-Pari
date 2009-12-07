@@ -82,7 +82,8 @@ test(! ref $ee) || print ref $ee;		# 26
 
 test($ee eq "[2,3;3,4]"); # 27
 
-$f=Math::Pari::matinvr($e);
+#$f=Math::Pari::matinvr($e);
+$f= $e ** -1;
 
 test(ref $f eq "Math::Pari");	# 28
 test(Math::Pari::pari2pv($f) eq "[-4,3;3,-2]"); # 29
@@ -96,21 +97,21 @@ $f+=1;
 test("$f" eq "[-3,3;3,-1]") || print "$f\n";	# 31
 test($f == "[-3,3;3,-1]");	# 32
 
-$g=(new Math::Pari "[1,2;3;2]");
+$g=(new Math::Pari "[1,2;3,2]");
 $gg=Math::Pari::gpui($g,-1);
 
 test($gg);			# 33
-$g=(new Math::Pari "[1,2;3;2]")**-1;
+$g=(new Math::Pari "[1,2;3,2]")**-1;
 
 test($g == $gg);		# 34
 
 # Should work eventually
 
-####test("$g" eq "[1/2,-1/2;-3/2,1/4]") || print "$g\n"; # 35
-test(1);
+test("$g" eq "[-1/2,1/2;3/4,-1/4]") || print "$g\n"; # 35
+#test(1);
 
-#test($g == "[1/2,-1/2;-3/2,1/4]"); # 36
-test(1);
+test($g == "[-1/2,1/2;3/4,-1/4]"); # 36
+#test(1);
 
 $f  = new Math::Pari "[2,3;3,1]";
 $ff = PARImat [[2,3],[3,1]];
@@ -146,7 +147,7 @@ test(!(PARI(3) lt 2));		# 55
 test(!(4 lt PARI(3)));		# 56
 
 eval <<'EOE';
-use Math::Pari qw(i pi);
+use Math::Pari qw(I Pi);
 
 #sub Math::Pari::i;
 #sub Math::Pari::pi;
@@ -155,10 +156,10 @@ use Math::Pari qw(i pi);
 
 # Stupid test, probably version- or machine-specific
 
-test(abs(exp((pi()+7e-29)*i)+1) >= 1e-29); # 57
-test(abs(exp(pi()*i)+1) <= 1e-28); # 58
+test(abs(exp((Pi()+7e-29)*I)+1) >= 1e-29); # 57
+test(abs(exp(Pi()*I)+1) <= 1e-28); # 58
 
-test(('x'*i)**2 == "-x^2");	# 59
+test(('x'*I)**2 == "-x^2");	# 59
 EOE
 ;
 
@@ -168,6 +169,7 @@ if ( ($tot, $now, $onstack, $offstack) = Math::Pari::memUsage) {
 
 sub incr1 {
   my $y = shift;
+  print "# Adding $y to $x\n";
   $x += $y;
   #warn "Got $y, Sum $x\n";
 }
@@ -177,7 +179,7 @@ Math::Pari::installPerlFunction(\&incr1, "incrJ");
 $x = 0;
 Math::Pari::fordiv(28, 'j', 'incrJ(j)');
 
-test($x == 56);			# 60
+test($x == 56) or print "$x\n";	# 60
 
 $x = 0;
 Math::Pari::fordiv(28, 'j', 'incr1(j)'); # autoloading Perl->Pari
@@ -218,7 +220,7 @@ test($x == 56);			# 66
 print "# x = '$x'\n" if $x != 56;
 
 $x = 0;
-$j = PARI 'x+o(x^7)';
+$j = PARI 'x+O(x^7)';
 Math::Pari::fordiv(28, $j, sub { incr1($j) } ); # Perl code ->Pari expr
 
 test($x == 56);			# 67
@@ -234,11 +236,11 @@ test($x == 56);			# 68
 print "# x = '$x'\n" if $x != 56;
 
 undef $x;
-eval { $x  = pi()/0; } ;	# Needs G_KEEPERR patch!
+eval { $x  = Pi()/0; } ;	# Needs G_KEEPERR patch!
 #chomp($@), print "# '$@'\n" if $@;
 print "# x = '$x'\n" if defined $x;
 
-test( $@ =~ /^PARI:\s+\*+\s+division\s+by\s+zero\b/i ); # 69
+test( $@ =~ /^PARI:\s+\*+\s+division\s+by\s+zero\b/i ) or print "$@\n"; # 69
 
 *O=\&Math::Pari::O;
 
@@ -251,7 +253,7 @@ $y = 1+O($x**6);
 test("$y" eq '1+O(x^6)');	# 71
 
 $y = 1+O(5,6);
-test("$y" eq '1+O(5^6)');	# 72
+test("$y" eq '1+O(5^6)') or print "$y\n";	# 72
 
 sub counter { $i += shift; }
 $i = 145;
@@ -274,7 +276,7 @@ test($res == 9 and $@ =~ /expected\scharacter:\s\'\)/); # 76
 
 $res = Math::Pari::sum(7,$l,5,9,sub{'kk'**$l});
 #print "res = `$res'\n";
-test("$res" eq 'kk^9+kk^8+kk^7+kk^6+kk^5+7'); 		# 77
+test("$res" eq 'kk^9+kk^8+kk^7+kk^6+kk^5+7') or print "$res\n";	# 77
 
 $var = PARI 'var';
 $var1 = PARIvar 'var';

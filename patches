@@ -1,0 +1,136 @@
+--- ./src/language/anal.c~	Thu Jul 23 08:40:30 1998
++++ ./src/language/anal.c	Fri Sep 11 19:54:22 1998
+@@ -1536,12 +1536,7 @@ findentry(char *name, long len, entree *
+     if (!strncmp(ep->name, name, len) && !(ep->name)[len]) return ep;
+ 
+   if (foreignAutoload) /* Try to autoload. */
+-    if (foreignAutoload(name, len))
+-    {
+-      for (ep = ep1; ep; ep = ep->next)
+-        if (!strncmp(ep->name, name, len) && !(ep->name)[len]) return ep;
+-      err(talker,"foreignAutoload reported success, but installed nothing");
+-    }
++    return foreignAutoload(name, len);
+   return NULL; /* not found */
+ }
+ 
+--- ./src/language/es.c~	Wed Sep  9 22:11:50 1998
++++ ./src/language/es.c	Fri Sep 11 21:38:22 1998
+@@ -1668,9 +1668,14 @@ texi(GEN g, long nosign)
+ void
+ bruteall(GEN g, char f, long d, long flag)
+ {
+-  long av=avma; sp = flag? &wr_space: &no_space;
++  long av=avma; 
++  void (*oldsp)();
++
++  oldsp = sp;
++  sp = flag? &wr_space: &no_space;
+   format = f; decimals = d;
+   bruti(changevar(g,polvar),0); avma=av;
++  sp = oldsp;
+ }
+ 
+ void
+--- ./src/language/init.c~	Thu Jul 30 08:47:38 1998
++++ ./src/language/init.c	Fri Sep 11 21:12:30 1998
+@@ -38,7 +38,7 @@ ulong   top, bot, avma, memused;
+ void *foreignHandler; 	              /* Handler for foreign commands.   */
+ char foreignExprSwitch = 3; 	      /* Just some unprobable char.      */
+ GEN  (*foreignExprHandler)(char*);    /* Handler for foreign expressions.*/
+-long (*foreignAutoload)(char*, long); /* Autoloader                      */
++entree * (*foreignAutoload)(char*, long); /* Autoloader                      */
+ void (*foreignFuncFree)(entree *);    /* How to free external entree.    */
+ 
+ GEN  (*gp_history_fun)(long, long, char *, char *);
+@@ -597,8 +597,9 @@ void
+ err_recover(long numerr)
+ {
+   outfile=stdout; errfile=stderr;
+-  fprintferr("\n"); flusherr();
++  fprintferr("\n");
+   if (pariErr->die) pariErr->die();
++  flusherr();
+   if (environnement)  
+   { 
+    /* wait till recover() is done before allocating a new stack.
+@@ -1345,7 +1346,7 @@ entree functions_basic[]={
+ {"fibonacci",11,(void*)fibo,4,"L"},
+ {"floor",1,(void*)gfloor,2,"G"},
+ {"for",83,(void*)forpari,11,"vV=GGI"},
+-{"fordiv",84,(void*)fordiv,11,"vGVI"},
++{"fordiv",84,(void*)fordiv,11,"GVI"},
+ {"forprime",83,(void*)forprime,11,"vV=GGI"},
+ {"forstep",86,(void*)forstep,11,"vV=GGGI"},
+ {"forvec",87,(void*)forvec,11,"vV=GID0,L,"},
+--- ./src/kernel/ix86/l0asm.c~	Thu Jul 23 08:40:30 1998
++++ ./src/kernel/ix86/l0asm.c	Fri Sep 11 16:16:40 1998
+@@ -28,6 +28,12 @@
+ 
+ #include "l0asm.h"
+ 
++#if defined(__EMX__) && defined(__NO_AOUT) /* No underscores, rest as is */
++#   undef C
++#   define C(entrypoint) /**/entrypoint
++#endif
++
++
+ #undef ALIGN
+ #ifdef _MSC_VER
+   #define ALIGN
+@@ -59,8 +65,19 @@ unsigned long overflow;
+ unsigned long hiremainder;
+ #else
+ #ifdef BSD_SYNTAX
++#  if defined(__EMX__) && defined(__NO_AOUT) /* Otherwise IBM linker will
++					        ignore this module */
++.data
++.align 2
++C(overflow):
++    .long 0
++C(hiremainder):
++    .long 0
++.text
++#  else
+ .comm C(overflow),4
+ .comm C(hiremainder),4
++#  endif
+ #endif
+ #ifdef ELF_SYNTAX
+ .comm C(overflow),4,4
+--- ./src/graph/Gnuplot.h~	Wed Sep  9 22:33:06 1998
++++ ./src/graph/Gnuplot.h	Fri Sep 11 04:14:40 1998
+@@ -278,7 +278,7 @@ static struct termentry dummy_term_tbl[]
+ 	  UNKNOWN_null, UNKNOWN_null, UNKNOWN_null, UNKNOWN_null, UNKNOWN_null, 
+ 	  UNKNOWN_null, UNKNOWN_null, UNKNOWN_null,
+      UNKNOWN_null, UNKNOWN_null, UNKNOWN_null, UNKNOWN_null, UNKNOWN_null, 0,
+-	, UNKNOWN_null, UNKNOWN_null, UNKNOWN_null, UNKNOWN_null},
++	  UNKNOWN_null, UNKNOWN_null, UNKNOWN_null, UNKNOWN_null},
+ };
+ static struct termentry *my_term_tbl = dummy_term_tbl;
+ 
+--- ./src/graph/plotgnuplot.c~	Wed Sep  9 22:33:06 1998
++++ ./src/graph/plotgnuplot.c	Fri Sep 11 14:53:44 1998
+@@ -24,9 +24,8 @@ void
+ rectdraw0(long *w, long *x, long *y, long lw, long do_free)
+ {
+   long *ptx,*pty;
+-  long n,i,j,x0,y0;
+-  long a,b,ne, good;
+-  char **texts;
++  long i,j,x0,y0;
++  long good;
+   int point_type = -1, line_type = 0;
+   PariRect *e;
+   RectObj *p1;
+--- ./src/graph/plotport.c~	Thu Jul 23 08:40:24 1998
++++ ./src/graph/plotport.c	Fri Sep 11 09:14:12 1998
+@@ -16,7 +16,7 @@ void rectdraw0(long *w, long *x, long *y
+ static void PARI_get_psplot();
+ 
+ static long current_color[NUMRECT];
+-PariRect **rectgraph;
++PariRect **rectgraph = NULL;
+ PARI_plot pari_plot, pari_psplot;
+ 
+ #define STRINGRECT (NUMRECT-2)

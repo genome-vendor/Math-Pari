@@ -698,7 +698,7 @@ sub AUTOLOAD {
 $initmem = $initmem || 4000000;		# How much memory for the stack
 $initprimes = $initprimes || 500000;	# Calculate primes up to this number
 
-$VERSION = 0.94;
+$VERSION = 0.95;
 
 bootstrap Math::Pari;
 
@@ -762,6 +762,8 @@ sub PARImat_tr {trans(PARImat(@_))}
 sub string ($$) {
   PARI (qq'string($_[0],"$_[1]")');
 }
+
+sub installPerlFunction {my @a=@_; $a[0] = \&{$a[0]}; installPerlFunctionCV(@a)}
 
 my $name;
 

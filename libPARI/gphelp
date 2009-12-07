@@ -1,0 +1,74 @@
+#!/usr/bin/perl -w
+#
+# Please correct the above line to the actual location of perl on your
+# system, and the line below to the location of PARI manual, ch. 3.
+#
+# The manual file can compressed. Sometimes you need to change the
+# name of the compression program in the %compress = ... statement below.
+#
+$parifile="/opt/src/pari-1.39/doc/usersch3.tex.gz";
+die "Usage: $0 functionName\n" unless @ARGV==1;
+$help=shift;
+%transl=(
+	 '\\', '\backslash',
+	 '^',  '\hat{}',
+	 '!',  'fact',
+	 '~',  'trans',
+	 '_',  'conj',
+	 '-',  '\+',
+	 '%',  '\%',
+	 'min',  'max',
+	 'log',  'ln',
+	);
+%compress = ('.gz', 'zcat',
+	     '.z', 'zcat',
+	     '.Z', 'zcat',
+	    );
+if    ($transl{$help}) {$help=$transl{$help}}
+if ($help =~ /^[<>=!]=?|[|&]{1,2}$/) 
+      {$help='comparison and \ref{boolean operators}'}
+$help =~ s/(\W)/\\$1/g;
+#print $help;
+foreach $suffix (keys %compress) {
+  ($patt = $suffix) =~ s/(\W)/\\$1/;
+  if ($parifile =~ /$patt$/) {
+    $pipe = $compress{$suffix};
+    last;
+  }
+}
+if ($pipe) {
+  open(DOC,"$pipe $parifile |") || 
+    die "Cannot open pipe $pipe from $parifile: $!, stopped";
+} else {
+  open(DOC,$parifile) || die "Cannot find file $parifile: $!, stopped";
+}
+while (<DOC>) {
+    last if /\\subsec[\\{}ref]*[\\\${]$help[}\\\$]/o;
+}
+if (eof(DOC)) {
+  print "Not found!\n" if eof(DOC);
+} else {
+  &TeXprint;
+  while (<DOC>) {
+    last if /The\s+library|\\(sub)?sec/i;
+    &TeXprint;
+  }
+}
+if ($pipe) {
+  # Would get 'illegal seek' otherwise?
+  1 while <DOC>;
+  close(DOC) || die "Cannot close pipe `$pipe $parifile': $!, stopped";
+} else {
+  close(DOC) || die "Cannot close file $parifile: $!, stopped";
+}
+
+sub TeXprint {
+  s/\$-/-/g;
+  s/\$/ /g;
+  s/\\\///g;
+  s/\\backslash/\\/g;
+  s/\\hat(\{\\\s+\})?/^/g;
+  s/\\(subsec(ref)?|smallskip|sl|sref[ a-z]*|bf|ref|Bbb|text|tt|\|)[ \t]*//g;
+  s/(^|\s)\{(\w+)\}/$1$2/g;
+  print;
+}

@@ -1,0 +1,1 @@
+make "LFLAGS=-Zomf -Zcrtdll" "PIC=-Zdll -Zomf" "O=obj" "A=lib" "AR=emxomfar -p64" "RLFLAGS=-lreadline_import" "VERSIONCFLAGS=-g -DNOEXP2 -DMALLOC_PROCS $(PIC)" "CFLAGS=-g -DNOEXP2 -DMALLOC_PROCS $(PIC)" %1 %2 %3 %4 %5 %6 %7 %8 %9

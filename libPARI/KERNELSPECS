@@ -1,0 +1,88 @@
+	Specifications for the Pari kernel level 0 assembly routines
+
+In order to speed up Pari (by a rather considerable amount), the basic
+arithmetic on unsigned long integers should be programmed in assembly
+language. Such imlementations exist for the following chips: MC680x0,
+Sparc version 7, Sparc version 8 (both Microsparc and Supersparc), HP-PA,
+Intel 386 and above, PowerPC. In order to facilitate the writing of such
+routines (which should be quite easy for someone familiar with the
+corresponding assembly language), I give here the specifications of
+each one. It can also be useful to look at the file sparcv8micro.s
+in the Pari distribution for an example of such procedures.
+
+All variables which are considered are unsigned long (type ulong, which
+is declared either in Pari if the flag -DULONG_NOT_DEFINED is set, or
+by the system).
+
+The file must declare, reserve space and export two global variables 
+called hiremainder and overflow (I do not know the convention about 
+underlining: on BSD systems at least, they should be called _hiremainder 
+and _overflow).
+
+overflow will contain the carry (always 0 or 1), and hiremainder will
+contain the upper part of a double word multiplication or the remainder
+of a division. The reason for the choice of the word "hiremainder" instead
+of simply "remainder" is that on certain systems, "remainder" is a a
+reserved word (I do not know why).
+
+Then the following functions must be implemented and exported.
+Let B be the unsigned long word size, i.e. B=2^32 on 32-bit machines,
+B=2^64 on 64-bit machines.
+
+c=addll(a,b): corresponds to the formula overflow*B+c=a+b. In other words,
+c is the result modulo B, and B is the carry.
+
+c=addllx(a,b): corresponds to the formula overflow*B+c=a+b+overflow
+(add with carry).
+
+c=subll(a,b): corresponds to the formula c-overflow*B=a-b
+(subtract).
+
+c=subllx(a,b): corresponds to the formula c-overflow*B=a-b-overflow
+(subtract with carry).
+
+c=mulll(a,b): corresponds to the formula hiremainder*B+c=a*b
+(unsigned multiply). In other words, put the lower part of the result in
+c and the upper part in hiremainder. Note again that B corresponds to the
+machine long word size, not half that value for example. This is usually 
+the closest to the hardware implementation.
+
+c=addmul(a,b): corresponds to the formula hiremainder*B+c=a*b+hiremainder
+(unsigned multiply and add).
+
+c=divll(a,b): corresponds to the formula (c,hiremainder)=(hiremainder*B+a)/b
+(unsigned divide), in other words perform the double long word unsigned 
+division of (hiremainder,a) by b, put the quotient in c and the remainder
+in hiremainder.
+This operation can be done only if the initial hiremainder is strictly
+less than b (as unsigned). If this is not the case, the assembly routine 
+must call a global error handling routine called err (or _err, depending
+on whether you need underscores or not), which takes one parameter which 
+in this case must be equal to 47 (this is the error message "quotient 
+greater than 2^32 in divll", which should of course NEVER appear in a 
+correct implementation). The calling of an external C routine with one
+parameter is system-dependent.
+
+c=shiftl(a,k): corresponds to the formula hiremainder*B+c=a*(2^k)
+(logical left shift). No checking need be done on the value of k.
+This function should have been called shiftll, but it is too late to 
+repair.
+
+c=shiftlr(a,k): corresponds to the formula (c,hiremainder)=(a*B)/(2^k)
+(double word logical right shift). In other words, perform the double 
+long word unsigned division of (a,0) by 2^k, put the quotient in c and 
+the remainder in hiremainder. Note that this can easily be implemented
+in assembly using a logical LEFT shift of 32-k (on a 32-bit machine) and
+a logical RIGHT shift of k (see the file sparcv8micro.s for an example).
+
+k=bfffo(a): corresponds to the formula B/2<=(2^k)*a<B, in other words k
+is the number of initial zero bits of a (starting from the most
+significant). The name of the function comes from the corresponding 680x0
+instruction.
+
+	Please inform me of any new implementation of these routines.
+
+		Henri Cohen
+
+pari@math.u-bordeaux.fr
+

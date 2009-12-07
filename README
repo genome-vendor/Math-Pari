@@ -1,23 +1,18 @@
-=====>>> Highly experimental interface to version 2.0 <<<=======
+=====>>> BETA level interface to version 2.0 <<<=======
 
 a) Should be installed inside or near pari-2.* source directory.
 b) Patches to PARI (in `patches') should be applied.
 c) paricfg.h should be created beforehand in pari-2,* build directory
 	(run configure to do this).
-d) A lot of problems should be expected.
-e) Some tests should fail.
-f) We skip compatibility tests.
-
-
-What follows is the older README, good for the version 1.39.
+d) We skip "compatibility" tests, and do not support "compatibility" mode.
 
 ================================================================
 Next paragraph is an excerpt from documentation inside Pari.pm:
 
-Package Math::Pari is a Perl interface to famous library PARI for
-numerical/scientific/number-theoretic calculations.  It allows use of
-most PARI functions (>500) as Perl functions, and (almost) seamless merging
-of PARI and Perl data. 
+  Package Math::Pari is a Perl interface to famous library PARI for
+  numerical/scientific/number-theoretic calculations.  It allows use of
+  most PARI functions (>500) as Perl functions, and (almost) seamless merging
+  of PARI and Perl data. 
 
 Documentation to this package is contained inside Pari.pm. After
 installing it is accessible by standard means, like
@@ -33,39 +28,62 @@ well, access it as Math::libPARI:
   perldoc Math::libPARI
   man Math::libPARI
 
-If you have a not very old perl (5.003 should do), then uncompress the
-archive into a separate directory, find the architecture of your
-processor (if it is not known/supported, and recognized automatically, the
-slower 'port' code should be used), and do
+If you have a not very old perl (5.003 should do), then
+
+  a) Get the latest PARI distribution from
+	ftp://megrez.math.u-bordeaux.fr/pub/pari/unix/
+
+  b) uncompress the distribution and run 'Configure' script
+	sh ./Configure
+
+  c) It is not required to make PARI, but you can do it nevertheless:
+	make test
+     in toplevel PARI directory;
+
+  d) uncompress the Math::Pari archive into a separate directory (for
+     best results make it a subdirectory of PARI's root directory);
+
+  e) Apply patches from patches subdirectory of Math::Pari (patches
+     are made for PARI 2.0.11.beta, your mileage may vary);
+
+  f) _Optionally_ find the architecture of your processor (if it is not
+     known/supported and recognized automatically, the slower 'port' code
+     without assembler should be used).  Recognized "processors" are 
+
+	sun3 sparcv7 sparcv8micro sparcv8super alpha hppa i386 port
+
+     the current version should autorecognize them in most situations;
+
+  g) do
 
 	perl Makefile.PL 
 		or
 	perl Makefile.PL machine=hppa
-
-(recognized "processors" are sun3 sparcv7 sparcv8micro sparcv8super
-alpha hppa i386 port, the versions starting from 0.92 should autorecognize
-them in most situations), then
+     then
 
 	make
 	make test
 
-(expect several failures from will_fail.t, but Pari.t and Testout.t
-should pass). Now
+     (expect several failures from t/*_will_fail.t, but other tests should
+     pass). 
+
+  h) Now
 
 	make install
 
-should make this extension available to the perl programs.
+     should make this extension available to the perl programs.
 
-(You can get a better understanding of the translations made by Testout.t by
-running it manually:
+(lowercase test scripts translate native PARI tests from GP syntax to
+Perl syntax.  You can get a better understanding of these translations
+by running the tests manually, as in
 
-	perl t/Testout.t
+	perl t/all.t
 
 after install, or
 
-	perl -Mblib t/Testout.t
+	perl -Mblib t/all.t
 
 before install.)
 
-The version 0.93 was tested with OS/2 and Solaris.  It uses version 1.37.4+
-of the PARI library.
+The version 2.0011_00 was tested with OS/2 and Solaris.  It was tested
+with the patched version 2.0.11 of the PARI library.

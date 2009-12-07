@@ -10,8 +10,8 @@ C<Math::Pari> - Perl interface to PARI.
 
 or
 
-  use Math::Pari qw(mod);
-  $a = mod(3,5);
+  use Math::Pari qw(Mod);
+  $a = Mod(3,5);
   print $a**10000;
 
 =head1 DESCRIPTION
@@ -20,7 +20,8 @@ This package is a Perl interface to famous library PARI for
 numerical/scientific/number-theoretic calculations.  It allows use of
 most PARI functions as Perl functions, and (almost) seamless merging
 of PARI and Perl data. In what follows we suppose prior knowledge of
-what PARI is (see L<ftp://megrez.math.u-bordeaux.fr/pub/pari>).
+what PARI is (see L<ftp://megrez.math.u-bordeaux.fr/pub/pari>, or
+L<Math::libPARI>).
 
 =head1 EXPORTed functions
 
@@ -65,11 +66,13 @@ The same as with a reference to array.
 =item Conflicts of rules in PARI()
 
 In deciding what rule of the above to apply the preference is given to
-the uppermost choice of available now, if none matches, then the string
+the uppermost choice of those available now.  If none matches, then the string
 rule is used. So C<PARI(1)> returns integer, C<PARI(1.)> returns
-float, C<PARI("1")> evaluates "1" as a PARI expression, though all
-these data can be converted inside Perl into integer, float or
-string. Only what the argument I<is now> is important.
+float, C<PARI("1")> evaluates "1" as a PARI expression.
+
+Note that for Perl these data are synonimous, since Perl freely
+converts between integers, float and strings.  However, to PARI() only
+what the argument I<is now> is important.
 
 =item PARIcol() and PARImat()
 
@@ -86,13 +89,21 @@ If arguments are specified in the C<use Math::Pari> directive, the
 PARI functions appearing as arguments are exported in the caller
 context. In this case the function PARI() and friends is not exported,
 so if you need them, you should include them into export list
-explicitely, or include C<:DEFAULT> tag. 
+explicitely, or include C<:DEFAULT> tag:
 
-The other tags recognized are C<:PARI>, C<:all>, and number tags, like
-C<:4>, and section names tags.  The number tags export functions from
-the PARI library from the given class (except for C<:PARI>, which
-exports all the classes).  Tag C<:all> exports all the exportable
-symbols and C<:PARI>.
+  use Math::Pari qw(factorint PARI);
+  use Math::Pari qw(:DEFAULT factorint);
+
+or simply do it in two steps
+
+  use Math::Pari;  
+  use Math::Pari 'factorint';
+
+The other tags recognized are C<:PARI>, C<:all>, C<prec=NUMBER>,
+number tags, like C<:4>, and section names tags.  The number tags
+export functions from the PARI library from the given class (except
+for C<:PARI>, which exports all the classes).  Tag C<:all> exports all
+the exportable symbols and C<:PARI>.
 
 Giving C<?> command to C<gp> B<PARI> calculator lists the following classes: 
 
@@ -113,9 +124,22 @@ One can use section names instead of number tags.  Recognized names are
   :standard :conversions :transcendental :number :elliptic
   :fields :polynomials :vectors :sums :graphic :programming
 
+One can get a list of all C<Math::Pari> accessible functions, or
+functions from the given section using listPari() function.
 
-One can get a list of all C<Math::Pari> accessible functions using
-C<listPari()> function.
+Starting from version 5.005 of Perl, three additional tags are
+supported: C<:int>, C<:float>, C<:hex>.  If used, all the
+integer/float/hex-or-octal literals in Perl will be automatically
+converted to became PARI objects.  Say
+
+  use Math::Pari ':int';
+  print 2**1000;
+
+is equivalent to
+
+  print PARI(2)**PARI(1000);
+
+(Not tested yet.)
 
 =back
 
@@ -124,62 +148,44 @@ C<listPari()> function.
 =head2 Directly accessible from Perl
 
 This package supports I<all> the functions from the PARI library with
-a I<signature> from a long list. This means that when you update the
-PARI library, the newly added function will we available without any
-change to this package (provided their signature is in the supported
-list). You can reach unsupported functions using string argument of
-PARI() function, as in
+a I<signature> which can be recognized by Math::Pari.  This means that
+when you update the PARI library, the newly added function will we
+available without any change to this package (provided their signature
+is supported).  You can reach unsupported functions using string
+argument of PARI() function, as in
 
   3 + PARI('O(x^17)')
 
 (or some special wrapper functions, like C<O(variable,power)>).
 A perl script C<parifonc> is provided that lists the functions from
 the current release of PARI that are unavailable with the current
-release of this glue code. 
+release of this glue code (not checked with PARI 2.0).
 
-The output as of 9/22/97 is
+The following functions are specific to GP calculator, thus are not
+available to Math::Pari in any way:
 
-  Builtins, unsupported as functions (but available in Perl):
-	label, while, goto, until, read, pprint, print, 
-	texprint, pprint1, print1, O, if, o
+  allocatemem default error extern input print print1 printp printp1
+  printtex quit read system whatnow write write1 writetex
 
-	  Total number of unsupported interfaces: 19:
-  Interface 16 used in 1 function(s): plotterm.
-  Interface 19 used in 2 function(s): rlinetype, rpointtype.
-  Interface 44 used in 1 function(s): rcopy.
-  Interface 45 used in 1 function(s): rplothraw.
-  Interface 57 used in 1 function(s): string.
-  Interface 59 used in 1 function(s): scale.
-  Interface 73 used in 1 function(s): rploth.
-  Interface 85 used in 1 function(s): kill.
-  Interface 86 used in 1 function(s): forstep.
-  Interface 87 used in 1 function(s): forvec.
-  Interface 89 used in 1 function(s): buchinitforcefu.
-  Interface 90 used in 1 function(s): buchinitfu.
-  Interface 91 used in 1 function(s): buchinit.
-  Interface 92 used in 1 function(s): buchgen.
-  Interface 94 used in 1 function(s): buchgenfu.
-  Interface 95 used in 1 function(s): buchgenforcefu.
-  Interface 96 used in 1 function(s): buchimag.
-  Interface 97 used in 1 function(s): buchreal.
-  Interface 99 used in 1 function(s): addhelp.
+whatnow() function is useless, since Math::Pari does not support the
+"compatibility" mode (with older PARI library).  The functionality of
+print(), write() and variants is available via automatic string
+translation, and pari_print() function and its variants.
 
-	  Total number of unsupported functions: 20:
-  group 4:	buchimag, buchreal
-  group 6:	buchgen, buchgenforcefu, buchgenfu, buchinit,
-		buchinitforcefu, buchinitfu
-  group 10:	forstep, forvec, plotterm, rcopy, rlinetype, 
-		rploth, rplothraw, rpointtype, scale, string
-  group 11:	addhelp, kill
+allocatemem() and default() are the only two important functions with
+functionality not supported by the current interface.  Note however,
+that two most important default() actions are supported by
+setprecision() and setseriesprecision() functions.
 
 =head2 Arguments
 
 Arguments to PARI functions are converted to C<long> or PARI type
 depending on what type the actual library function requires. No error
 checking on arguments is done, so if C<gp> rejects your code since a
-particular argument should be of C<type 1> (i.e., a Pari integer),
-C<Math::Pari> will silently convert it to C<long>. Each argument is
-converted by the rules applicable to PARI.
+particular argument should be of C<type T_INT> (i.e., a Pari integer),
+the corresponding function of C<Math::Pari> will silently convert the
+argument to C<long>. Each argument is converted by the rules
+applicable to PARI.
 
 =head2 Return values
 
@@ -206,9 +212,9 @@ are available under names
 C<gdivent> means euclidean quotient, C<gpui> is power, C<gegal> checks
 whether two objects are equal, C<gcmp> is applicable to two real
 numbers only, C<gcmp0>, C<gcmp1>, C<gcmp_1> compare with 0, 1 and -1
-correspondingly (see PARI user manual for details).  Note that all
-these functions are more readily available via operator overloading,
-so instead of
+correspondingly (see PARI user manual for details, or
+L<Math::libPARI>).  Note that all these functions are more readily
+available via operator overloading, so instead of
 
   gadd($x, gneg($y))
 
@@ -233,7 +239,8 @@ you do not need these functions due to automatic conversions.
 
 perform conversions to strings as their PARI counterparts, but do not
 print the result.  The difference of pari_print() with pari2pv() is
-the number of significant digits they print.)
+the number of significant digits they print, and whitespace in the
+output.)
 
 =item Constant functions
 
@@ -241,9 +248,11 @@ Some mathematical constant appear as function without arguments in
 PARI.  Perl has a facility to have similar functions. If you
 export them like in
 
-  use Math::Pari qw(:DEFAULT pi i euler);
+  use Math::Pari qw(:DEFAULT Pi I Euler);
 
-they can be used as barewords in your program.
+they can be used as barewords in your program:
+
+  $x = Pi ** Euler;
 
 =item Low-level functions
 
@@ -314,11 +323,15 @@ since C<fordiv> will I<localize> C<j> inside the loop, so $j will
 still reference the old value, which is an independent variable, not
 the index of the loop.  The simplest workaround is not to use the
 above syntax (i.e., not mixing literal loop variable with Perl loop
-code, just using $j as the second argument to C<fordiv> is enough).
+code, just using $j as the second argument to C<fordiv> is enough):
+
+  $x = 0;
+  $j = PARI 'j';
+  fordiv(28, $j, sub { $x += $j } );
 
 However, if absolutely required, one can make a I<delayed> variable $j
-which will always reference the same thing C<j> references I<now> by
-using C<PARIvar> constructor
+which will always reference the same thing C<j> references in PARI
+I<now> by using C<PARIvar> constructor
 
   $x = 0;
   $j = PARIvar 'j';
@@ -346,8 +359,8 @@ prints
 
    984
 
-Note that if the subroutine takes a variable number of arguments, each
-C<@> in the prototype (or a missing prototype) counts as 6 optional
+Note that if the subroutine takes a variable number of arguments, C<@>
+in the prototype (or a missing prototype) counts as 6 optional
 arguments are supported.  If called from PARI with fewer arguments
 optional arguments will be set to integer PARI 0.
 
@@ -356,7 +369,7 @@ Note also that no direct import of Perl variables is available yet
 
   sub getv () {$v}
 
-There is an undocumented function for explicitely importing Perl
+There is an unsupported function for explicitely importing Perl
 functions into Pari, possibly with a different name, and possibly with
 explicitely specifying number of arguments.
 
@@ -392,8 +405,7 @@ to get
 
   -1/18*y^9+26/4725*y^11-41/1296*y^13+328721/16372125*y^15+O(y^16)
 
-Well, frankly speaking you should not use barewords anywhere in your
-program!
+Well, the best advice: do not use barewords anywhere in your program!
 
 =head1 Overloading and automatic conversion
 
@@ -406,6 +418,7 @@ operations are overloaded:
 
   unary -
   + - * / % ** abs cos sin exp log sqrt
+  << >>
   <= == => <  >  != <=> 
   le eq ge lt gt ne cmp
 
@@ -433,11 +446,10 @@ to C<%OVERLOAD>, or, better, upgrade.
 
 =head2 PARI
 
-Starting from version 0.5, this module comes with a PARI library included.
+Starting from version 2.0, this module comes without a PARI library included.
 
-If you want to put in a different PARI library, you need at least
-version 1.39 of PARI. (See
-L<ftp://megrez.math.u-bordeaux.fr/pub/pari>.)
+For the source of PARI library see
+L<ftp://megrez.math.u-bordeaux.fr/pub/pari>.
 
 =head1 Perl vs. PARI: different syntax
 
@@ -459,17 +471,13 @@ C<gdivent(x,y)> and C<gdivround(x,y)> instead.
 
 There is no postfix C<~> Perl operator.  Use mattranspose() instead.
 
-=item C<_>
-
-There is no postfix C<_> Perl operator.  Use conj() instead.
-
 =item C<'>
 
 There is no postfix C<'> Perl operator.  Use deriv() instead.
 
 =item C<!>
 
-There is no postfix C<!> Perl operator.  Use fact()/ifact() instead
+There is no postfix C<!> Perl operator.  Use factorial()/ifact() instead
 (returning a real or an integer correspondingly).
 
 =item big integers
@@ -477,6 +485,19 @@ There is no postfix C<!> Perl operator.  Use fact()/ifact() instead
 Currently Perl will convert big I<literal> integers to doubles if they
 could not be put into B<C> 32-bit signed integers.  If you want to
 input such an integer, use PARI('12345678901234567890').
+
+Starting from version 5.005 of Perl, if the tag C<:int> is used, all
+the integer literals in Perl will be automatically converted to became
+PARI objects.  Say
+
+  use Math::Pari ':int';
+  print 2**1000;
+
+is equivalent to
+
+  print PARI(2)**PARI(1000);
+
+(Not tested yet.)
 
 =item doubles
 
@@ -492,6 +513,34 @@ C<PARI('0.01')> differ at 19-th place, as
         pari_print('0.01'), "\n";
 
 shows.
+
+Note that setprecision() changes the output format of pari_print() and
+friends, as well as internal precision.  The generic PARI===>string
+conversion does not take into account the output format, thus
+
+  setprecision(38);
+  print PARI(0.01),       "\n",
+        PARI('0.01'),     "\n",
+        pari_print(0.01), "\n";
+
+will print all the lines with different number of digits after the
+point: the first one with 22, since the double 0.01 was converted to a
+low-precision PARI object, the second one with 41, since internal form
+for precision 38 requires that many digits for representation, and the
+last one with 39 to have 38 significant digits.
+
+Starting from version 5.005 of Perl, if the tag C<:float> is used, all
+the float literals in Perl will be automatically converted to became
+PARI objects.  Say
+
+  use Math::Pari ':float';
+  print atan(1.);
+
+is equivalent to
+
+  print atan(PARI('1.'));
+
+(Not tested yet.)
 
 =item array base
 
@@ -516,8 +565,12 @@ the same order of elements as in PARI.
 
 Some PARI functions, like C<length> and C<eval>, are Perl
 (semi-)reserved words.  To reach these functions, one should either
-import them, or call them with prefix (like C<&length>) or the full
-name (like C<Math::Pari::length>).
+import them: 
+
+  use Math::Pari qw(length eval);
+
+or call them with prefix (like C<&length>) or the full name (like
+C<Math::Pari::length>).
 
 =item string($w, $text)
 
@@ -545,8 +598,8 @@ output terminal by calling plotterm(), as in
 
 =head1 libPARI documentation
 
-libPARI documentation is included, see L<libPARI>.  It is converted
-from Chapter 3 of B<PARI/GP> documentation by F<chap3_to_pod> script.
+libPARI documentation is included, see L<Math::libPARI>.  It is converted
+from Chapter 3 of B<PARI/GP> documentation by F<paridoc_to_pod> script.
 
 =head1 ENVIRONMENT
 
@@ -560,9 +613,9 @@ No environment variables are used.
 
 A few of PARI functions are available indirectly only.
 
-=item F<t/failing.t>
+=item F<t/*_will_fail.t>
 
-This test suite exposes several bugs.
+These tests expose several bugs.
 
 =back
 
@@ -599,7 +652,7 @@ PARI PARIcol PARImat PARIvar PARImat_tr
 @EXPORT_OK = qw(
   sv2pari sv2parimat pari2iv pari2nv pari2num pari2pv pari2bool loadPari _bool
   listPari pari_print pari_pprint pari_texprint O ifact gdivent gdivround
-  changevalue set_plot_fh link_gnuplot setprecision
+  changevalue set_plot_fh link_gnuplot setprecision setseriesprecision
 );
 
 use subs qw(
@@ -629,6 +682,18 @@ use subs qw(
    _sqrt
 );				# For overloading
 
+sub _shiftl {
+  my ($left,$right) = (shift,shift);
+  ($left,$right) = ($right, $left) if shift;
+  $left * 2**$right;
+}
+
+sub _shiftr {
+  my ($left,$right) = (shift,shift);
+  ($left,$right) = ($right, $left) if shift;
+  floor($left / 2**$right);
+}
+
 use overload qw(
    neg _gneg
    + _gadd
@@ -654,6 +719,8 @@ use overload qw(
    exp _exp
    log _log
    sqrt _sqrt
+   <<  _shiftl
+   >>  _shiftr
 );
 
 sub AUTOLOAD {
@@ -698,7 +765,7 @@ sub AUTOLOAD {
 $initmem = $initmem || 4000000;		# How much memory for the stack
 $initprimes = $initprimes || 500000;	# Calculate primes up to this number
 
-$VERSION = 0.9502;
+$VERSION = '2.0011_00';
 
 bootstrap Math::Pari;
 
@@ -732,6 +799,30 @@ sub new {
     buchgen, buchgenforcefu, buchgenfu, buchinit, buchinitforcefu, buchinitfu,
     string, addhelp, kill)} = (1) x 100;
 
+# Highly unfinished
+sub _cvt { PARI(shift) }
+sub _hex_cvt {
+  my $in = shift;
+  my $mult = PARI(1);
+  my $ret = 0;
+  my $shift = 1<<(4*7);
+
+  $in =~ s/^0(x)?// or die;
+  my $hex = $1;
+  $shift = 1<<(3*7) unless $hex;
+  while ($in =~ s/([a-fA-F\d]{1,7})$//) {
+    my $part = $hex ? hex $1 : oct $1;
+    
+    $ret += $part * $mult;
+    $mult *= $shift;
+  }
+  die "Cannot hex '$in'" if length $in;
+  return $ret;
+}
+%overloaded_const = ( 'int' => \&_cvt, float => \&_cvt, 'hex' => \&_hex_cvt);
+%overloaded_const_word
+  = ( 'int' => 'integer', float => 'float', 'hex' => 'binary');
+
 sub import {
   my $p=shift;
   @_ = map {
@@ -741,9 +832,21 @@ sub import {
       my @pre;
       $tag = -1, @pre = (@EXPORT_OK,@EXPORT) if ($tag eq 'all');
       $tag = -1 if ($tag eq 'PARI');
-      $tag = $sections{$tag} unless $tag =~ /^-?\d+$/;
-      defined $tag or die "Unknown section '$sec' specified";
-      (@pre, listPari($tag));
+      $tag = $sections{$tag} if $tag !~ /^-?\d+$/ and exists $sections{$tag};
+      if ($tag =~ /^prec=(\d+)$/) {
+	setprecision($1);
+	();
+      } elsif ($tag =~ /^(int|hex|float)$/) {
+	die "Overloaded constants are not supported in this version of Perl"
+	  if $] < 5.004_69;
+	'overload'->constant($overloaded_const_word{$tag} 
+			     => $overloaded_const{$tag});
+	();
+      } elsif (defined $tag) {
+	(@pre, listPari($tag));
+      } else {
+	die "Unknown section '$sect' specified";
+      }
     } else {
       ($_);
     }

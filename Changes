@@ -99,3 +99,33 @@ after 0.95_01:
 		out of 1381).
 	Look for PARI build directory nearby.
 	Autogenerate libPARI.pod.
+after 0.95_02:
+	Tag :prec=digits allowed.
+	Overloaded << and >> (in Perl, not XS).
+	Hex and octal conversion on _hex_cvt.
+	Untested overloaded constants, on :int, :float, :hex import tags.
+	Output of doubles explained.
+	Flexible interface implemented (with runtime-parsing of
+		signature, will not work if sizeof's char*, GEN, long 
+		are different.)
+		85% pass (366 skipped, 146 fail out of 1381).
+			(nfields: some actually-wrong answers?)
+after 0.95_03:
+	Prototype for flexible-interface functions was wrong.
+	Only type()/sumalt()/prodinf()/plot*() are special-cased in
+		tests now (in addition to what was in 1.39).
+	Better massage of matrix output, use RE to process pari output.
+	undef allowed as a value of an optional argument.
+	Minor massage of codes to move 'l' and 'v' forward.
+	setseriesprecision() implemented.
+
+Failed Test  Status Wstat Total Fail  Failed  List of failed
+-------------------------------------------------------------------------------
+t/ell_will_fail               3    1  33.33%  2
+t/nf_will_fail.              12    4  33.33%  4, 8, 11-12
+1 test skipped, plus 191 subtests skipped.
+Failed 2/17 test scripts, 88.24% okay. 5/1392 subtests failed, 99.64% okay.
+
+	All these failures look like real bugs now.
+	Known failures filtered from PARI tests and moved to
+		Math::Pari tests.

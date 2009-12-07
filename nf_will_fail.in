@@ -1,0 +1,19 @@
+\p 38
+\e 1
+setrand(1);bnf=bnfinit(x^2-x-57,,[0.2,0.2])
+bnr=bnrclass(bnf,[[5,3;0,1],[1,0]],2)
+idealprimedec(bnf,7)
+bnrisprincipal(bnr,idealprimedec(bnf,7)[1])
+\\
+nfpol=x^5-5*x^3+5*x+25
+nf=nfinit(nfpol)
+vp=idealprimedec(nf,3)[1]
+idealhnf(nf,vp[2],3)
+\\
+nf3=nfinit(x^6+108);
+aut=nfgaloisconj(nf3,1)
+nfgaloisapply(nf3,aut[2],Mod(x^5,x^6+108))
+\\
+nfisideal(bnf[7],[5,1;0,1])
+\\
+\q

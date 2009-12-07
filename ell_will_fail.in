@@ -1,0 +1,6 @@
+\p 38
+\e 1
+acurve=ellinit([0,0,1,-1,0])
+deu=direuler(p=2,100,1/(1-ellap(acurve,p)*x+if(acurve[12]%p,p,0)*x^2))
+ellan(acurve,100)==deu
+\q

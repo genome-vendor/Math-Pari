@@ -1,6 +1,6 @@
 package Math::PariBuild;
 
-$VERSION = '2.010805';
+$VERSION = '2.010806';
 
 require Exporter;
 @ISA = 'Exporter';
@@ -115,7 +115,7 @@ my $latmus = 'src/test/in/nfields';
 
 sub filter_versions_too_new {
   my $force = shift;
-  my @dirs = grep !m((?:^|[\\/])pari-2\.3\.), @_;
+  my @dirs = grep !m((?:^|[\\/])pari-(?:$common::skip_versions)), @_;
   print "Filtered out versions too new...\n" if @dirs != @_;
   return @dirs if $force or @dirs;
   return @_;			# Not found, not forced
@@ -182,6 +182,34 @@ sub debug_no_response ($) {
   return "\n\n$b  To debug AUTOMATED_TESTING\n$c$b\n\n";
 }
 
+sub ll_ftp () {	# All Perl downloads failures I saw are on Linux and BSD; this should work there
+  open OF, '> ftp-cmd' or die "Can't open `ftp-cmd' for write: $!";
+  print OF <<'EOF';		# XXXX Hardwired version!
+user anonymous auto-download-Math-Pari@cpan.org
+cd /pub/pari/unix/
+dir
+cd OLD
+dir
+binary
+get pari-2.1.7.tgz
+quit
+EOF
+  close OF or die "Can't close `ftp-cmd' for write: $!";
+  print <<EOP;
+==============================================
+ftp -pinegv megrez.math.u-bordeaux.fr < ftp-cmd
+EOP
+  my $rc = system "ftp -pinegv megrez.math.u-bordeaux.fr < ftp-cmd";
+  print <<EOP;
+==============================================
+EOP
+  return if $rc;
+  # XXXX Temporarily disable continuing build (to see smoke testing reports)
+  warn("\$ENV{MATHPARI_USEFTP} not TRUE, ignoring download\n"), return
+    unless $ENV{MATHPARI_USEFTP};
+  return 'pari-2.1.7.tgz';
+}
+
 sub download_pari {
   my ($srcfile, $force) = (shift, shift);
   my $host = 'megrez.math.u-bordeaux.fr';
@@ -190,8 +218,9 @@ sub download_pari {
 
   print "Did not find GP/PARI build directory around.\n" unless defined $srcfile;
 
-  my $match = '((?:.*\/)?pari\W*(?!2\\.3\\.)(\d+\.\d+\.\d+).*\.t(?:ar\.)?gz)$';
-  my $match1 = '((?:.*\/)?pari\W*(\d+\.\d+\.\d+).*\.t(?:ar\.)?gz)$';
+  my @match = ( '((?:.*\/)?pari\W*', '(\d+\.\d+\.\d+).*\.t(?:ar\.)?gz)$' );
+  my $match1 = "$match[0]$match[1]";
+  my $match  = "$match[0](?!$common::skip_versions)$match[1]";
 
   my %archive;
   my $match_pari_archive = sub {
@@ -288,7 +317,7 @@ EOP
       warn "$@\nCan't fetch file with Net::FTP, now trying with LWP::UserAgent...\n";
       # second try with LWP::UserAgent
       eval { require LWP::UserAgent; require HTML::LinkExtor }
-        or die "You do not have LWP::UserAgent and/or HTML::LinkExtor installed, cannot download, exiting...";
+        or die "You do not have LWP::UserAgent and/or HTML::LinkExtor installed, cannot download, exiting...\n\n" . manual_download_instructions();
       my $c = 0;
       my @Extra = @extra_chdir;
       while (not $c) {
@@ -313,9 +342,12 @@ EOP
 	  }
 	}
 	unless ($c) {
-	  die debug_no_response($resp)
-	    . "Did not find any file matching /$match/ via FTP.\n\n"
-	    . manual_download_instructions() unless @Extra;
+	  unless (@Extra) {
+	    warn debug_no_response($resp)
+	      . "Did not find any file matching /$match/ via FTP.\n\n";
+	    my $f = ll_ftp or die manual_download_instructions();
+	    return download_pari($f);
+	  }
 	  my $dir = shift @Extra;
 	  $base_url .= "$dir/";
 	  print "Not in this directory, trying `$base_url'...\n";

@@ -211,7 +211,9 @@ WriteMakefile(
 		    MY_AR_OBJECT => ($Using_Borland
 				     ? '$(OBJECT:^"+")'
 				      : '$(OBJECT)'),
-		    MY_EMPTY_STR  => '',
+		    MY_EMPTY_STR  => '', # The rest to simplify remote debug:
+		    USED_ASMARCH  => $asmarch,
+		    CFG_CCCDLFLAGS => $Config{cccdlflags},
 		   },
     DEFINE	=> $mycflags,
     INC		=> $extra_inc . ' -I$(PARI_DIR)/src/headers -I$(PARI_DIR)/src/graph -I.'

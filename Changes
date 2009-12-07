@@ -749,3 +749,10 @@ os2$(OBJ_EXT): $(PARI_DIR)/src/systems/os2/os2.c pariinl.h paricfg.h
 2.010805:
   check PERL_MM_USE_DEFAULT in addition to AUTOMATED_TESTING.
   report more on environment when user does not answer `y'.
+  report the response when listin of remote directory fails.
+
+2.010806:
+  Add a few "fake" Makefile macros to simplify remote debugging.
+  Get log of command `ftp' if using Perl modules fails
+	(if MATHPARI_USEFTP is TRUE, actually use the downloaded file).
+  Patch for restart did not have leading "./" - problem with some `patch'es.

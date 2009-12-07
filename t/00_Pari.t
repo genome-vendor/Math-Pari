@@ -168,6 +168,7 @@ if ( ($tot, $now, $onstack, $offstack) = Math::Pari::memUsage) {
 }
 
 sub incr1 {
+  warn "incr1: ", scalar @_, " args" unless @_ == 6 or @_ == 1;	# no proto ==> 6 ???
   my $y = shift;
   print "# Adding $y to $x\n";
   $x += $y;

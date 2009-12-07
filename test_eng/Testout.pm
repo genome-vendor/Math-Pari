@@ -27,12 +27,12 @@ prec($3 || $1, 1) if ($mess || '') =~ /realprecision = (\d+) significant digits(
 
 
 $| = 1;
-@seen = qw(Pi I Euler getrand a x xx y z k t q u j l n v p e
+@seen = qw(Euler Pi I getrand a x xx y z k t q u j l n v p e
 	   name other mhbi a2 a1 a0 b0 b1
 	   acurve bcurve ccurve cmcurve tcurve mcurve ma mpoints);
 @seen{@seen}  = (' ', ' ', ' ', ' ', ('$') x 100);
 for (@seen) {
-  $$_ = PARI($_);
+  $$_ = PARI($_) unless $seen{$_} eq ' ';
 }
 $seen{'random'} = ' ';
 $DEFAULT = undef;
@@ -423,7 +423,7 @@ sub process_test {
       $in =~ s/
 		(
 		  \b
-		  (?:
+		  (?:		# For these, sub{}ify the fourth argument
 		    sum
 		  |
 		    intnum(?!init\b)\w*
@@ -449,19 +449,21 @@ sub process_test {
 		  \(
 		  (?:
 		     (?:
-		       [^(=,)\[\]]+
+		       [^(=,)\[\]]+ # One argument without (), []
 		       (?=
-		         [=,]
+		         [(=,)\[\]]
 		       )
-		     |		# One level of parenths supported
-		       \( [^()]+ \)
-		     |		# Two levels of brackets supported
-		       \[ [^\[\]]+ \]
+		     |		# One or two levels of parenths supported
+		       \( [^()]* \)
 		     |
-		       \[ (?: [^\[\]] | \[ [^\[\]]+ \] )* \]
-		     )
+		       \( (?: [^()] | \( [^()]* \))* \)
+		     |		# Two levels of brackets supported
+		       \[ [^\[\]]* \]
+		     |
+		       \[ (?: [^\[\]] | \[ [^\[\]]* \] )* \]
+		     )*
 		  [,=]){3}		# $x,1,100
-	        |
+	        |		# For these, sub{}ify the third argument
 		  \b
 		  (?:
 		    sumalt
@@ -477,7 +479,7 @@ sub process_test {
 		       )
 		     |
 		       \s*\w*\( [^()]+ \)\s*
-		     )		# One level of func-call (PARI('.3')) supported
+		     )*		# One level of func-call (PARI('.3')) supported
 		  [,=]){2}		# $x,1
 		)				# end group 1
 		(?!\s*sub\s*\{)	# Skip already converted...
@@ -519,16 +521,14 @@ sub process_test {
 		    \]
 		  )*		# Two levels of parenths supported
 		)				# end group 2
-		(?=
-                  [),]
-                )
+		(?= [),] )
 	      /$1 sub{$2}/xg;
     # Do the rest (do not take = after the variable name)
     1 while
       $in =~ s/
 		(
 		  \b
-		  (
+		  (		# For these, sub{}ify the last argument
 		    solve
 		  |
 		    (?:
@@ -537,7 +537,7 @@ sub process_test {
 		    ploth (?! raw \b ) \w+
 		  |
 		    # sum \w*
-		    sum (?! alt | num \b) \w+
+		    sum (?! alt | num (?:init)? \b) \w+
 		  |
 		    # prod \w*
 		    prodinf
@@ -566,7 +566,7 @@ sub process_test {
 		  ,
 		)
 		(?!\s*sub\s*\{)	# Skip already converted...
-		(		# This follows after a comma on toplevel
+		(		# 3: This follows after a comma on toplevel
 		  (?:
 		    [^(,)\[\]]+
 		    (?=

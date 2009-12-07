@@ -101,6 +101,114 @@ STRLEN n___a;
    frame on the entry into the function for which SV is the argument.
 */
 
+#ifndef USE_SLOW_NARGS_ACCESS
+#  define	USE_SLOW_NARGS_ACCESS	(defined(PERL_VERSION) && (PERL_VERSION > 9))
+#endif
+
+#if USE_SLOW_NARGS_ACCESS
+#  define PARI_MAGIC_TYPE	((char)0xDE)
+#  define PARI_MAGIC_PRIVATE	0x2020
+
+static IV*
+PARI_SV_to_IVp(SV *const sv)
+{
+    MAGIC *mg;
+    for (mg = SvMAGIC(sv); mg; mg = mg->mg_moremagic) {
+	if (mg->mg_type == PARI_MAGIC_TYPE
+	    && mg->mg_private == PARI_MAGIC_PRIVATE)
+	    return (IV *) &mg->mg_ptr;
+    }
+    croak("panic: PARI narg value not attached");
+    return NULL;
+}
+
+static void
+SV_myIV_set(SV *sv, IV i)
+{
+    MAGIC *mg;
+
+    mg = sv_magicext((SV*)sv, NULL, PARI_MAGIC_TYPE, NULL, INT2PTR(void *, i), 0);
+    mg->mg_private = PARI_MAGIC_PRIVATE;
+}
+
+#  define SV_myIV_reset_clone(sv)			\
+  STMT_START {						\
+    if(SvTYPE(sv) == SVt_PVAV) {			\
+	IV *p = PARI_SV_to_IVp(sv);			\
+	*p = (IV) gclone((GEN)*p);			\
+    } else {						\
+	SV_myIV_reset_clone_IVX(sv);			\
+    } } STMT_END
+
+
+/* Should be applied to SV* and AV* only */
+#  define SV_myIV_get(sv)						\
+	((SvTYPE(sv) == SVt_PVAV) ? *PARI_SV_to_IVp(sv) : SvIV(sv))
+#  define CV_myIV_get(sv)	(*PARI_SV_to_IVp(sv))
+#  define CV_myIV_set		SV_myIV_set
+#else /* !USE_SLOW_NARGS_ACCESS */
+#  define CV_NUMARGS_get(cv)	(((CV*)(cv))->sv_any->xof_off)
+#  define CV_NUMARGS_set(cv, c)	(CV_NUMARGS_get(cv) = (c))
+#  define SV_myIV_set(sv, i)	(SvIVX(sv) = (i))
+#  define SV_myIV_get(sv)	SvIVX(sv)	/* IVOK is not set! */
+#  define CV_myIV_get(sv)	SvIVX(sv)
+#  define CV_myIV_set(cv, i)	SV_myIV_set((SV*)cv, i)
+#  define SV_myIV_reset_clone	SV_myIV_reset_clone_IVX
+#endif
+
+#define SV_myIV_reset_clone_IVX(sv)	(SvIVX(sv) = (IV) gclone((GEN)SvIV(sv)))
+
+#ifndef USE_SLOW_ARRAY_ACCESS
+#  define	USE_SLOW_ARRAY_ACCESS	(defined(PERL_VERSION) && (PERL_VERSION > 9))
+#endif
+
+#if USE_SLOW_ARRAY_ACCESS
+/* 5.9.x and later assert that you're not using SvPVX() and SvCUR() on arrays,
+   so need a little more code to cheat round this.  */
+#  define NEED_SLOW_ARRAY_ACCESS(sv)	(SvTYPE(sv) == SVt_PVAV)
+#  define AV_SET_LEVEL(sv, val)		(AvARRAY(sv) = (SV **)(val))
+#  define AV_GET_LEVEL(sv)		((char*)AvARRAY(sv))
+#else
+#  define NEED_SLOW_ARRAY_ACCESS(sv)	0
+#  define AV_SET_LEVEL(sv, val)		croak("Panic AV LEVEL")	/* This will never be called */
+#  define AV_GET_LEVEL(sv)		(croak("Panic AV LEVEL"),Nullch) /* This will never be called */
+#endif
+
+/* XXXX May need a flavor when we know it is an AV??? */
+#define SV_PARISTACK_set(sv, stack)				\
+	 (NEED_SLOW_ARRAY_ACCESS(sv) ? (			\
+	     AV_SET_LEVEL(sv, stack), (void)0			\
+	 ) : (							\
+	     SvPVX(sv) = stack, (void)0				\
+	 ))
+
+#define SV_OAVMA_PARISTACK_set(sv, level, stack)		\
+	(NEED_SLOW_ARRAY_ACCESS(sv) ? (				\
+	    AvFILLp(sv) = (level),				\
+	    AV_SET_LEVEL(sv, (stack)), (void)0			\
+	) : (							\
+	    SvCUR(sv) = (level),				\
+	    SvPVX(sv) = (char*)(stack), (void)0			\
+	))
+
+#define SV_OAVMA_PARISTACK_get(sv, level, stack)		\
+	(NEED_SLOW_ARRAY_ACCESS(sv) ? (				\
+	    (level) = AvFILLp(sv),				\
+	    (stack) = AV_GET_LEVEL(sv), (void)0			\
+	) : (							\
+	    (level) = SvCUR(sv),				\
+	    (stack) = SvPVX(sv), (void)0			\
+	))
+
+#define SV_OAVMA_switch(next, sv, newval)			\
+    ( NEED_SLOW_ARRAY_ACCESS(sv) ? (				\
+	(next) = (SV *)AvARRAY(sv),				\
+	AV_SET_LEVEL(sv, newval), (void)0			\
+    ) : (							\
+	next = (SV *) SvPVX(sv),				\
+	SvPVX(sv) = newval, (void)0					\
+    ))
+
 #define GENmovedOffStack ((char*) 1) /* Just an atom. */
 #define GENfirstOnStack ((char*) 2) /* Just an atom. */
 #define GENheap NULL
@@ -158,8 +266,7 @@ realloc(void *mp, size_t nbytes)
     }								\
     if (isonstack(in)) {					\
 	SV* g = SvRV(sv);					\
-	SvCUR(g) = oldavma - bot;				\
-	SvPVX(g) = (char*)PariStack;				\
+	SV_OAVMA_PARISTACK_set(g, oldavma - bot, PariStack);	\
 	PariStack = g;						\
 	perlavma = avma;					\
 	onStack_inc;						\
@@ -241,15 +348,12 @@ make_PariAV(SV *sv)
     AV *av = (AV*)SvRV(sv);
     char *s = SvPVX(av);
     IV i = SvIVX(av);
-#if 0
-    MAGIC *mg;
-#endif
     SV *newsub = newRV_noinc((SV*)av);	/* cannot use sv, it may be 
 					   sv_restore()d */
 
     (void)SvUPGRADE((SV*)av, SVt_PVAV);    
-    SvPVX(av)	= s;
-    SvIVX(av)	= i;
+    SV_PARISTACK_set(av, s);
+    SV_myIV_set((SV*)av, i);
     sv_magic((SV*)av, newsub, 'P', Nullch, 0);
     SvREFCNT_dec(newsub);		/* now RC(newsub)==1 */
 	/* We avoid an reference loop, so should be careful on DESTROY */
@@ -419,7 +523,7 @@ findVariable(SV *sv, int generate)
 	  if (SvSTASH(tsv) == pariStash) {
 	    is_pari:
 	      {
-		  GEN x = (GEN)SvIV(tsv);
+		  GEN x = (GEN)SV_myIV_get(tsv);
 		  if (typ(x) == t_POL	/* Polynomial. */
 		      && lgef(x)==4		/* 2 terms */
 		      && (gcmp0((GEN)x[2]))	/* Free */
@@ -435,7 +539,7 @@ findVariable(SV *sv, int generate)
 		  /* Itsn't good to croak: $v=PARIvar 'v'; vector(3,$v,'v'); */
 		  if (generate)
 		      /*croak("Same iterator in embedded PARI loop construct")*/;
-		  return (entree*) SvIV(tsv);
+		  return (entree*) SV_myIV_get(tsv);
 	      }
 	  } else if (sv_derived_from(sv, "Math::Pari")) { /* Avoid recursion */
 	      if (sv_derived_from(sv, "Math::Pari::Ep"))
@@ -702,13 +806,13 @@ sv2pari(SV* sv)
 	  if (SvSTASH(tsv) == pariStash) {
 	    is_pari:
 	      {
-		  IV tmp = SvIV(tsv);
+ 		  IV tmp = SV_myIV_get(tsv);
 		  return (GEN) tmp;
 	      }
 	  } else if (SvSTASH(tsv) == pariEpStash) {
 	    is_pari_ep: 
 	      {
-		  IV tmp = SvIV(tsv);
+ 		  IV tmp = SV_myIV_get(tsv);
 		  return (GEN)(((entree*) tmp)->value);
 	      }
 	  } else if (sv_derived_from(sv, "Math::Pari")) { /* Avoid recursion */
@@ -1150,7 +1254,7 @@ installPerlFunctionCV(SV* cv, char *name, I32 numargs, char *help)
 	}
 	*s = '\0';
     }
-    ((CV*)cv)->sv_any->xof_off = numargs;	/* XXXX Nasty of us... */
+    CV_myIV_set(cv, numargs);
     SAVEINT(doing_PARI_autoload);
     doing_PARI_autoload = 1;
     ep = install((void*)SvREFCNT_inc(cv), name, code);
@@ -1183,9 +1287,8 @@ moveoffstack_newer_than(SV* sv)
   
   for (sv1 = PariStack; sv1 != sv; sv1 = nextsv) {
     ret++;
-    nextsv = (SV *) SvPVX(sv1);
-    SvPVX(sv1) = GENmovedOffStack; /* Mark as moved off stack. */
-    SvIVX(sv1) = (IV) gclone((GEN)SvIV(sv1));
+    SV_OAVMA_switch(nextsv, sv1, GENmovedOffStack); /* Mark as moved off stack. */
+    SV_myIV_reset_clone(sv1);
     onStack_dec;
     offStack_inc;
   }
@@ -1216,7 +1319,7 @@ callPerlFunction(entree *ep, ...)
 {
     va_list args;
     SV *cv = (SV*) ep->value;
-    int numargs = ((CV*)cv)->sv_any->xof_off;	/* XXXX Nasty of us... */
+    int numargs = CV_myIV_get(cv);
     GEN res;
     int i;
     dSP;
@@ -3738,14 +3841,16 @@ DESTROY(rv)
      {
 	 /* PariStack keeps the latest SV that keeps a GEN on stack. */
 	 SV* sv = SvRV(rv);
-	 char* type = SvPVX(sv);	/* The value of PariStack when the
+	 char* ostack;			/* The value of PariStack when the
 					 * variable was created, thus the
 					 * previous SV that keeps a GEN from
 					 * stack, or some atoms. */
-	 long oldavma = SvCUR(sv) + bot; /* The value of avma on the entry
+	 long oldavma;			 /* The value of avma on the entry
 					  * to function having the SV as
 					  * argument. */
 	 long howmany;
+	 SV_OAVMA_PARISTACK_get(sv, oldavma, ostack);
+	 oldavma += bot;
 #if 1
 	 if (SvMAGICAL(sv) && SvTYPE(sv) == SVt_PVAV) {
 	     MAGIC *mg = mg_find(sv, 'P');
@@ -3762,14 +3867,14 @@ DESTROY(rv)
 	     AvFILLp((AV*)sv) = -1;	
 	 }
 #endif
-	 SvPVX(sv) = GENheap;		/* To avoid extra free() in moveoff.... */
-	 if (type == GENheap)	/* Leave it alone? XXXX */
+	 SV_PARISTACK_set(sv, GENheap);	/* To avoid extra free() in moveoff.... */
+	 if (ostack == GENheap)	/* Leave it alone? XXXX */
 	     /* break */ ;
-	 else if (type == GENmovedOffStack) {/* Know that it _was temporary. */
-	     killbloc((GEN)SvIV(sv));	     
+	 else if (ostack == GENmovedOffStack) {/* Know that it _was temporary. */
+	     killbloc((GEN)SV_myIV_get(sv));	     
 	 } else {
 	 		/* Still on stack */
-	     if (type != (char*)PariStack) { /* But not the newest one. */
+	     if (ostack != (char*)PariStack) { /* But not the newest one. */
 		 howmany = moveoffstack_newer_than(sv);
 		 RUN_IF_DEBUG_PARI( warn("%li items moved off stack", howmany) );
 	     }
@@ -3783,7 +3888,7 @@ DESTROY(rv)
 	     } else {
 		 avma = oldavma;	/* Mark the space on stack as free. */
 	     }
-	     PariStack = (SV*)type; /* The same on the Perl/PARI side. */
+	     PariStack = (SV*)ostack; /* The same on the Perl/PARI side. */
 	 }
 	 SVnum_dec;
      }

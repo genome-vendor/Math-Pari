@@ -15,15 +15,15 @@ and possibly in other forms particular for your system.
 
 If you have a not very old perl (5.003 should do), then uncompress the
 archive into a separate directory, find the archtecture of your
-processor (if it is not recognized automatically, the slower portable
-code will be used), and do
+processor (if it is not known/supported, and recognized automatically, the
+slower 'port' code should be used), and do
 
 	perl Makefile.PL 
 		or
 	perl Makefile.PL machine=hppa
 
-(recognized processors are sun3 sparcv7 sparcv8micro sparcv8super
-alpha hppa i386), then
+(recognized "processors" are sun3 sparcv7 sparcv8micro sparcv8super
+alpha hppa i386 port), then
 
 	make
 	make test

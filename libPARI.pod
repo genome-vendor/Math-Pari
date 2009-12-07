@@ -10,7 +10,7 @@ libPARI - Functions and Operations available in PARI and GP
 
 The functions and operators available in PARI and in the GP/PARI calculator
 are numerous and everexpanding. Here is a description of the ones available
-in version 1.39.3. It should be noted that many of these functions accept
+in version 1.39.03.01. It should be noted that many of these functions accept
 quite different types as arguments, but others are more restricted. The list
 of acceptable types will be given for each function or class of functions.
 Except when stated otherwise, it is understood that a function or operation
@@ -1078,11 +1078,11 @@ C<prec> to correspond to an accuracy of 38 decimal digits whatever
 the word size, you could write
 
 {\obeylines\tt
-\#ifdef LONG_IS_32BIT
+#ifdef LONG_IS_32BIT
   prec = 6;
-\#else
+#else
   prec = 4;
-\#endif
+#endif
 }
 
 Note that some accuracies attainable on 32-bit machines cannot be attained
@@ -1128,7 +1128,7 @@ and the function being computed.
 
      If the argument is a vector or a matrix, the result is componentwise
 evaluation of the function. In particular, transcendental functions on
-square matrices, which are not implemented in the present version 1.39.3{}
+square matrices, which are not implemented in the present version 1.39.03.01{}
 (see Appendix C however),
 will have a slightly different name if they are implemented some day.
 
@@ -1354,7 +1354,7 @@ The library syntax is C<ggamd(x,prec)>.
 =head2 X<gamma>gammaC<(x)>
 
 gamma function of C<x>. In the present version
-1.39.3{} the C<p>-adic gamma function is not implemented.
+1.39.03.01{} the C<p>-adic gamma function is not implemented.
 
 The library syntax is C<ggamma(x,prec)>.
 
@@ -1411,7 +1411,7 @@ The library syntax is C<incgam4(x,y, z,prec)>.
 C<J>-Bessel function of half integral index.
 More precisely, C<jbesselh(n,x)> computes C<J_{n+1/2}(x)> where C<n>
 must be of type integer, and C<x> is any element of C<B<I<C>>>. In the
-present version 1.39.3, this function is not very accurate when C<x> is
+present version 1.39.03.01, this function is not very accurate when C<x> is
 small.
 
 The library syntax is C<jbesselh(n,x,prec)>.
@@ -1432,7 +1432,7 @@ The library syntax is C<jell(x,prec)>.
 
 K-Bessel function of index C<nu>
 (which can be complex) and argument C<x>. Only real and positive arguments
-C<x> are allowed in the present version 1.39.3.
+C<x> are allowed in the present version 1.39.03.01.
 
 The library syntax is C<kbessel(nu, x,prec)>.
 
@@ -1461,7 +1461,7 @@ The library syntax is C<glog(x,prec)>.
 
 principal branch of the logarithm of the gamma
 function of C<x>. Can have much larger arguments than C<gamma> itself.
-In the present version 1.39.3{} the C<p>-adic lngamma function is not 
+In the present version 1.39.03.01{} the C<p>-adic lngamma function is not 
 implemented.
 
 The library syntax is C<glngamma(x,prec)>.
@@ -1665,7 +1665,7 @@ The way these functions are used is completely different from
 transcendental functions: in general only the types integer and
 polynomial are accepted as arguments.
 
-In the present version 1.39.3{} a primitive but useful version of the X<ECM>ECM
+In the present version 1.39.03.01{} a primitive but useful version of the X<ECM>ECM
 method has been implemented. Also, numbers found to be pseudo-primes after
 10 successful trials of the X<Rabin-Miller>Rabin-Miller test are declared primes.
 
@@ -1689,7 +1689,7 @@ The entries in C<x> are not checked for primality.
 They should be positive integers not divisible by any
 of the pre-computed primes.
 
-The present PARI version 1.39.3{} allows up to 20 user-specified
+The present PARI version 1.39.03.01{} allows up to 20 user-specified
 primes to be appended to the table.  This limit may be changed
 by altering C<NUMPRTBELT> in file C<init.c>.
 
@@ -1829,7 +1829,7 @@ discriminant C<D>. Should be used instead of C<classno> and C<regula> for
 C<DE<gt>10^{10}> or when the I<structure> is wanted. If the integer C<n> is equal
 to 0 the function computes the ordinary (or wide) class group and regulator,
 while if C<n> is non-zero it computes the narrow class group and regulator
-(this case is not yet implemented in version 1.39.3).
+(this case is not yet implemented in version 1.39.03.01).
 The numbers C<c> and C<c2> are positive real numbers which control the execution
 time and the stack size. To get maximum speed,
 set C<c2=c>. To get a rigorous result (under GRH) you must take C<c2=6>.
@@ -1903,7 +1903,7 @@ The library syntax is C<chinois(x,y)>.
 =head2 X<classno>classnoC<(x)>
 
 class number of the quadratic field of discriminant
-C<x>. In the present version 1.39.3, a simple algorithm is used for C<xE<gt>0>, so
+C<x>. In the present version 1.39.03.01, a simple algorithm is used for C<xE<gt>0>, so
 C<x> should not be too large (say C<x<10^7>) for the time to be reasonable. On
 the other hand, for C<x<0> one can reasonably compute classno(C<x>) for 
 C<|x|<10^{25}>, since the method used is Shanks' method which is in
@@ -2778,7 +2778,7 @@ being independent of C<A>, this function can be used to compute the sign
 of the functional equation, and even C<N> if one wants, although it is always
 much faster to apply the function C<globalred>. 
 
-Note that in the present version 1.39.3, this function is accessible externally
+Note that in the present version 1.39.03.01, this function is accessible externally
 in GP, but in future versions it may only be accessible in library mode
 since it will be superseded.
 
@@ -2820,7 +2820,7 @@ The library syntax is C<ordell(e,x)>.
 
 gives the order of the point C<z> on the elliptic
 curve C<e> if it is a torsion point, zero otherwise. In the present 
-version 1.39.3{}, this is implemented only for elliptic curves defined over
+version 1.39.03.01{}, this is implemented only for elliptic curves defined over
 C<B<I<Q>>>.
 
 The library syntax is C<orderell(e,z)>, and the result is a GEN.
@@ -3130,7 +3130,7 @@ values are between 4 and 20. (Default value is 4).
 
 C<minsfb> is the minimal number of elements in the ``sub-factorbase''.
 If the program does not seem to succeed in finding a full rank matrix
-(which you can see in GP by typing C<\bs g 2>), increase this number.
+(which you can see in GP by typing C<\g 2>), increase this number.
 Reasonable values are between 2 and 5. (Default value is 3).
 
 C<flun> corresponds to the requested function (see below) and is a C long:
@@ -3436,7 +3436,7 @@ The library syntax is C<polfnf(x,t)>.
 =head2 X<galois>galoisC<(x)>
 
 Galois group of the non-constant polynomial
-C<x\inB<I<Q>>[X]>. In the present version 1.39.3, C<x> must be irreducible and the
+C<x\inB<I<Q>>[X]>. In the present version 1.39.03.01, C<x> must be irreducible and the
 degree of C<x> must be less than or equal to 7 (for degrees 8,9,10, and 11
 we have specific PARI programs available upon request).
 
@@ -4715,7 +4715,7 @@ The library syntax is C<integ(x)>.
 =head2 X<isirreducible>isirreducibleC<(x)>
 
 C<x> being a polynomial (univarariate
-in the present version 1.39.3), returns 1 if C<x> is non-constant and 
+in the present version 1.39.03.01), returns 1 if C<x> is non-constant and 
 irreducible, 0 otherwise.
 
 The library syntax is C<gisirreducible(x)>.
@@ -5315,7 +5315,7 @@ like C<kerint>, but using another modified LLL
 algorithm, gives an LLL-reduced C<B<I<Z>>>-basis for the lattice
 equal to the kernel of the matrix C<x> as columns of the matrix C<x> with
 integer entries (rational entries are not permitted). In the present version
-1.39.3, only independent rows are allowed. 
+1.39.03.01, only independent rows are allowed. 
 
 The library syntax is C<kerint2(x)>.
 
@@ -5374,7 +5374,7 @@ use C<lllint>. The result is a square
 transformation matrix C<T> such that C<x .  T> is an LLL-reduced
 basis of the lattice generated by the column vectors of C<x>. The
 computations are done with real numbers (i.e. not with rational numbers) hence
-are fast but as presently programmed (version 1.39.3) are numerically unstable.
+are fast but as presently programmed (version 1.39.03.01) are numerically unstable.
 An older version of this program is C<lll1>.
 
 The library syntax is C<lll(x,prec)>.
@@ -5388,7 +5388,7 @@ which is now square is the Gram matrix of the lattice vectors, and
 not the coordinates of the vectors themselves. The result is again
 the transformation matrix C<T> which gives (as columns) the coefficients 
 with respect to the initial basis vectors. Same remarks as for LLL about
-numerical instability in the present version 1.39.3. An older version of
+numerical instability in the present version 1.39.03.01. An older version of
 this program is C<lllgram1>.
 
 The library syntax is C<lllgram(x,prec)>.
@@ -5804,7 +5804,7 @@ formal parameter used in the function.
 sum of expression C<expr> over
 the positive divisors of C<n>.
 
-In the present version 1.39.3, C<n> is restricted to being less than C<2^{31}>.
+In the present version 1.39.03.01, C<n> is restricted to being less than C<2^{31}>.
 
 The library syntax is X<divsomme>divsommeC<(entree *ep, GEN num, char *ch)>.
 
@@ -6145,9 +6145,9 @@ be drawn twice, and the windows are considered transparent.
 
 The library syntax is C<rectdraw(list)>.
 
-Note that in the present version 1.39.3{} this function has been written for the 
+Note that in the present version 1.39.03.01{} this function has been written for the 
 X11-window system (hence also for GUI's based on X11 such as
-Openwindows and Motif), and for Sunview/Suntools.
+Openwindows and Motif), Gnuplot output, and for Sunview/Suntools.
 
 
 
@@ -6225,9 +6225,9 @@ represented by the expression C<expr>, C<x> going from C<a> to C<b>. Since this
 involves around 1000 function calls, it is advised to keep the current
 precision to a minimum (i.e. 9) before calling C<ploth>.
 
-Note that in the present version 1.39.3{} this function has been written for the 
+Note that in the present version 1.39.03.01{} this function has been written for the 
 Macintosh, the X11-window system (hence also for GUI's based on X11 such as
-Openwindows and Motif), and for Sunview/Suntools. An Atari/gem version is also
+Openwindows and Motif), Gnuplot output, and for Sunview/Suntools. An Atari/gem version is also
 available upon request.
 
 The library syntax is X<ploth>plothC<(entree *ep, GEN a, GEN b, char *ch, long int prec)>.
@@ -6242,9 +6242,9 @@ a> to C<b>. Since this involves around 1000 function calls times the number
 of functions, it is advised to keep the current precision to a minimum 
 (i.e. 9) before calling C<ploth>.
 
-Note that in the present version 1.39.3{} this function has been written 
+Note that in the present version 1.39.03.01{} this function has been written 
 only for the X11-window system (hence also for GUI's based on X11 such as
-Openwindows and Motif).
+Openwindows and Motif), and Gnuplot output.
 
 The library syntax is X<plothmult>plothmultC<(entree *ep, GEN a, GEN b, char *ch, long int prec)>.
 
@@ -6258,9 +6258,9 @@ C<t> going from C<a> to C<b>. The expression must be a two-component vector.
 Since this involves around 2000 function calls, it is advised to keep the 
 current precision to a minimum (i.e. 9) before calling C<ploth2>.
 
-Note that in the present version 1.39.3{} this function has been written for
+Note that in the present version 1.39.03.01{} this function has been written for
 the Macintosh, the X11-window system (hence also for GUI's based on X11 such as
-Openwindows and Motif), and for Sunview/Suntools. An Atari/gem version is also
+Openwindows and Motif), Gnuplot output, and for Sunview/Suntools. An Atari/gem version is also
 available upon request.
 
 The library syntax is X<ploth2>ploth2C<(entree *ep, GEN a, GEN b, char *ch, long int prec)>.
@@ -6276,9 +6276,24 @@ C<y>.
 
 The library syntax is C<plothraw(listx,listy)>.
 
-Note that in the present version 1.39.3{} this function has been written for
+Note that in the present version 1.39.03.01{} this function has been written for
 the X11-window system (hence also for GUI's based on X11 such as
-Openwindows and Motif), and for Sunview/Suntools.
+Openwindows and Motif), Gnuplot output, and for Sunview/Suntools.
+
+
+
+=head2 X<plothrawlines>plothrawlinesC<(listx,listy)>
+
+high precision plot of a
+broken line.  The (x,y)-coordinates of the nodes are in the vectors of
+equal length listx and listy. Automatic positioning and scaling is
+done, but with the same scaling factor on C<x> and C<y>.
+
+The library syntax is C<plothrawlines(listx,listy)>.
+
+Note that in the present version 1.39.03.01{} this function has been written for
+the X11-window system (hence also for GUI's based on X11 such as
+Openwindows and Motif), Gnuplot output, and for Sunview/Suntools.
 
 
 
@@ -6352,6 +6367,16 @@ The library syntax is C<rectrbox(w,dx,dy)> where C<w> is a C-long integer.
 
 
 
+=head2 X<rcopy>rcopyC<(sourcew,destw,dx,dy)>
+
+Copy the contents of the
+rectwindow C<sourcew> into the rectwindow C<destw> with offsets C<(dx,dy)>.
+
+The library syntax is C<rectcopy(sourcew,destw,dx,dy)> where
+C<sourcew>, C<destw> are C-long integers.
+
+
+
 =head2 X<rline>rlineC<(w,dx,dy)>
 
 draw in the rectwindow C<w> the part of the
@@ -6360,6 +6385,27 @@ is the current position of the virtual cursor, and move the virtual cursor to
 C<(x1+dx,y1+dy)> (even if it is outside the window).
 
 The library syntax is C<rectrline(w,dx,dy)> where C<w> is a C-long integer.
+
+
+
+=head2 X<rlines>rlinesC<(w,xs,ys)>
+
+draw a broken line on the rectwindow
+C<w>.  C<xs> is the vector of first coordinates of nodes, C<ys> is the
+vector of second coordinates of nodes.
+
+The library syntax is C<rectpoints(w,xs,ys)> where C<w> is a C-long integer.
+
+
+
+=head2 X<rlinetype>rlinetypeC<(w,t)>
+
+set visual representation of lines
+in the rectwindow C<w>.  Supported on some terminal types only.  Type
+-2 is used by internal PARI functions to draw frames, -1 for
+axes, E<gt>=0 for the rest. 
+
+The library syntax is C<rectlinetype(w,t)> where C<w>, C<t> are C-long integers.
 
 
 
@@ -6373,6 +6419,62 @@ The library syntax is C<rectrmove(w,dx,dy)> where C<w> is a C-long integer.
 
 
 
+=head2 X<rploth>rplothC<(w,X=a,b,expr,flag,npoints)>
+
+high precision plot
+of the function(s) C<y=f(x)> represented by the expression C<expr>, C<x>
+going from C<a> to C<b>.  Plot is put into rectangle C<w>.  Since this
+involves 1000s function calls, it is advised to keep the current
+precision to a minimum (i.e. 9) before calling C<rploth>.
+
+To plot single rectangular-coordinate graph C<expr> should return a
+scalar.  For parametric plot C<expr> should return a vector of length
+C<2n>, C<n> being the number of graphs.  Otherwise C<expr> should return
+a vector of length equal to the number of graphs created.
+
+Binary digits of C<flag> denote: 1 PARAMETRIC, 2 SINGLE, 8 NO_AXE_X, 16
+NO_AXE_Y, 32 NO_FRAME, 64 POINTS.  C<npoints> specifies number of
+reference points on the graph.  If numpoints is 0, maximal possible
+number of points is chosen.  
+
+Returns a vector for bounding box. As a side effect rectwindow is
+rescaled.
+
+Note that in the present version 1.39.03.01{} this function has been written for the 
+Macintosh, the X11-window system (hence also for GUI's based on X11 such as
+Openwindows and Motif), Gnuplot output, and for Sunview/Suntools. An Atari/gem version is also
+available upon request.
+
+The library syntax is X<recplothmultin>recplothmultinC<(long w, entree *ep, GEN a, GEN b, char *ch, long int prec, uLong flags, long testpoints)>.
+
+
+
+=head2 X<rplothraw>rplothrawC<(w,frame,data,flag)>
+
+plot graph(s) for C<data>
+in rectwindow C<w>, C<frame> is a vector with C<xmin>, C<xmax>, C<ymin>,
+C<ymax> as components, C<data> is a vector of vectors.  If the plot is
+parametric, the length of C<data> should be even, and pairs of entries
+parametrize curves to plot. If not parametric, first entry gives
+C<x>-coordinate, rest are C<y>-coordinates for curves.
+
+Binary digits of C<flag> denote: 1 PARAMETRIC, 8 NO_AXE_X, 16
+NO_AXE_Y, 32 NO_FRAME, 64 POINTS.  C<npoints> specifies number of
+reference points on the graph.  If C<npoints> is 0, maximal possible
+number of points is chosen.  
+
+Returns a vector for bounding box. As a side effect rectwindow is
+rescaled.
+
+Note that in the present version 1.39.03.01{} this function has been written for the 
+Macintosh, the X11-window system (hence also for GUI's based on X11 such as
+Openwindows and Motif), Gnuplot output, and for Sunview/Suntools. An Atari/gem version is also
+available upon request.
+
+The library syntax is X<recplothraw>recplothrawC<(long drawrect, GEN frame, GEN data, long flags, long prec)>.
+
+
+
 =head2 X<rpoint>rpointC<(w,dx,dy)>
 
 draw the point C<(x1+dx,y1+dy)> on the rectwindow
@@ -6380,6 +6482,27 @@ C<w> (if it is inside C<w>), where C<(x1,y1)> is the current position of the
 cursor, and in any case move the virtual cursor to position C<(x1+dx,y1+dy)>.
 
 The library syntax is C<rectrpoint(w,dx,dy)> where C<w> is a C-long integer.
+
+
+
+=head2 X<rpoints>rpointsC<(w,xs,ys)>
+
+draw the points on the rectwindow
+C<w>.  C<xs> is the vector of first coordinates, C<ys> is the vector of
+second coordinates.  Points which do not fit into rectangle are not put.
+
+The library syntax is C<rectpoints(w,xs,ys)> where C<w> is a C-long integer.
+
+
+
+=head2 X<rpointtype>rpointtypeC<(w,t)>
+
+set visual representation
+(picture/color) of points in the rectwindow C<w>.  Supported on some
+terminal types only.  Type -1 is represented by a point, positive type
+give something else.
+
+The library syntax is C<rectpointtype(w,t)> where C<w>, C<t> are C-long integers.
 
 
 
@@ -6558,7 +6681,7 @@ In any case, multiple labels in a given seq should be avoided.
 Also, good programming practice implies that the 
 C<goto> instruction should be used only in special cases, such as getting
 out of a deeply nested set of control instructions in one step.
-In fact, in the present version 1.39.3, the C<goto> instruction almost always
+In fact, in the present version 1.39.03.01, the C<goto> instruction almost always
 leads to syntax errors hence should be avoided, except as a means to stop a
 program catastrophically without getting out of GP. This may be corrected in a
 future release.
@@ -6610,6 +6733,16 @@ is initially equal to zero the C<seq> will not be evaluated at all.
 
 In addition to the general PARI functions, it is necessary to have some functions
 which will be of use specifically for GP. They are as follows:
+
+
+
+=item X<addhelp>addhelpC<(symbol,string)>
+
+Associate help string
+``C<string>'' to the symbol C<symbol>.
+
+If the help string starts as ``C<symbol(arg1,arg2,...)>'', the
+arguments may be used for completion of function names in interactive mode.
 
 
 
@@ -6682,7 +6815,7 @@ order of importance of the variables will be C<[z,y,x]>.
 outputs C<list> in TeX format. This
 output can then be used in a TeX manuscript. 
 
-Warning: in the present version 1.39.3, the printing is done on the standard
+Warning: in the present version 1.39.03.01, the printing is done on the standard
 output, hence to be able to get the output into a file, you must be either
 in an emacs session or shell (see section 11), in a windowing system (which enables
 you to grab the output with the mouse), under a UNIX script command, or with

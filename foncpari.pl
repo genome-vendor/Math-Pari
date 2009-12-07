@@ -72,8 +72,12 @@ for (keys %interfaces) {
 
 print "\tTotal number of unsupported interfaces: ",scalar @unsupported,":\n";
 for $i (sort {$a <=> $b} @unsupported) {
-  print "Interface $i$code{$i} used in $interfaces{$i} function(s): ",
+  print "Interface $i=$code{$i} used in $interfaces{$i} function(s): ",
      join(", ", @f=grep($interface{$_}==$i, keys %interface)), ".\n";
+  if ($code{$i}) {
+    $write = write_interface($i,$code{$i});
+    $suggest{$i} = $write if defined $write;
+  }
   $total += $interfaces{$i};
   push(@ff,@f);
 }
@@ -85,7 +89,94 @@ for $g (sort {$a <=> $b} keys %group) {
   print "group $g:\t", join(', ', sort @{$group{$g}}), "\n";
 }
 
+if (%suggest) {
+  print "Suggested code for interfaces:\n\n";
+  
+  for $i (sort keys %suggest) {
+    print $suggest{$i};
+  }
+  for $i (sort keys %suggest) {
+    print <<EOI;
+	   CASE_INTERFACE($i);
+EOI
+  }
+  print "\n";
+  for $i (sort keys %suggest) {
+    print <<EOI;
+		   case $i:
+EOI
+  }
+}
+
 sub usage {die "Usage: $0 [path/to/anal.c] [path/to/Pari.xs]\n"}
 
 sub warnl {warn "Unrecognized line:\n$_"}
 
+sub write_interface {
+  my ($num, $interface) = @_;
+  my ($int) = $interface =~ /^"(.*)"$/ or return;
+  my @types;
+  my @c_arg_names;
+  my $ret_type = 'GEN';
+  
+  while (length $int) {
+    if ($int =~ s/^s//) {
+      push @types, 'char *';
+      push @c_arg_names, 'arg' . scalar @types;
+    } elsif ($int =~ s/^l//) {
+      $ret_type = 'long';
+    } elsif ($int =~ s/^L//) {
+      push @types, 'long';
+      push @c_arg_names, 'arg' . scalar @types;
+    } elsif ($int =~ s/^V=//) {
+      push @types, 'PariVar';
+      push @c_arg_names, 'arg' . scalar @types;
+    } elsif ($int =~ s/^I//) {
+      push @types, 'PariExpr';
+      push @c_arg_names, 'arg' . scalar @types;
+    } elsif ($int =~ s/^G//) {
+      push @types, 'GEN';
+      push @c_arg_names, 'arg' . scalar @types;
+    } elsif ($int =~ s/^p//) {
+      push @c_arg_names, 'prec';
+    } else {
+      print "tail `$int' of interface$num unsupported\n";
+      return;
+    }
+  }
+  my @args = map {"arg$_"} 1 .. @types;
+  my $args = join ', ', @args;
+  my $c_args = join ', ', @c_arg_names;
+  my $i = 0;
+  $argdecl = join '', map {$i++; "    $_ arg$i\n"} @types;
+  
+  my $out = <<EOA;
+
+$ret_type
+interface$num($args)
+long	oldavma=avma;
+EOA
+  $out .= $argdecl;
+  $out .= <<EOA;
+ CODE:
+  {
+    dFUNCTION($ret_type);
+
+    if (!FUNCTION) {
+      croak("XSUB call through interface did not provide *function");
+    }
+
+    RETVAL=FUNCTION($c_args);
+  }
+ OUTPUT:
+   RETVAL
+EOA
+  if ($ret_type ne 'GEN') {
+    $out .= <<EOA;
+ CLEANUP:
+   avma=oldavma;
+EOA
+  }
+  $out .= "\n";
+  $out;
+}

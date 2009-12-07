@@ -26,17 +26,6 @@ extern "C" {
   #define VARARG
 #endif
 
-/* I did not know about XSANY that time, but it show how tricky things
- * are. */
-/* #define dFUNCTION1(retv)  retv (*FUNCTION)(VARARG) = \ */
-/*             (retv (*)(VARARG)) CvXSUBANY( SvTYPE(ST(items)) == SVt_PVCV ? \ */
-/* 					    ST(items): \ */
-/* 					    (SvTYPE(ST(items)) == SVt_PVGV ? \ */
-/* 					       (SV*)GvCV(ST(items)): \ */
-/* 					       wrongT(ST(items), \ */
-/* 						      __FILE__, __LINE__)) \ */
-/* 					 ).any_dptr */
-
 #define dFUNCTION(retv)  retv (*FUNCTION)(VARARG) = \
             (retv (*)(VARARG)) XSANY.any_dptr
 
@@ -192,6 +181,7 @@ PARIvar(char *s)
   found:
   sv = NEWSV(909,0);
   sv_setref_pv(sv, "Math::Pari::Ep", (void*)ep);
+  make_PariAV(sv);
   return sv;
 }
 
@@ -312,8 +302,10 @@ bindVariable(SV *sv)
       override = 1;
   }
   ep = findVariable(sv, 1);
-  if (override)
+  if (override) {
       sv_setref_pv(sv, "Math::Pari::Ep", (void*)ep);
+      make_PariAV(sv);
+  }
   return ep;
 }
 
@@ -716,6 +708,9 @@ Arr_FETCH(GEN g, I32 n)
 	croak("Array index %i out of range", n);
     return (GEN)g[n + 1];
 }
+
+typedef int (*FUNC_PTR)();
+#define set_gnuterm(a,b) set_term_funcp((FUNC_PTR)(a),(struct termentry *)(b))
 
 MODULE = Math::Pari PACKAGE = Math::Pari PREFIX = Arr_
 
@@ -1591,6 +1586,177 @@ PariExpr	arg3
  OUTPUT:
    RETVAL
 
+# These interfaces were automatically generated:
+
+long
+interface16(arg1)
+long	oldavma=avma;
+    char * arg1
+ CODE:
+  {
+    dFUNCTION(long);
+
+    if (!FUNCTION) {
+      croak("XSUB call through interface did not provide *function");
+    }
+
+    RETVAL=FUNCTION(arg1);
+  }
+ OUTPUT:
+   RETVAL
+ CLEANUP:
+   avma=oldavma;
+
+
+GEN
+interface19(arg1, arg2)
+long	oldavma=avma;
+    long arg1
+    long arg2
+ CODE:
+  {
+    dFUNCTION(GEN);
+
+    if (!FUNCTION) {
+      croak("XSUB call through interface did not provide *function");
+    }
+
+    RETVAL=FUNCTION(arg1, arg2);
+  }
+ OUTPUT:
+   RETVAL
+
+
+GEN
+interface44(arg1, arg2, arg3, arg4)
+long	oldavma=avma;
+    long arg1
+    long arg2
+    long arg3
+    long arg4
+ CODE:
+  {
+    dFUNCTION(GEN);
+
+    if (!FUNCTION) {
+      croak("XSUB call through interface did not provide *function");
+    }
+
+    RETVAL=FUNCTION(arg1, arg2, arg3, arg4);
+  }
+ OUTPUT:
+   RETVAL
+
+
+GEN
+interface45(arg1, arg2, arg3, arg4)
+long	oldavma=avma;
+    long arg1
+    GEN arg2
+    GEN arg3
+    long arg4
+ CODE:
+  {
+    dFUNCTION(GEN);
+
+    if (!FUNCTION) {
+      croak("XSUB call through interface did not provide *function");
+    }
+
+    RETVAL=FUNCTION(arg1, arg2, arg3, arg4, prec);
+  }
+ OUTPUT:
+   RETVAL
+
+
+GEN
+interface59(arg1, arg2, arg3, arg4, arg5)
+long	oldavma=avma;
+    long arg1
+    GEN arg2
+    GEN arg3
+    GEN arg4
+    GEN arg5
+ CODE:
+  {
+    dFUNCTION(GEN);
+
+    if (!FUNCTION) {
+      croak("XSUB call through interface did not provide *function");
+    }
+
+    RETVAL=FUNCTION(arg1, arg2, arg3, arg4, arg5);
+  }
+ OUTPUT:
+   RETVAL
+
+
+GEN
+interface73(arg1, arg2, arg3, arg4, arg5, arg6, arg7)
+long	oldavma=avma;
+    long arg1
+    PariVar arg2
+    GEN arg3
+    GEN arg4
+    PariExpr arg5
+    long arg6
+    long arg7
+ CODE:
+  {
+    dFUNCTION(GEN);
+
+    if (!FUNCTION) {
+      croak("XSUB call through interface did not provide *function");
+    }
+
+    RETVAL=FUNCTION(arg1, arg2, arg3, arg4, arg5, prec, arg6, arg7);
+  }
+ OUTPUT:
+   RETVAL
+
+
+GEN
+interface86(arg1, arg2, arg3, arg4, arg5)
+long	oldavma=avma;
+    PariVar arg1
+    GEN arg2
+    GEN arg3
+    GEN arg4
+    PariExpr arg5
+ CODE:
+  {
+    dFUNCTION(GEN);
+
+    if (!FUNCTION) {
+      croak("XSUB call through interface did not provide *function");
+    }
+
+    RETVAL=FUNCTION(arg1, arg2, arg3, arg4, arg5);
+  }
+ OUTPUT:
+   RETVAL
+
+
+GEN
+interface87(arg1, arg2, arg3)
+long	oldavma=avma;
+    PariVar arg1
+    GEN arg2
+    PariExpr arg3
+ CODE:
+  {
+    dFUNCTION(GEN);
+
+    if (!FUNCTION) {
+      croak("XSUB call through interface did not provide *function");
+    }
+
+    RETVAL=FUNCTION(arg1, arg2, arg3, prec);
+  }
+ OUTPUT:
+   RETVAL
+
+
 bool
 _2bool(arg1,arg2,inv)
 long	oldavma=avma;
@@ -1931,6 +2097,16 @@ loadPari(name)
 	   CASE_INTERFACE(49);
 	   CASE_INTERFACE(83);
 	   CASE_INTERFACE(84);
+	   /* These interfaces were automatically generated: */
+	   CASE_INTERFACE(16);
+	   CASE_INTERFACE(19);
+	   CASE_INTERFACE(44);
+	   CASE_INTERFACE(45);
+	   CASE_INTERFACE(59);
+	   CASE_INTERFACE(73);
+	   CASE_INTERFACE(86);
+	   CASE_INTERFACE(87);
+
 	 default: croak("Unsupported interface %d for a Pari function %s",
 			valence, olds);
 	 }
@@ -1997,6 +2173,15 @@ listPari(tag)
 		   case 49:
 		   case 83:
 		   case 84:
+		       /* These interfaces were automatically generated: */
+	           case 16:
+		   case 19:
+		   case 44:
+		   case 45:
+		   case 59:
+		   case 73:
+		   case 86:
+		   case 87:
 		   XPUSHs(sv_2mortal(newSVpv(fonctions[v].name, 0)));
 	       }
 	   }
@@ -2118,3 +2303,8 @@ void
 changevalue(name, val)
     PariName name
     GEN val
+
+void
+set_gnuterm(a,b)
+    IV a
+    IV b

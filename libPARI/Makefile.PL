@@ -41,7 +41,7 @@ $solaris='';
 
 $libs="-lm";
 $sol_under = ''; 
-@plotfiles = ('plotnull.c', 'plotport.c');
+@plotfiles = ('plotgnuplot.c', 'plotport.c');
 
 @cfiles = ();
 opendir DIR, '.' or die "Cannot opendir . : $!";
@@ -117,6 +117,8 @@ unless (-f 'genpari.h') {
       or die "Cannot copy $genpari to genpari.h";
   }
 }
+
+$mycflags .= " -DDYNAMIC_PLOTTING";
 
 WriteMakefile(
     'NAME'	=> 'Math::PARI::libPARI',

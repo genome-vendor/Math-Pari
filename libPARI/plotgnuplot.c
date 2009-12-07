@@ -133,6 +133,7 @@ PARI_get_plot()
   term_set( DEF_TERM );
 }
 
+
 long
 term_set(char *s)
 {

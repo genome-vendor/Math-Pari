@@ -5,7 +5,7 @@ MANIFEST
 Makefile.PL
 README
 chap3_to_pod
-parifonc.pl
+foncpari.pl
 libPARI.pod
 libPARI/Buglist
 libPARI/Changes
@@ -110,6 +110,7 @@ libPARI/versionport.c
 libPARI/versionsparcv7.c
 libPARI/versionsparcv8.c
 t/Pari.t
+t/PlotRect.t
 t/Testout.t
 t/will_fail.t
 typemap

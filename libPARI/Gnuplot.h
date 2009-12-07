@@ -12,30 +12,31 @@
 /* STRINGIFY:
  *      This macro surrounds its token with double quotes.
  */
-#if 42 == 1
-#define CAT2(a,b)a/**/b
-#define CAT3(a,b,c)a/**/b/**/c
-#define CAT4(a,b,c,d)a/**/b/**/c/**/d
-#define CAT5(a,b,c,d,e)a/**/b/**/c/**/d/**/e
-#define STRINGIFY(a)"a"
-                /* If you can get stringification with catify, tell me how! */
-#endif
-#if 42 == 42
-#define CAT2(a,b)a ## b
-#define CAT3(a,b,c)a ## b ## c
-#define CAT4(a,b,c,d)a ## b ## c ## d
-#define CAT5(a,b,c,d,e)a ## b ## c ## d ## e
-#define StGiFy(a)# a
-#define STRINGIFY(a)StGiFy(a)
-#define SCAT2(a,b)StGiFy(a) StGiFy(b)
-#define SCAT3(a,b,c)StGiFy(a) StGiFy(b) StGiFy(c)
-#define SCAT4(a,b,c,d)StGiFy(a) StGiFy(b) StGiFy(c) StGiFy(d)
-#define SCAT5(a,b,c,d,e)StGiFy(a) StGiFy(b) StGiFy(c) StGiFy(d) StGiFy(e)
-#endif
 #ifndef CAT2
-#include "Bletch: How does this C preprocessor catenate tokens?"
-#endif
- 
+# if 42 == 1
+#  define CAT2(a,b)a/**/b
+#  define CAT3(a,b,c)a/**/b/**/c
+#  define CAT4(a,b,c,d)a/**/b/**/c/**/d
+#  define CAT5(a,b,c,d,e)a/**/b/**/c/**/d/**/e
+#  define STRINGIFY(a)"a"
+                /* If you can get stringification with catify, tell me how! */
+# endif
+# if 42 == 42
+#  define CAT2(a,b)a ## b
+#  define CAT3(a,b,c)a ## b ## c
+#  define CAT4(a,b,c,d)a ## b ## c ## d
+#  define CAT5(a,b,c,d,e)a ## b ## c ## d ## e
+#  define StGiFy(a)# a
+#  define STRINGIFY(a)StGiFy(a)
+#  define SCAT2(a,b)StGiFy(a) StGiFy(b)
+#  define SCAT3(a,b,c)StGiFy(a) StGiFy(b) StGiFy(c)
+#  define SCAT4(a,b,c,d)StGiFy(a) StGiFy(b) StGiFy(c) StGiFy(d)
+#  define SCAT5(a,b,c,d,e)StGiFy(a) StGiFy(b) StGiFy(c) StGiFy(d) StGiFy(e)
+# endif
+# ifndef CAT2
+#   include "Bletch: How does this C preprocessor catenate tokens?"
+# endif
+#endif /* CAT2 */
 
 
 
@@ -103,9 +104,9 @@ struct TERMENTRY {
 };
 
 #ifdef _Windows
-#define termentry TERMENTRY far
+#  define termentry TERMENTRY far
 #else
-#define termentry TERMENTRY
+#  define termentry TERMENTRY
 #endif
 
 extern struct termentry term_tbl[];
@@ -143,7 +144,7 @@ extern struct termentry term_tbl[];
        (term<=0) ? (						\
 	 croak("No terminal specified") returnval		\
        ) :							\
-       (*(CAT2(F_,mult))term_tbl[term].method)args		\
+       (*(CAT2(F_,mult))my_term_tbl[term].method)args		\
      )
 
 #define init()	CALL_G_METH0(init)
@@ -160,9 +161,55 @@ extern struct termentry term_tbl[];
 #define point(x,y,p)	CALL_G_METH3(point,x,y,p)
 #define arrow(sx,sy,ex,ey,head)	CALL_G_METH5(arrow,sx,sy,ex,ey,head)
 
-#define termprop(prop) (term_tbl[term].prop)
-#define termset(term) change_term(term,strlen(term))
+#define termprop(prop) (my_term_tbl[term].prop)
+#define termset(term) my_change_term(term,strlen(term))
 int change_term(char*,int);
+
+#ifdef DYNAMIC_PLOTTING			/* Can load plotting DLL later */
+
+UNKNOWN_null()
+{
+    err(talker,"gnuplot-like plotting environment not loaded yet");
+}
+
+static FUNC_PTR change_term_p;
+
+int 
+my_change_term(char*s,int l) 
+{
+    if (!change_term_p)
+	UNKNOWN_null();
+    term = (*change_term_p)(s,l);
+}
+
+#  define change_term(p,l) my_change_term(p,l)
+#  define term_tbl (my_term_tbl)
+
+static struct termentry dummy_term_tbl[] = {
+    {"unknown", "Unknown terminal type - not a plotting device",
+	  100, 100, 1, 1,
+	  1, 1, UNKNOWN_null, UNKNOWN_null, UNKNOWN_null, 
+	  UNKNOWN_null, UNKNOWN_null, UNKNOWN_null, UNKNOWN_null, UNKNOWN_null, 
+	  UNKNOWN_null, UNKNOWN_null, UNKNOWN_null,
+     UNKNOWN_null, UNKNOWN_null, UNKNOWN_null},
+};
+static struct termentry *my_term_tbl = dummy_term_tbl;
+
+/* This function should be called before any graphic code can be used... */
+set_term_funcp(FUNC_PTR change_p, struct termentry *term_p)
+{
+    my_term_tbl = term_p;
+    change_term_p = change_p;
+}
+
+#else /* !DYNAMIC_PLOTTING */
+
+#  define my_change_term change_term
+#  define my_term_tbl term_tbl
+
+#endif /* DYNAMIC_PLOTTING */
+
+
 
 #ifdef __cplusplus
   }

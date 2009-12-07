@@ -519,7 +519,29 @@ Some PARI functions, like C<length> and C<eval>, are Perl
 import them, or call them with prefix (like C<&length>) or the full
 name (like C<Math::Pari::length>).
 
+=item string($w, $text)
+
+will not coerce a number into C<8+3> format.  You need to use
+C<sprintf "%8.3f", $text> explicitely.
+
 =back
+
+=head1 High-resolution graphics
+
+If you have Term::Gnuplot installed, you may use high-resolution
+graphic primitives of B<PARI>.  Before the usage you need to establish
+a link between Math::Pari and Term::Gnuplot by calling link_gnuplot().
+You can change the output filehandle by calling set_plot_fh(), and
+output terminal by calling plotterm(), as in
+
+    use Math::Pari ':all';
+
+    open FH, '>out.tex' or die;
+    link_gnuplot();
+    set_plot_fh(\*FH);
+    plotterm('emtex');
+    ploth($x, .5, .999, sub {asin $x});
+    close FH or die;
 
 =head1 libPARI documentation
 
@@ -541,10 +563,6 @@ A few of PARI functions are available indirectly only.
 =item F<t/failing.t>
 
 This test suite exposes several bugs.
-
-=item C<forvec>, C<forstep>
-
-cannot take an argument of the form C<sub {...}> now.
 
 =back
 
@@ -581,7 +599,7 @@ PARI PARIcol PARImat PARIvar PARImat_tr
 @EXPORT_OK = qw(
   sv2pari sv2parimat pari2iv pari2nv pari2num pari2pv pari2bool loadPari _bool
   listPari pari_print pari_pprint pari_texprint O ifact gdivent gdivround
-  changevalue
+  changevalue set_plot_fh link_gnuplot
 );
 
 use subs qw(
@@ -746,21 +764,29 @@ sub string ($$) {
 my $name;
 
 for $name (split /,\s+/, qq(buchimag, buchreal,
-			    buchgen, buchgenforcefu, buchgenfu, buchinit,
-			    buchinitforcefu, buchinitfu,
-			    forstep, forvec, plotterm, rcopy, rlinetype,
-			    rploth, rplothraw, rpointtype, scale, string,
-			    addhelp, kill)) {
+    buchgen, buchgenforcefu, buchgenfu, buchinit, buchinitforcefu, buchinitfu,
+    string,
+    addhelp, kill)) {
   push @EXPORT_OK, $name;
   next if defined &$name;
-  if ($name =~ /^for/) {
-    *$name = sub {my $var=shift;local $"=','; PARI("$name($var=@_)")}
+  # string needs to format numbers to 8.3...
+  if ($name eq 'addhelp' or $name eq 'string') {
+    *$name = sub {PARI("$name($_[0],'$_[1]')")}
   } else {
     *$name = sub {local $"=','; PARI("$name(@_)")}
   }
 }
 
+sub link_gnuplot {
+  eval 'use Term::Gnuplot 0.4; 1' or die;
+  set_gnuterm(Term::Gnuplot::change_term_address(), 
+	      Term::Gnuplot::term_tbl_address());
+}
 
+sub set_plot_fh {
+  eval 'use Term::Gnuplot 0.4; 1' or die;
+  Term::Gnuplot::set_gnuplot_fh(@_);
+}
 
 1;
 __END__

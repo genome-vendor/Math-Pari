@@ -148,6 +148,6 @@ sub TeXprint {
        | eta | iota | varphi | kappa | lambda | mu | nu | omicron
        | pi | theta | rho | sigma | tau | ypsilon | varpi | omega
        | xi | psi | zeta) (\b|(?=[\d_]|[A-Z]<))/F<$1>/xg;
-  s/\\vers(\b|(?=[\d_]))/$version/ if defined $version;
+  s/\\vers(\{\}|\b|(?=[\d_]))/$version/ if defined $version;
   print;
 }

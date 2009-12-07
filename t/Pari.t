@@ -351,6 +351,14 @@ test 17 == Math::Pari::longword(-PARI(17),2); # 100
 test not defined eval { Math::Pari::longword((-PARI(17)),3); 1}; # 101
 test not defined eval { Math::Pari::longword((-PARI(17)),-3); 1}; # 102
 
+test 35906707  == (  (PARI(3)**60)  >> 70); # 103
+test -35906708 == ((-(PARI(3)**60)) >> 70); # 104
+test  4794036  == ( (1 . (0 x 100)) >> PARI(310)); # 105
+test -4794037  == ((-1 . (0 x 100)) >> PARI(310)); # 106
+test PARI(6)**100 == (PARI(3)**100 << 100); # 107
+my $pow3_50 = PARI(3)**50;
+test PARI(6)**50  == ("$pow3_50" << PARI 50); # 108
+
 my $ow;
 BEGIN {
   $ow = $^W;
@@ -369,4 +377,4 @@ BEGIN {
   $^W = $ow;
 }
 
-sub last {102}
+sub last {108}

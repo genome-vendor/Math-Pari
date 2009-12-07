@@ -152,6 +152,25 @@ long offStack;
 
 #define pari_version_exp() PARI_VERSION_EXP
 
+#if PARI_VERSION_EXP >= 2002001
+
+GEN gcopy_av(GEN x, GEN *AVMA);
+
+#else	/* !( PARI_VERSION_EXP >= 2002001 ) */
+
+GEN gcopy_av(GEN x, GEN *AVMA)
+{
+    long pos = (long)*AVMA;
+
+    pos -= taille(x)<<TWOPOTBYTES_IN_LONG;
+    *AVMA = (GEN)pos;
+    brutcopy(x, *AVMA);
+    return *AVMA;
+}
+
+
+#endif	/* PARI_VERSION_EXP >= 2002001 */
+
 #if PARI_VERSION_EXP >= 2000018
 
 GEN
@@ -161,6 +180,24 @@ _gbitneg(GEN g)
 }
 
 #endif	/* PARI_VERSION_EXP >= 2000018 */ 
+
+#if PARI_VERSION_EXP >= 2002001
+
+GEN
+_gbitshiftl(GEN g, long s)
+{
+    return gshift3(g, s, 0);
+}
+
+
+GEN
+_gbitshiftr(GEN g, long s)
+{
+    return gshift3(g, -s, signe(g) < 0); /* Bug up to 2.2.2: 1 should be OK */
+}
+
+
+#endif	/* PARI_VERSION_EXP >= 2002001 */
 
 void
 make_PariAV(SV *sv)
@@ -644,10 +681,19 @@ do_nv:
     return newSVnv(gtodouble(in));	/* XXXX to NV, not to double? */
 }
 
+double
+_gtodouble(GEN x)
+{
+  static long reel4[4]={ evaltyp(t_REAL) | m_evallg(4),0,0,0 };
+
+  if (typ(x)==t_REAL) return rtodbl(x);
+  gaffect(x,(GEN)reel4); return rtodbl((GEN)reel4);
+}
+
 SV*
 pari2nv(GEN in)
 {
-  return newSVnv(gtodouble(in));
+  return newSVnv(_gtodouble(in));
 }
 
 SV*
@@ -910,11 +956,10 @@ callPerlFunction(entree *ep, ...)
     res = sv2pari(sv);			/* XXXX When to decrement the count? */
     /* We need to copy it back to stack, otherwise we cannot decrement
      the count.  XXXX not necessary! */
-    avma -= taille(res)<<TWOPOTBYTES_IN_LONG;
-    brutcopy(res, (GEN)avma);
+    res = gcopy_av(res, (GEN*)&avma);
     SvREFCNT_dec(sv);
     
-    return (GEN)avma;
+    return res;
 }
 
 /* Currently with <=6 arguments only! */
@@ -977,11 +1022,10 @@ exprHandler_Perl(char *s)
     res = sv2pari(sv);
     /* We need to copy it back to stack, otherwise we cannot decrement
      the count. */
-    avma -= taille(res)<<TWOPOTBYTES_IN_LONG;
-    brutcopy(res, (GEN)avma);
+    res = gcopy_av(res, (GEN*)&avma);
     SvREFCNT_dec(sv);
     
-    return (GEN)avma;
+    return res;
 }
 
 
@@ -1077,6 +1121,10 @@ fill_argvect(entree *ep, char *s, long *has_pointer, GEN *argvec,
 		argvec[i++] = sv2pari(args[j++]);
 		break;
 
+	    case 'M': /* long or a mneumonic string (string not supported) */
+		while (s[0] && s[0] != ',')
+		    s++;		/* Skip descriptor of mneumonics */
+		/* Fall through */
 	    case 'L': /* long */
 		argvec[i++] = (GEN) (long)SvIV(args[j]);
 		j++;
@@ -1152,6 +1200,11 @@ fill_argvect(entree *ep, char *s, long *has_pointer, GEN *argvec,
 				break;
 			    }
 			    goto unknown;
+			case 'M': /* long or a mneumonic string
+				     (string not supported) */
+			    while (s[1] && s[1] != ',')
+				s++;	/* Skip descriptor of mneumonics */
+			    /* Fall through */
 			case 'L': /* long */
 			    argvec[i++] = (GEN) atol(pre);
 			    break;
@@ -1904,6 +1957,36 @@ long	arg2
  OUTPUT:
    RETVAL
 
+# With fake arguments for overloading
+# This is very hairy: we need to chose the translation of arguments
+# depending on the value of inv
+
+GEN
+interface2199(arg1,arg2,inv)
+long	oldavma=avma;
+GEN	arg1 = NO_INIT
+long	arg2 = NO_INIT
+bool	inv
+ CODE:
+  {
+    dFUNCTION(GEN);
+
+    if (!FUNCTION) {
+      croak("XSUB call through interface did not provide *function");
+    }
+    if (inv) {
+	arg1 = sv2pari(ST(1));
+	arg2 = (long)SvIV(ST(0));
+    } else {
+	arg1 = sv2pari(ST(0));
+	arg2 = (long)SvIV(ST(1));	
+    }
+
+    RETVAL = FUNCTION(arg1,arg2);
+  }
+ OUTPUT:
+   RETVAL
+
 
 GEN
 interface22(arg1,arg2,arg3)
@@ -2076,7 +2159,7 @@ long	arg2
    avma=oldavma;
 
 GEN
-interface31(arg1,arg2,arg3=0,arg4=0)
+interface31(arg1,arg2=0,arg3=0,arg4=0)
 long	oldavma=avma;
 GEN	arg1
 GEN	arg2
@@ -2189,7 +2272,7 @@ PariExpr	arg4
    RETVAL
 
 GEN
-interface47(arg1,arg2,arg3,arg4,arg0=gun)
+interface47(arg1,arg2,arg3,arg4,arg0=0)
 long	oldavma=avma;
 GEN	arg0
 PariVar	arg1
@@ -2210,7 +2293,7 @@ PariExpr	arg4
    RETVAL
 
 GEN
-interface48(arg1,arg2,arg3,arg4,arg0=gzero)
+interface48(arg1,arg2,arg3,arg4,arg0=0)
 long	oldavma=avma;
 GEN	arg0
 PariVar	arg1
@@ -2617,6 +2700,14 @@ loadPari(name)
 		   } else if (strEQ(name,"_gbitneg")) {
 		       valence=199;
 		       func=(void (*)(void*)) _gbitneg;
+#if PARI_VERSION_EXP >= 2002001
+		   } else if (strEQ(name,"_gbitshiftl")) {
+		       valence=2199;
+		       func=(void (*)(void*)) _gbitshiftl;
+		   } else if (strEQ(name,"_gbitshiftr")) {
+		       valence=2199;
+		       func=(void (*)(void*)) _gbitshiftr;
+#endif
 		   } 
 		   break;
 #endif
@@ -2805,6 +2896,7 @@ loadPari(name)
 	   CASE_INTERFACE(299);
 	   CASE_INTERFACE(209);
 	   CASE_INTERFACE(2099);
+	   CASE_INTERFACE(2199);
 	   CASE_INTERFACE(3);
 	   CASE_INTERFACE(30);
 	   CASE_INTERFACE(4);
@@ -2921,6 +3013,7 @@ listPari(tag)
 		   case 299:
 		   case 209:
 		   case 2099:
+		   case 2199:
 		   case 3:
 		   case 30:
 		   case 4:

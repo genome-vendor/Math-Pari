@@ -1,8 +1,8 @@
 a) Math::Pari is the PERL interface to the PARI part of GP/PARI
    (version 2.*).  The info about GP/PARI is on
    http://www.parigp-home.de/
-   The first 4 digits after the point of the version of Math::Pari
-   reflect the latest version of GP/PARI it was tested with.
+   Interger part and the first 4 digits after the point in the version
+   of Math::Pari reflect the latest version of GP/PARI it was tested with.
 
    The next paragraph is an excerpt from documentation inside Pari.pm:
 
@@ -11,7 +11,13 @@ a) Math::Pari is the PERL interface to the PARI part of GP/PARI
      use of most PARI functions (>500) as Perl functions, and (almost)
      seamless merging of PARI and Perl data.
 
-b) In most cases, this module can be installed as all the others, by
+b) This module includes C part; thus it is requires a *fully* working Perl
+   installation, including a C compiler which Perl knows about.  Since
+   prebuild configurations are typically broken (in many subtle ways),
+   it is not supported unless your perl executable was build on your machine
+   (or otherwise you show that you know what you are talking about ;-).
+
+   Given this, in most cases, this module can be installed as all the others:
 
      perl -MCPAN -e shell
      CPAN> install Math::Pari

@@ -780,6 +780,29 @@ circumvent the same problem:
 Access to array elements may result in similar problems.  Hard to fix
 since in PARI the data is not refcounted.
 
+=item *
+
+Legacy implementations of dynalinking require the code of DLL to be
+compiled to be "position independent" code (PIC).  This slows down the
+execution, while allowing sharing the loaded copy of the DLL between
+different processes.  [On contemeporary architectures the same effect
+is allowed without the position-independent hack.]
+
+Currently, PARI assembler files are not position-independent.  When
+compiled for the dynamic linking on legacy systems, this creates a DLL
+which cannot be shared between processes.  Some legacy systems are
+reported to recognize this situation, and load the DLL as a non-shared
+module.  However, there may be systems (are there?) on which this can
+cause some "problems".
+
+Summary: if the dynaloading on your system requires some kind of C<-fPIC> flag, using "assembler" compiles (anything but C<machine=none>) *may* force you to do a static build (i.e., creation of a custom Perl executable with
+
+ perl Makefile.PL static
+ make perl
+ make test_static
+
+).
+
 =back
 
 =head1 INITIALIZATION
@@ -869,6 +892,8 @@ use subs qw(
    _gbitxor
    _gbitneg
    _to_int
+   _gbitshiftr
+   _gbitshiftl
 );		# Otherwise overload->import would complain...
 
 my $two;
@@ -888,7 +913,7 @@ sub _shiftr {
 $initmem = $initmem || 4000000;		# How much memory for the stack
 $initprimes = $initprimes || 500000;	# Calculate primes up to this number
 
-$VERSION = '2.010201';
+$VERSION = '2.010304';
 
 bootstrap Math::Pari;
 
@@ -917,8 +942,6 @@ use overload qw(
    exp _exp
    log _log
    sqrt _sqrt
-   <<  _shiftl
-   >>  _shiftr
    int _to_int
 );
 
@@ -929,6 +952,18 @@ if (pari_version_exp() >= 2000018) {
 			 ^ _gbitxor
 			 ~ _gbitneg
 			) );
+}
+
+if (pari_version_exp() >= 2002001) {
+  'overload'->import( qw(
+			 << _gbitshiftl
+			 >> _gbitshiftr
+			) );
+} else {
+  'overload'->import( qw(
+			 << _shiftl
+			 >> _shiftr
+			) );  
 }
 
 sub AUTOLOAD {

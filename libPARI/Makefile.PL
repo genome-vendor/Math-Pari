@@ -1,157 +1,33 @@
-		    use ExtUtils::MakeMaker;
-		    use Config '%Config';
-# Based on Makemakefile shell script by Bruno Haible 10.12.1992,
-# modified by Babecool 23.7.1993
-# Created by Ilya Zakharevich <ilya@math.ohio-state.edu>
+use ExtUtils::MakeMaker;
+use Config '%Config';
+
+BEGIN {unshift @INC, 'utils'}
+use Math::PariBuild;
 
 $main_paridir = $common::main_paridir;
 die "Please start Makefile.PL at toplevel, not in libPARI"
   unless $main_paridir;
 
-if ($main_paridir =~ m,^([a-z]:)?/,i) {
+if ($main_paridir =~ m,^([a-z]:)?[/\\],i) {
   $main_paridir = $common::main_paridir;
 } else {
   $main_paridir = "../$common::main_paridir";
 }
 
 $pari_version = $common::pari_version;
-
-# The following two functions are based on the logic in the PARI
-# Configure script:
-
-sub process_sparc {
-  my $info = shift;
-  #	    *TMS390Z5[05]*) arch=sparcv8_super;; # SuperSparc I or II
-  #	    *CY605*)        arch=sparcv8_super;;
-  #	    *MB86934*)      arch=sparcv8_super;; # SparcLite
-  #	    *RT625*)        arch=sparcv8_super;; # HyperSparc
-  return 'sparcv8_super' if $info =~ /TMS390Z5[05]|CY605|MB86934|RT625/;
-  #	    *TMS390S1[05]*) arch=sparcv8_micro;; # MicroSparc I
-  #	    *MB86904*)      arch=sparcv8_micro;; # MicroSparc II
-  #	    *MB86907*)      arch=sparcv8_micro;; # TurboSparc
-  return 'sparcv8_micro' if $info =~ /TMS390S1[05]|MB8690[47]/;
-  return shift;
-}
-
-sub process_machine {
-  my $os = (split ' ', $Config{myuname})[0];
-  my $machine = $os;
-  if ($os =~ /^hp/) {
-    $machine = 'hppa';
-  } elsif ($os eq 'os2' or $os eq 'freebsd') {
-    $machine = 'ix86';
-  } elsif ($os eq 'ultrix') {
-    $machine = 'mips';
-  } elsif ($os eq 'nextstep' or -d '/NextApps') {
-    chomp($machine = `file /bin/sh | sed 's/.*(for architecture \(.*\))/\1/'`);
-  } elsif ($os eq 'osf1') {
-    $machine = 'alpha' if (split ' ', $Config{myuname})[4] eq 'alpha';
-  } elsif ($os =~ /^cygwin/) {
-    $machine = $ENV{HOSTTYPE};
-  } elsif ($os eq 'linux') {
-    chomp($machine = `uname -m`);
-    if (-e '/proc/cpuinfo') {
-      open IN, '/proc/cpuinfo' or die "open /proc/cpuinfo: $!";
-      local $/ = undef;		# Needed?
-      my $info = <IN>;
-      close IN or die "close /proc/cpuinfo: $!";
-      $machine = process_sparc $info, $machine;
-    }
-  } elsif ($os eq 'sunos') {
-    my $type = (split ' ', $Config{myuname})[4];
-    if ($type =~ /^sun3/) {
-      $machine = 'm68k';
-    } elsif ($type =~ /^sun4[ce]/) {
-      $machine = 'sparcv7';
-    } elsif ($type =~ /^sun4[dm]/) {
-      local $ENV{PATH} = "$ENV{PATH}:/dev/sbin";
-      my $info = `(prtconf||devinfo)2>&-`;
-      $info = join ' ', grep /TI,|FMI,|Cypress,|Ross,/, split "\n", $info;
-      $machine = process_sparc $info, 'sparcv8';
-    } elsif ($type eq 'sun4u') {
-      $machine = 'sparcv9';
-    } elsif ($type =~ /^i.*pc$/) {
-      $machine = 'ix86';
-    } elsif ((split ' ', $Config{myuname})[3] eq 'sun') {
-      $machine = 'm86k';
-    }
-  }
-  # For older PARI:
-  ###  $machine = 'sparcv8super'
-  ###    if $machine eq 'sparcv9' or $machine eq 'sparcv8_hyper'
-  ###       or $machine eq 'sparcv8_super';
-  ###  $machine = 'sparcv8micro' if $machine eq 'sparcv8_micro';
-
-  # This part is probably not needed and never entered
-  if (not defined $machine
-      and $Config{myuname}
-      =~ /\b(sun3|sparcv7|sparcv8_micro|sparcv8_super|alpha|hppa|[ix]\d86)\b/) {
-    $machine = $1;
-  } elsif (not defined $machine) {
-    chomp($machine = `uname -m`);
-  }
-  $machine =~ s/[ix]\d86/ix86/ if defined $machine;
-
-  print "...Processor of family `$machine' detected\n";
-  return $machine;
-}
-
-# This part (same as the functions above) follows Configure of PARI.
-
-if (not defined $machine and defined $common::machine) {
-  $machine = $common::machine;
-} elsif (not defined $machine and @ARGV and $ARGV[0] =~ /^machine=(.*)$/i) {
-  $machine = $1; shift;
-}
-
+$machine = $common::machine unless defined $machine;
 if (defined $machine) {
   print "...Via command-line: processor family `$machine'\n";
 } else {
-  $machine = process_machine;
+  $machine = find_machine_architecture;
 }
 
-%asmarch = (
-	    sun3	   => 'm86k',
-	    sparc	   => 'sparcv8_micro',
-	    sparcv9	   => 'sparcv8_micro',
-	    port	   => 'none',
-	    mips	   => 'none',
-	    fx2800	   => 'none',
-	    hppa	   => ($Config{osvers} =~ /^.\.09/
-			       ? 'none' : 'hppa'),
-	   );
-
-$asmarch = $asmarch{$machine} || $machine; # Temporary only, reverts to 'none'
-if ($asmarch eq 'none') {
-  print "...I will  use portable assembler-less build\n";
-} else {
-  print "...I will  use assembler build of type '$asmarch'.\n";
-}
-
-print <<EOP if $asmarch eq 'hppa';
-###
-###  Apparently current HPPA assembler files are not relocatable,
-###  thus probably unsuitable for dynamic linking.
-###  It is advisable to restart Makefile.PL with an extra argument
-###     machine=port
-###  if you are planning for dynamic linking of Math::Pari.
-###
-###  NOTE:  machine=port results in a significant drop in performance.
-###  For a static build:
-###    perl Makefile.PL LINKTYPE=static
-###    make static
-###    make perl
-###    make test
-###    make install
-###
-EOP
+# Choose which assembler files to use
+$asmarch = choose_and_report_assembler($machine);
+# $machine used as a coarse-grain factor below, $asmarch as a fine-grain
+$machine = 'port' if $asmarch eq 'none';
 
 # This part is based on analysing Makefile.SH in */kernel/* subdirectories.
-
-$sparcv8_have_kernel2 = 
-  !$Config{gccversion} || $Config{osname} =~ /^(linux|nextstep)$/;
-
-# Using gnu assembler XXXX: how to find?
 
 if ($machine =~ /sparc|alpha|hppa/) {
   $asscmd = '$(AS) $(ASFLAGS)';	#  $(CCCDLFLAGS)?
@@ -159,150 +35,37 @@ if ($machine =~ /sparc|alpha|hppa/) {
   $asscmd = '$(CCCMD) $(CCCDLFLAGS)';
 }
 
-{
-  local $/;
-  $ass = $ENV{AS} || 'as';
-  open ASS, "$ass --version 2>&1 |";
-  eval { 
-    local $SIG{ALRM} = sub {die};
-    eval {alarm 10};			# Be extra safe...
-    $assout = <ASS>;
-    close ASS;
-    unless ($assout) {
-      open ASS, "$ass -v 2>&1 |";
-      $assout = <ASS>;
-      close ASS;
-    }
-    eval {alarm 0};
-  };
-  $Using_gnu_as = 1 if $assout and $assout =~ /GNU/;
+$Using_gnu_as = is_gnu_as();
+print STDERR "...Assembler is GNU assembler\n" if $Using_gnu_as;
+
+$asmcpp_define = '';
+if ($Using_gnu_as and $^O eq 'solaris' and $asmarch =~ /^sparc/) {
+  $asmcpp_define = '-DNO_UNDERSCORE';
+  $asmcpp_define .= ' -D__GNUC__' if $Config{gcc};
 }
 
-$sparcv8_cvt = $Using_gnu_as || $Config{osname} =~ /^(linux|nextstep)$/;
-$sparcv8_inl = ( $sparcv8_cvt
-		 ? ['none/asm0.h','none/level1.h']
-		 : ['sparcv8/level0.h','none/level1.h'] );
+# Which files to compile and how to build levels1/2 kernel
+$kernels = kernel_files($asmarch, $pari_version, $Using_gnu_as);
+kernel_fill_data($kernels, \%kernel);
 
-# These files are cat()ed to pariinl.h
-%inlines = (
-	    alpha	   => ['none/asm0.h','none/level1.h'],
-	    hppa	   => ['none/asm0.h','none/level1.h'],
-	    ix86	   => ['ix86/level0.h','none/level1.h'],
-	    m86k	   => ['ix86/level0.h','none/level1.h'],
-	    none	   => ['none/level0.h','none/level1.h'],
-	    # ppc is not done yet (2.0.15)
-	    sparcv7	   => ['none/asm0.h','none/level1.h'],
-	    sparcv8	   => $sparcv8_inl,
-	    sparcv8_micro => $sparcv8_inl,
-	    sparcv8_super => $sparcv8_inl,
-	    # sparcv9 is not done yet (2.0.15)
-	   );
+# remaining kernel C files
+$kernel_dir  = '$(PARI_DIR)/src/kernel/';
+$mp	     = "$kernel_dir/none/mp.c";
+$mpinl	     = "$kernel_dir/none/level1.c"; # Non-inlined versions of inlines
+$mpinlh	     = "$kernel_dir/none/level1.h"; # Put as a dependence
 
-unless (exists $inlines{$asmarch}) {
-  warn <<EOW;
-####	Do not know how to build for assembler `$asmarch'.	####
-####	Reversing to assembler-less type `port'.		####
-####						 		####
-####	If you think your processor's assembler is supported	####
-####	by PARI, edit libPARI/Makefile.PL and report.		####
-####						 		####
-####	Alternatively, specify machine=YOURTYPE on the		####
-####	  perl Makefile.PL line			 		####
-####	Recognized types:			 		####
-####	  alpha hppa m86k none sparcv7 sparcv8 sparcv8_micro	####
-####	  sparcv8_super ix86			 		####
-EOW
-  $machine = 'port';
-  $asmarch = 'none';
-}
 
-$inlines = $inlines{$asmarch} or die "Unknown inlines for '$asmarch'";
-@inlines = map "\$(PARI_DIR)/src/kernel/$_", @$inlines;
-
-# Based on what to do with kernel$(OBJ_EXT).
-
-# Format (last two optional):
-#   [Which file to compile, whether you need to preprocess it to ./kernel1.s,
-#    Additional file to compile, need? to preprocess it to ./kernel2.s,]
-
-$_ext = (($pari_version < 2000015) ? 's' : 'S');
-
-$sparcv8_kernel = ($sparcv8_cvt
-		   ? ["sparcv8/level0.$_ext", 1,
-		      "sparcv8/level0_$asmarch.$_ext", 1]
-		   : ["sparcv8/level0.$_ext", 0,
-		      "sparcv8/level0_$asmarch.$_ext", 0]);
-
-$sparcv8_kernel = [$sparcv8_kernel->[2], $sparcv8_kernel->[3]]
-  unless $sparcv8_have_kernel2;
-
-# Default ["$asmarch/level0.s", 0]
-%level0 = (
-	   alpha	   => '',
-	   hppa	   => '',	# was ['none/level0.c', 0] before 2.001500
-	   ix86	   => ['ix86/l0asm.c', 1],
-	   m86k	   => ["none/level0.c", 0],
-	   none	   => ["none/level0.c", 0],
-	   # ppc is not done yet (2.0.15)
-	   sun3	   => '',
-	   sparcv7	   => '',
-	   # Following 2 guys should be fixed on linux/NS
-	   sparcv8	   => $sparcv8_kernel,
-	   sparcv8_micro => $sparcv8_kernel,
-	   sparcv8_super => $sparcv8_kernel,
-	   # sparcv9 is not done yet (2.0.15)
-	  );
-
-$kernel1machine = $level0{$asmarch} || ["$asmarch/level0.s", 0];
-
-# The original file
-$kernel1		= "\$(PARI_DIR)/src/kernel/$kernel1machine->[0]";
-$kernel1convert	= $kernel1machine->[1];
-
-# The compiled file
-$kernel1c	= $kernel1convert ? 'kernel1.s' : $kernel1;
-
-# Extra bookkeeping
-($kernel1h	= $kernel1) =~ s/\.c$/.h/;
-$kernel1h	= '' unless -r $kernel1h;
-($kernel1dir	= $kernel1) =~ s/[^\/]*\.c$//;
-
-# Additional file to compile (original and converted)
-$kernel2	= $kernel2c = "\$(PARI_DIR)/src/kernel/$kernel1machine->[2]";
-$kernel2	= $kernel2c = '' unless $kernel1machine->[2];
-$kernel2c	= 'kernel2.s'
-  if $kernel1machine->[3];
-
-%mp = ( );
-$mp_machine = $mp{$asmarch} || 'none/mp.c';
-$mp = "\$(PARI_DIR)/src/kernel/$mp_machine";
-
-%mpinl = ( );
-$mpinl_machine = $mpinl{$asmarch} || 'none/level1.c';
-$mpinl = "\$(PARI_DIR)/src/kernel/$mpinl_machine";
-($mpinlh = $mpinl) =~ s/\.c$/.h/;
-
-$libs="-lm";
-$sol_under = ''; 
-
-#@cfiles = ();
-#opendir DIR, '.' or die "Cannot opendir . : $!";
-#while (defined ($_ = readdir DIR)) {
-#  push @cfiles, $_ if /\.c$/i 
-#    and not /^(plot|ix86|version|mpin|dummy)/;
-#}
-#closedir DIR or die "Cannot closedir . : $!";
-
-@cfiles = <$main_paridir/src/*/*.c>;
-# Bug in globbing on Win?
-my $may_be_missed = "$main_paridir/src/gp/gp.c";
-push @cfiles, $may_be_missed
-  if -f $may_be_missed and not grep m:src/gp/gp.c:, @cfiles;
-@cfiles = grep !/\/(plot|ix86|version|mpin|dummy|gp_rl|gp_init|kerntest|gp\.)/, @cfiles;
+@cfiles =			# Remaining C files
+  grep !m(/ ( plot (?!port|gnuplot)
+	    | ix86 | version | mpin | dummy
+	    | gp_(rl|init) | kerntest | whatnow | gp\. )
+	 )x,  <$main_paridir/src/*/*.c>; # kernel C files deeper in the tree
+@cfiles = grep ! m(/test/[^/]+\.c$), @cfiles;
 map s/^\Q$main_paridir/\$(PARI_DIR)/, @cfiles;
-%cfiles = map {m,/([^/.]*)\.c$,i; ($1,$_)} @cfiles;
+%cfiles = map {m,/([^/.]*)\.c$,i; ($1,$_)} @cfiles; # By basename
 
-$noexp2 = '';			# Not used any more!
+$noexp2 = '';			# Not used any more - but would be nice!
+$libs="-lm";
 if ($Config{osname} eq 'solaris') {
   @sc_dirs = '/opt/SUNWspro/lib' if -d '/opt/SUNWspro/lib';
   @sc_dirs = </opt/SUNWspro/SC*/lib> unless @sc_dirs;
@@ -311,9 +74,8 @@ if ($Config{osname} eq 'solaris') {
   if (@sc_dirs) {
     $libs .= " -L$sc_dirs[-1] -lsunmath";
   } else {
-    $noexp2 = 1;    
+    $noexp2 = 1;
   }
-  $sol_under = '_nounder';	# Need to filter
 } elsif ($Config{osname} eq 'sunos') {
   # $machine = 'sparcv8_super' if $Config{myuname} =~ /\bsun4m\b/o;
   $mycflags .= ' -DULONG_NOT_DEFINED';
@@ -322,25 +84,27 @@ if ($Config{osname} eq 'solaris') {
 # We remove optimize options, since Perl probably knows them
 # and one can specify "OPTIMIZE=-O2 -m486" on the command line
 
+my $inc = '';
 if ($Config{cc} eq 'gcc') {
-  #$mycflags="-O2 -g";		# We do not put -ansi to avoid versioncflags
-  $mycflags="";		# We do not put -ansi to avoid versioncflags
+  # We do not put -ansi to avoid versioncflags
+  $mycflags="";			#$mycflags="-O2 -g";
+  if ($Config{osname} eq 'os2') {
+    # 2.1.3 does not include dlctl.h
+    $mycflags .= ' -DRTLD_LAZY=0 -DRTLD_GLOBAL=0';
+    $inc .= ' -I$(PERL_INC)';
+  }
 } elsif ($machine eq 'hppa') {
-  #$mycflags="-O -Aa -DHPPA";
-  $mycflags="-Aa -DHPPA";
+  $mycflags="-Aa -DHPPA";	#$mycflags="-O -Aa -DHPPA";
 } elsif ($machine eq 'ix86') {
-  #$mycflags="-O2 -m486";
-  $mycflags="";
+  $mycflags="";			#$mycflags="-O2 -m486";
 } else {
-  #$mycflags="-O";
-  $mycflags="";
+  $mycflags="";			#$mycflags="-O";
 }
 
 # These are not needed with newer versions of PARI
 # $mycflags .= ' -Dshifts=pari_shifts'; # Conflict with libnsl
 
-$my_redefines = '-Derr=pari_err';
-$mycflags .= " $my_redefines"; # On linux it can get a wrong dynamic loading
+$mycflags .= ' -Derr=pari_err'; # On linux it can get a wrong dynamic loading
 
 if ($machine eq 'alpha') {
   $mycflags .= " -DLONG_IS_64BIT";
@@ -354,82 +118,67 @@ if ($machine eq 'alpha') {
   $noexp2 = 1;
 }
 
-$mp_cflags = '';
-if ($machine eq 'sun3') {
-  $mp_cflags = '\$(CPlPl) \$(NOASM)'; # NOASM seems to be empty
-} elsif ($machine eq 'port') {
-  push @portfiles, 'mp.c';
-  $mycflags .= " -D__HAS_NO_ASM__";
+$mycflags .= " -D__HAS_NO_ASM__" if $machine eq 'port';
+
+if ($Config{gccversion}
+    and not ($asmarch eq 'alpha' 
+	     and $Config{gccversion} !~ /^(3\.)|(2\.95\.3.*)/)) {
+  $mycflags .= " -DASMINLINE";
 }
+$mycflags .= ' -DGCC_INLINE' if $Config{gccversion};
 
-$cfiles{plotgnuplot} = '$(PARI_DIR)/src/graph/plotgnuplot.c';
-$cfiles{plotport} = '$(PARI_DIR)/src/graph/plotport.c';
-
-@obj_files = map { "$_\$(OBJ_EXT)" } keys %cfiles;
-push @obj_files, 'kernel$(OBJ_EXT)', 'mp$(OBJ_EXT)', 'mpinl$(OBJ_EXT)',
-  ($kernel2c
-   ? 'kernel2$(OBJ_EXT)'
-   : ());
-
-#unless (-f 'genpari.h') {
-#  $genpari = ($machine eq 'sun3' ? 'genpari68k.h' : 'genpariother.h');
-#  eval {link $genpari, 'genpari.h'} or do {
-#    require File::Copy; 
-#    File::Copy::copy ($genpari, 'genpari.h') 
-#      or die "Cannot copy $genpari to genpari.h";
-#  }
-#}
+@obj_files = map { "$_\$(OBJ_EXT)" } keys(%cfiles), qw(kernel mp mpinl);
+push @obj_files, 'kernel2$(OBJ_EXT)' if $kernel{converted2};
 
 $mycflags .= " -DDYNAMIC_PLOTTING";
 # OMF build needs no underscores:
 $mycflags .= " -D__NO_AOUT" if $^O eq 'os2' and !$OS2::is_aout;
 
-%assflags = (
-	     alpha  => "-O1",
-	     sparc  => ($Config{osname} eq 'solaris' 
-			? "-P -T -I."
-			: "-P -I."),
-	     hppa   => "+DA1.1",
-	    );
-
-$assflags{$machine} = $assflags{sparc} if $machine =~ /sun3|sparc/;
-$assflags{$machine} .= ' -D__GNUC__' # hiremainder problem with gcc on Solaris
-  if not $Using_gnu_as and $Config{gccversion};
-
 WriteMakefile(
     NAME	=> 'Math::PARI::libPARI',
     LINKTYPE	=> 'static',
     LIBS	=> $libs,
-    OBJECT	=> join(' ', @obj_files), 
-    macro	=> { 
+    OBJECT	=> join(' ', @obj_files),
+    macro	=> {
 		    PARI_DIR	  => $main_paridir,
-		    MP_CFLAGS	  => $mp_cflags,
-		    SOL_UNDER	  => $sol_under, 
 		    ADD_AR_OPT	  => ($add_ar_flags || ''),
 		    CPP		  => $Config{cppstdin},
 		    CPPMINUS	  => $Config{cppminus},
-		    ASSCMD	  => "$asscmd $my_redefines",
-		    ASFLAGS	  => $assflags{$machine} || '',
+		    ASSCMD	  => $asscmd,
+				# Extra defines when CPPing assembler files:
+		    ASSCPPDEFINE  => $asmcpp_define,
+				# Use this when assembling:
+		    ASFLAGS	  => assembler_flags($machine, $Using_gnu_as),
+				# defines used when assembling:
+		    ASSDEFINE	  => ($Using_gnu_as ? '' : '$(DEFINE)'),
 		   },
     DEFINE	=> $mycflags,
-    INC		=> '-I$(PARI_DIR)/src/headers -I$(PARI_DIR)/src/graph -I.',
+    INC		=> '-I$(PARI_DIR)/src/headers -I$(PARI_DIR)/src/graph -I.'
+			. $inc,
     C		=> \@cfiles,
     SKIP	=> [qw( distclean test dist makeaperl xs_o static)],
-    clean	=> {'FILES' => 
+    clean	=> {FILES =>
 		    'libPARI$(LIB_EXT) pariinl.h kernel1.s kernel2.s paricfg.h'},
 );
 
+# Create preprocessed copies of assembler files (GNU as does not run cpp);
+# Create .h file with inlining rules and an object file mpinl with
+# non-inlined versions of normally inlined functions.
+# Assemble assembler files.
+# Compile C files from a *different* directory.
+# Create a library;
 sub MY::top_targets {
   my $converted = '';
-  $converted = <<EOC if $kernel2c eq 'kernel2.s' or $kernel1c eq 'kernel1.s';
-kernel1.s: $kernel1 $kernel1h
-	\$(CPP) -I. \$(INC) -I$kernel1dir \$(DEFINE) \$(CPPMINUS) < $kernel1 | perl -ne "s/%\\s+/%/g; print unless /^\\s*#/" > \$@
+  my @inlines = inline_headers($asmarch);
+  $converted = <<EOC if $kernel{convert};
+kernel1.s: $kernel{file1} $kernel{header1}
+	\$(CPP) -I. \$(INC) -I$kernel{dir1} \$(DEFINE) \$(ASSCPPDEFINE) $kernel{file1} | perl -ne "s/%\\s+/%/g; print unless /^\\s*#/" > \$@
 
-kernel2.s: $kernel2
-	\$(CPP) -I. \$(INC) -I$kernel1dir \$(DEFINE) \$(CPPMINUS) < $kernel2 | perl -ne "s/%\\s+/%/g; print unless /^\\s*#/" > \$@
+kernel2.s: $kernel{file2}
+	\$(CPP) -I. \$(INC) -I$kernel{dir1} \$(DEFINE) \$(ASSCPPDEFINE) $kernel{file2} | perl -ne "s/%\\s+/%/g; print unless /^\\s*#/" > \$@
 
 EOC
-  '
+  return '
 all :: libPARI$(LIB_EXT)
 
 static ::       libPARI$(LIB_EXT)
@@ -450,24 +199,25 @@ $converted
 mp\$(OBJ_EXT): $mp pariinl.h
 	\$(CCCMD) \$(CCCDLFLAGS) \$(DEFINE) -o \$@ $mp
 
-kernel\$(OBJ_EXT): $kernel1c pariinl.h
-	\$(ASSCMD) \$(DEFINE) -o \$@ $kernel1c
+kernel\$(OBJ_EXT): $kernel{converted1} pariinl.h
+	\$(ASSCMD) \$(ASSDEFINE) -o \$@ $kernel{converted1}
 
-kernel2\$(OBJ_EXT): $kernel2c pariinl.h
-	\$(ASSCMD) \$(DEFINE) -o \$@ $kernel2c
+kernel2\$(OBJ_EXT): $kernel{converted2} pariinl.h
+	\$(ASSCMD) \$(ASSDEFINE) -o \$@ $kernel{converted2}
 
 mpinl\$(OBJ_EXT): $mpinl $mpinlh pariinl.h
 	\$(CCCMD) \$(CCCDLFLAGS) \$(DEFINE) -o \$@ $mpinl
 
 } .
-    join "\n", map { <<EOF } keys %cfiles;
+    join "\n", map { <<EOF } sort keys %cfiles;
 $_\$(OBJ_EXT): $cfiles{$_} pariinl.h paricfg.h
 	\$(CCCMD) \$(CCCDLFLAGS) \$(DEFINE) -o \$@ $cfiles{$_}
 EOF
 }
 
 
-
+# Rewrite pic option to PIC in CCCDLFLAGS,
+# Why manipulate LD* when no ld is done here (static build only?)
 sub MY::const_config
 {
  my $self = shift;

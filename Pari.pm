@@ -765,7 +765,7 @@ sub AUTOLOAD {
 $initmem = $initmem || 4000000;		# How much memory for the stack
 $initprimes = $initprimes || 500000;	# Calculate primes up to this number
 
-$VERSION = '2.0011_00';
+$VERSION = '2.0011_01';
 
 bootstrap Math::Pari;
 

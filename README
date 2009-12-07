@@ -28,50 +28,33 @@ well, access it as Math::libPARI:
   perldoc Math::libPARI
   man Math::libPARI
 
-If you have a not very old perl (5.003 should do), then
+For long instructions to install Math::Pari see file INSTALL.  Short
+instructions work if you have PARI build directory, or have Net::FTP
 
-  a) Get the latest PARI distribution from
-	ftp://megrez.math.u-bordeaux.fr/pub/pari/unix/
+  a) Get the latest beta version of Math::Pari.  Note that CPAN.pm will
+     not autofetch beta versions of modules, so you need to fetch it
+     as a distribution if you want to use CPAN.pm, similar to
 
-  b) uncompress the distribution and run 'Configure' script
-	sh ./Configure
+	perl -MCPAN -e shell
+	CPAN> d Math::Pari
+	CPAN> test ILYAZ/modules/Math-Pari-2.0011_03.tar.gz
 
-  c) It is not required to make PARI, but you can do it nevertheless:
-	make test
-     in toplevel PARI directory;
+     or manually FTP the file, extract it, and try to build
 
-  d) uncompress the Math::Pari archive into a separate directory (for
-     best results make it a subdirectory of PARI's root directory);
-
-  e) Apply patches from patches subdirectory of Math::Pari (patches
-     are made for PARI 2.0.11.beta, your mileage may vary);
-
-  f) _Optionally_ find the architecture of your processor (if it is not
-     known/supported and recognized automatically, the slower 'port' code
-     without assembler should be used).  Recognized "processors" are 
-
-	sun3 sparcv7 sparcv8micro sparcv8super alpha hppa i386 port
-
-     the current version should autorecognize them in most situations;
-
-  g) do
-
-	perl Makefile.PL 
-		or
-	perl Makefile.PL machine=hppa
-     then
-
-	make
+        tar -zxfv Math-Pari-2.0011_03.tar.gz
+	cd Math-Pari-2.0011_03
+	perl Makefile.PL
 	make test
 
-     (expect several failures from t/*_will_fail.t, but other tests should
-     pass). 
+  b) If the necessary patches were not applied to the latest version
+     of PARI yet, you need to manually apply the patches (see INSTALL)
+     in the build directory after "make test" fails, and redo
 
-  h) Now
+	make test
 
-	make install
+  c)	make install
 
-     should make this extension available to the perl programs.
+     will finish the installation
 
 (lowercase test scripts translate native PARI tests from GP syntax to
 Perl syntax.  You can get a better understanding of these translations

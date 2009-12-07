@@ -435,6 +435,7 @@ PariOUT perlErr={svErrputc, svErrputs, svErrflush, svErrdie};
 GEN
 sv2pari(SV* sv)
 {
+  if (SvGMAGICAL(sv)) mg_get(sv); /* MAYCHANGE in perlguts.pod - bug in perl */
   if (SvROK(sv)) {
       SV* tsv = SvRV(sv);
       if (SvOBJECT(tsv)) {
@@ -817,6 +818,9 @@ Arr_FETCH(GEN g, I32 n)
 	croak("Access to elements of not-a-vector");
     if (n >= l || n < 0)
 	croak("Array index %i out of range", n);
+#if 0
+    warn("fetching %d-th element of type %d", n, typ((GEN)g[n + 1]));
+#endif
     return (GEN)g[n + 1];
 }
 

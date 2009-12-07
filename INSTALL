@@ -1,0 +1,70 @@
+The short install procedure is described in README.  Here is the long one:
+
+If you have Net::FTP module installed (type
+
+	perl -MNet::FTP -le "print 'OK'"
+
+to check, and, say
+
+	perl -MCPAN -e 'install Net::FTP'
+
+to install it if you do not have it), then Makefile.PL may fetch and
+configure PARI for you, so you can skip steps a,b,c in the description
+below.  You need to manually apply patches *after doing*
+
+	perl Makefile.PL
+
+if the PARI distribution is 2.0.11, maybe later too.
+
+If you have a not very old perl (5.003 should do), then
+
+  a) Get the latest PARI distribution from
+	ftp://megrez.math.u-bordeaux.fr/pub/pari/unix/
+
+  b) uncompress the distribution and run 'Configure' script
+	sh ./Configure
+
+  c) It is not required to make PARI, but you can do it nevertheless:
+	make test
+     in toplevel PARI directory;
+
+  d) uncompress the Math::Pari archive into a separate directory (for
+     best results make it a subdirectory of PARI's root directory);
+
+  e) Apply patches from patches subdirectory of Math::Pari (patches
+     are made for PARI 2.0.11.beta, your mileage may vary);
+
+	cd pari-2.0.11-beta          # or whatever it is
+	patch -p1 < ../patches/diff_pari_gnuplot_aa
+	patch -p1 < ../patches/patches_round1
+	patch -p1 < ../patches/diff_pari_fixed_interfaces_011 
+	patch -p1 < ../patches/diff_pari_highlevel_hash_011a
+	patch -p1 < ../patches/diff_pari_ret_proto_2011
+
+  f) _Optionally_ find the architecture of your processor (if it is not
+     known/supported and recognized automatically, the slower 'port' code
+     without assembler should be used).  Recognized "processors" are 
+
+	sun3 sparcv7 sparcv8micro sparcv8super alpha hppa i386 port
+
+     the current version should autorecognize them in most situations;
+
+  g) do
+
+	perl Makefile.PL 
+		or
+	perl Makefile.PL machine=hppa
+     then
+
+	make
+	make test
+
+     (expect several failures from t/*_will_fail.t, but other tests should
+     pass). 
+
+  h) Now
+
+	make install
+
+     should make this extension available to the perl programs.
+

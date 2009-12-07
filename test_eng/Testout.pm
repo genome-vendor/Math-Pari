@@ -22,9 +22,9 @@ print "1..$tests\n";
 prec($3 || $1, 1) if $mess =~ /realprecision = (\d+) significant digits( \((\d+) digits displayed\))?/;  
 
 $| = 1;
-@seen{qw(Pi I Euler a x y z k t q u j l n v p name other mhbi
+@seen{qw(Pi I Euler getrand a x y z k t q u j l n v p name other mhbi a2 a1 a0 b0 b1
 	 acurve bcurve ccurve cmcurve tcurve mcurve ma mpoints)} 
-  = (' ', ' ', ' ', ('$') x 100);
+  = (' ', ' ', ' ', ' ', ('$') x 100);
 for (keys %seen) {
   $$_ = PARI($_);
 }
@@ -166,10 +166,25 @@ sub o_format {
   return " PARI('O($var)') ";
 }
 
+sub process_cond {
+  my ($what, $cond, $then, $else, $initial) = @_;
+  die if $initial =~ /Skip this/;
+  # warn "Converting `$in'\n`$what', `$cond', `$then', `$else'\n";
+  if (($what eq 'if') ne (defined $else)) {
+    return "Skip this `$initial'";
+  } elsif ($what eq 'if') {
+    return "( ($cond) ? ($then) : ($else) )";
+  } else {
+    return "do { $what ($cond) { $then } }";
+  }
+}
+
 sub process_test {
   my ($in, $noans, $out) = @_;
   my $doprint;
   $doprint = 1 if $noans eq 'print';
+  my $was_prev = $prev;
+  undef $prev;
   $c++;
   # First a trivial processing:
   $in =~ s/\b(\d+|[a-z]+\(\))\s*\\\s*(\d+(\^\d+)?)/ gdivent($1,$2)/g; # \
@@ -179,6 +194,8 @@ sub process_test {
   $in =~ s/^default\(realprecision,(.*)\)/\\p $1/; # Some cases of default()
   $in =~ s/^default\(seriesprecision,(.*)\)/\\ps $1/; # Some cases of default()
   $in =~ s/(\w+)\s*\\(\w+(\s*\^\s*\w+)?)/gdivent($1,$2)/g; # random\10^8
+  $in =~ s/%(?!\s*[\[_\w])/\$was_prev/g; # foo(%)
+  $in =~ s/\b(for)\s*\(\s*(\w+)=/&$1($2,/g; # for(x=1,13,print(x))
   if ($in =~ /^\\p\s*(\d+)/) {
     prec($1);
   } elsif ($in =~ /^\\ps\s*(\d+)/) {		# \\ for division unsupported
@@ -189,8 +206,8 @@ sub process_test {
   } elsif ($in =~ /^(\w+)\s*\([^()]*\)\s*=/ and 0) { # XXXX Not implemented yet
     $c--;
     process_definition($1, $in);
-  } elsif ($in =~ /[!_\']/) {	# Factorial
-    print "# `$in'\nok $c # Skipping (ifact/conj/deriv)\n";
+  } elsif ($in =~ /[!\']/) {	# Factorial
+    print "# `$in'\nok $c # Skipping (ifact/deriv)\n";
   } else {
     # work with "^", need to treat differently inside o()
     $in =~ s/\^/^^^/g;
@@ -198,9 +215,54 @@ sub process_test {
     $in =~ s/\^\^\^/**/g;	# Now treat it outside of O()
     $in =~ s/\[([^\[\];]*;[^\[\]]*)\]/format_matrix($1)/ge; # Matrix
     $in =~ s/\[([^\[\];]*)\]\s*~/format_vvector($1)/ge; # Vertical vector
-    $in =~ s/\bif\(([^(,)]+),([^(,)]+),([^(,)]+)\)/(($1) ? ($2) : ($3))/g; # if(a,b,c)
+ eval {
+    1 while $in =~ s/
+	      \b (if|while|until) \( 
+	      (
+		(?:
+		  [^(,)]+ 
+		  (?=
+		    [(,)]
+		  )
+		|
+		  \( [^()]* \)
+		)*		# One level of parenths supported
+	      )
+	      , 
+	      (
+		(?:
+		  [^(,)]+ 
+		  (?=
+		    [(,)]
+		  )
+		|
+		  \( [^()]* \)
+		)*		# One level of parenths supported
+	      )
+	      (?:
+		, 
+		(
+		  (?:
+		    [^(,)]+ 
+		    (?=
+		      [(,)]
+		    )
+		  |
+		    \( [^()]* \)
+		  )*		# One level of parenths supported
+		)
+              )?
+	      \)
+	    /process_cond($1, $2, $3, $4, $in)/xge; # if(a,b,c)
+ };
     if ($in =~ /\[[^\]]*;/) {	# Matrix
       print "# `$in'\nok $c # Skipping (matrix notation)\n";
+      return;
+    } elsif ($in =~ /Skip this `(.*)'/) {
+      print "# `$1'\nok $c # Skipping (runaway conversion)\n";
+      return;
+    } elsif ($in =~ /&for\s*\([^\)]*$/) {	# Special case
+      print "# `$in'\nok $c # Skipping (runaway input line)\n";
       return;
     } elsif ($in =~ /(^|[\(=,])%/) {
       print "# `$in'\nok $c # Skipping (history notation)\n";
@@ -208,8 +270,9 @@ sub process_test {
     } elsif ($in =~ /
 		      (
 			\b 
-			( while | until | if | for | goto | label | changevar
-                          | gettime | forstep | default
+			( if | goto | label | input | break
+			  # | while | until
+                          | gettime | default | sizebyte
                           # XXXX These need to be done ASAP:
 			  | sumalt | prodinf 
                         )
@@ -225,8 +288,8 @@ sub process_test {
 			)?
 			p? print \( 
 			( \[ | (1 ,)? PARImat )
-		      |
-			\b forprime .* \){4}
+		      |	  # Too many parens: will not be wrapped in sub{...}
+		      	\b forprime .* \){4}
 		      )
 		    /x) {
       if (defined $3) {
@@ -256,12 +319,11 @@ sub process_test {
 	     and $in =~ / \b ($installed) \s* \( /x) {
       print "# `$in'\nok $c # Skipping (installed function)\n";
       return;
-    } elsif ($in =~ / \b ( deu=direuler | bnrisprincipal | nfisideal
-			   | idealhnf .* 3 | nfgaloisapply ) \b /x
-	     and $file !~ /will_fail/) {
-      # XXXX Will result in a wrong answer, but we moved these tests to a different
-      print "# `$in'\nok $c # Skipping (would fail, checked in different place)\n";
-      return;
+#    } elsif ($in =~ / \b ( sizebyte ) \b /x
+#	     and $file !~ /will_fail/) {
+#      # XXXX Will result in a wrong answer, but we moved these tests to a different
+#      print "# `$in'\nok $c # Skipping (would fail, checked in different place)\n";
+#      return;
     } elsif ($in =~ /\bget(heap|stack)\b/) { # Meaningless
       print "# `$in'\nok $c # Skipping meaningless\n";
       return;
@@ -270,7 +332,7 @@ sub process_test {
       return;
     }
     # Convert transposition
-    $in =~ s/(\w+(\([^()]*\))?|\[([^\[\]]+(?=[\[\]])|\[[^\[\]]*\])*\])~/mattranspose($1)/g;
+    $in =~ s/(\$?\w+(\([^()]*\))?|\[([^\[\]]+(?=[\[\]])|\[[^\[\]]*\])*\])~/mattranspose($1)/g;
     if ($in =~ /~/) {
       print "# `$in'\nok $c # Skipping (transpose notation)\n";
       return;
@@ -299,7 +361,7 @@ sub process_test {
 	$in =~ s/(^|[\-\(,\[])(\d+)\s*\/\s*(\d+)(?=$|[\),\]])/$1 PARI($2)\/PARI($3) /g;
     }
     # Substitute i= in loop commands
-    if ($in !~ /\bhermite\(/) {	# Special case, not loop
+    if ($in !~ /\b(hermite|mathnf|until)\s*\(/) { # Special case, not loop-with-=
       $in =~ s/([\(,]\w+)=(?!=)/$1,/g;
     }
     # Substitute print
@@ -435,7 +497,7 @@ sub process_test {
 		  |
 		    intopen 
 		  |
-		    for \w+
+		    for \w*
 		  )
 		  \( 
 		  (?:
@@ -551,21 +613,35 @@ sub process_test {
 #	$rres =~ s/\s*([-+])\s*/$1/g if defined $res;
       }
     }
+
     if ($@) {
       if ($@ =~ /^Undefined subroutine &main::(\w+)/ 
 	  and $not_yet_defined{$1}) {
-	print "# in='$in'\nok $c # Skipped: $1 is known to be undefined\n";
+	print "# in='$in'\nok $c # Skipped: `$1' is known to be undefined\n";
       } else {
 	print "not ok $c # in='$in', err='$@'\n";
       }
-    } elsif (not $noans and defined $re_out 
-	     and (not defined $rres or $rres !~ /^$re_out$/)) {
+      return;
+    }
+    my $cmp;
+    if (defined $rres and defined $re_out) {
+      $cmp = eval { $rres =~ /^$re_out$/ };
+      if ($@ and $@ =~ /regexp too big/) {
+	print "ok $c # Skipped: $@\n";
+	@seen{keys %seen_now} = values %seen_now;
+	$prev = $res;
+	return;
+      }
+    }
+    if (not $noans and defined $re_out 
+	     and (not defined $rres or not $cmp)) {
       $out->[0] =~ s/\n/\t/g;	# @$out usually has 1 elt
       print "not ok $c # in='$in'\n#    out='", $rres, "', type='", ref $res,
       "'\n# pari==='", join("\t", @$out), "'\n# re_out='$re_out'\n";
     } elsif (not $noans and defined $re_out) {
       print "ok $c\n";
       @seen{keys %seen_now} = values %seen_now;
+      $prev = $res;
     } elsif (not $noans and (not defined $rres or $rres ne $rout)) {
       print "not ok $c # in='$in'\n#    out='", $rres, "', type='", ref $res,
       "'\n# expect='$rout'\n";
@@ -575,6 +651,7 @@ sub process_test {
     } else {
       print "ok $c\n";
       @seen{keys %seen_now} = values %seen_now;
+      $prev = $res;
     }
   }
 }

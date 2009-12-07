@@ -34,6 +34,9 @@ unless (defined $paridir) {
     $paridir = $gooddirs[-1] if @gooddirs;
   }
 }
+
+$paridir = get_pari() if !$paridir;  
+
 if ($paridir) {
   print <<EOP;
 Found PARI build directory in $paridir 
@@ -92,17 +95,17 @@ opendir TESTS, $paritests
   or die "Cannot find tests in $paritests: $!";
 @tests = readdir TESTS;
 closedir TESTS or die "Cannot find tests (close): $!";
+$sou = 'test_eng/ex.t';
+next if -e $targ and -M $targ <= -M $sou;
+if (not -e "$sou-" or -M "$sou-" > -M $sou) {
+  system "$^X -pe 's,CHANGE_ME,$paridir,' $sou > $sou- "
+    and die "Could not run test converter: $! $?";
+}
+$sou = "$sou-";
 for $test (@tests) {
   next if $test =~ /^\.\.?$/;
   next if $test =~ /compat/;
   $targ = "t/$test.t";
-  $sou = 'test_eng/ex.t';
-  next if -e $targ and -M $targ <= -M $sou;
-  if ($paridir ne '..' and not -e "$sou-") {
-    system "$^X -pe 's,\.\.,$paridir,' $sou > $sou- "
-      and die "Could not run test converter: $! $?";
-    $sou = "$sou-";
-  }
   if (-f $targ) {
     chmod 0666, $targ;
     unlink $targ;
@@ -158,4 +161,115 @@ $(MYEXTLIB): libPARI/Makefile FORCE
 	cd libPARI && $(MAKE) $(PASTHRU)
 ';
 }
+
+sub MY::const_config
+{
+ my $self = shift;
+ my $flags = $self->{'CCCDLFLAGS'}; # Tmp var needed with Perl4 !
+ $flags =~ s/(-[fK]?\s*)pic\b/${1}PIC/; 
+ $self->{'CCCDLFLAGS'} = $flags;
+ if ($^O eq 'MSWin32' && $Config{'ccflags'} =~ /-DPERL_OBJECT/)
+  {
+   $self->{'LDFLAGS'} =~ s/-(debug|pdb:\w+)\s+//g;
+   $self->{'LDDLFLAGS'} =~ s/-(debug|pdb:\w+)\s+//g;
+  }
+ return $self->MM::const_config;
+}
  
+sub get_pari {
+  $host = 'megrez.math.u-bordeaux.fr';
+  $dir  = '/pub/pari/unix/';
+
+  print "Did not find PARI build directory around.\n";
+
+  if (-t STDIN and (-t STDOUT or -p STDOUT)) { # Interactive
+    $| = 1;
+    $mess = <<EOP;
+Do you want to me to fetch PARI automatically?  
+Make sure you have a large scrollback buffer to see the messages.
+Fetch? (y/n, press Enter)
+EOP
+    chomp $mess;
+    print "$mess ";
+    $ans = <>;
+    if ($ans !~ /y/i) {
+      print "Well, as you wish...  I give up...\n";
+      return;
+    }
+  } else {
+    print "Non-interactive session, autofetching...\n"
+  }
+
+  print "Getting PARI from ftp://$host/$dir\n";
+
+  eval { require Net::FTP }
+    or die "You do not have Net::Ftp installing, cannot download, exiting...";
+
+  $ftp = Net::FTP->new($host) or die "Cannot create FTP object: $!";
+  $ftp->login("anonymous","Math::Pari@") or die "Cannot login anonymously: $!";
+  $ftp->cwd($dir) or die "Cannot cwd: $!";
+  $ftp->binary() or die "Cannot switch to binary: $!";
+  @lst = $ftp->ls() or die "Cannot list: $!";
+  #print "list = `@lst'\n";
+  
+  for $file (@lst) {
+    next unless $file =~ /pari.*(\d+\.\d+\.\d+).*\.tar\.gz$/;
+    $version = $1;
+    if ($file =~ /alpha/) {
+      $alpha{$version} = $file;
+    } elsif ($file =~ /beta/) { 
+      $beta{$version} = $file;
+    } else {
+      $gamma{$version} = $file;
+    }
+  }
+  
+  sub fmt_version {sprintf "%03d%03d%03d", split /\./, shift}
+  
+  for $type (qw(alpha beta golden)) {
+    if (%$type) {
+      $have{$type}++;
+      $best = $type;
+      @files = keys %$type;
+      print "Available ${type} versions: `@files'\n";
+      $ {"latest_$type"} = (sort {fmt_version($a) cmp fmt_version($b)} 
+			    keys %$type)[-1];
+      $ {"latest_${type}_file"} = $$type{$ {"latest_$type"}};
+      print qq(Latest $type is ${"latest_${type}_file"}\n);
+    }
+  }
+  
+  if ($best) {
+    $file = $ {"latest_${best}_file"};
+    $version = $ {"latest_$best"};
+    print qq(Picking $best version $version, file $file\n);
+    print qq(Downloading...\n);
+    $ftp->get($file) or die "Cannot get: $!";
+    print qq(Downloaded...\nExtracting...\n);
+    print  "zcat $file | tar -xvf -\n";
+    system "zcat $file | tar -xvf -"
+      and die "Cannot extract: $!, exitcode=$?.\n";
+    ($dir = $file) =~ s/\.tar\.gz$// or die "malformed name `$file'";
+    -d $dir or die "Did not find directory $dir!";
+    print  "cd $dir ; sh ./Configure\n";
+    system "cd $dir ; sh ./Configure"
+      and die "Cannot configure: $!, exitcode=$?.\n";
+    print "Configuration of PARI successful.\n";
+    if ($version eq '2.0.11') {	# Probably not needed for later versions
+      print "Patching...\n";
+      foreach $patch (qw(patch_pari_round0
+			 diff_pari_gnuplot_aa
+			 patches_round1
+			 diff_pari_fixed_interfaces_011
+			 diff_pari_highlevel_hash_011a
+			 diff_pari_ret_proto_2011)) {
+	print  "cd $dir ; patch -p1 < ../patches/$patch\n";
+	system "cd $dir ; patch -p1 < ../patches/$patch";
+      }
+      print "Finished patching...\n";
+    }
+  }
+  
+  $ftp->quit or die "Cannot quit: $!";
+  $dir;
+} 

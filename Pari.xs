@@ -936,7 +936,7 @@ fill_argvect(entree *ep, char *s, long *has_pointer, GEN *argvec,
 			switch (*s) {
 			case 'r': case 's':
 			    if (pre[0] == '\"' && pre[1] == '\"' 
-				&& pre[2] == 0) {
+				&& s - pre == 3) {
 				argvec[i++] = (GEN) "";
 				break;
 			    }
@@ -1853,7 +1853,7 @@ long	arg4
  OUTPUT:
    RETVAL
 
-GEN
+void
 interface34(arg1,arg2,arg3)
 long	oldavma=avma;
 long	arg1
@@ -1867,12 +1867,10 @@ long	arg3
       croak("XSUB call through interface did not provide *function");
     }
 
-    RETVAL=FUNCTION(arg1, arg2, arg3);
+    FUNCTION(arg1, arg2, arg3);
   }
- OUTPUT:
-   RETVAL
 
-GEN
+void
 interface35(arg1,arg2,arg3)
 long	oldavma=avma;
 long	arg1
@@ -1886,10 +1884,8 @@ GEN	arg3
       croak("XSUB call through interface did not provide *function");
     }
 
-    RETVAL=FUNCTION(arg1,arg2,arg3);
+    FUNCTION(arg1,arg2,arg3);
   }
- OUTPUT:
-   RETVAL
 
 GEN
 interface37(arg1,arg2,arg3,arg4)
@@ -2102,7 +2098,7 @@ long	oldavma=avma;
    RETVAL
 
 
-GEN
+void
 interface59(arg1, arg2, arg3, arg4, arg5)
 long	oldavma=avma;
     long arg1
@@ -2118,10 +2114,8 @@ long	oldavma=avma;
       croak("XSUB call through interface did not provide *function");
     }
 
-    RETVAL=FUNCTION(arg1, arg2, arg3, arg4, arg5);
+    FUNCTION(arg1, arg2, arg3, arg4, arg5);
   }
- OUTPUT:
-   RETVAL
 
 
 GEN
@@ -2606,12 +2600,17 @@ listPari(tag)
    PPCODE:
      {
        long v, valence;
-       entree *ep;
+       entree *ep, *table = functions_basic;
+       int i=-1;
 
-       for(ep = functions_basic; ep->name; ep++)  {
-	   valence = EpVALENCE(ep);
-	   if (tag == -1 || ep->menu == tag) {
-	       switch (valence) {
+       while (++i <= 1) {
+	   if (i==1)
+	       table = functions_highlevel;
+	   
+	   for(ep = table; ep->name; ep++)  {
+	       valence = EpVALENCE(ep);
+	       if (tag == -1 || ep->menu == tag) {
+		   switch (valence) {
 		   default:
 		   case 0:
 		       if (ep->code == 0)
@@ -2665,7 +2664,8 @@ listPari(tag)
 		   case 73:
 		   case 86:
 		   case 87:
-		   XPUSHs(sv_2mortal(newSVpv(ep->name, 0)));
+		       XPUSHs(sv_2mortal(newSVpv(ep->name, 0)));
+		   }
 	       }
 	   }
        }

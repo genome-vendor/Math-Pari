@@ -34,3 +34,4 @@ utils/inc.h
 utils/notes
 utils/paridoc_to_pod
 utils/Math/PariBuild.pm
+META.yml                                 Module meta-data (added by MakeMaker)

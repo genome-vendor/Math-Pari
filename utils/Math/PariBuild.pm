@@ -334,6 +334,7 @@ sub patches_for ($) {
 		 '2.2.2' =>  ['patches/diff_2.2.2_interface'],
 		 '2.1.6' =>  ['patches/diff_2.1.6_ploth64',
 			      'patches/diff_2.1.6_no-common'],
+		 '2.1.7' =>  ['patches/diff_2.1.6_no-common'],
 		);
   print "Looking for patches for $v...\n";
   my @p = $patches{$v} ? @{$patches{$v}} : ();
@@ -724,8 +725,6 @@ sub find_machine_architecture () {
     my $type = (split ' ', $Config{myuname})[4];
     if ($type =~ /^sun3/) {
       $machine = 'm68k';
-    } elsif ($type =~ /^sun4[ce]?/) {
-      $machine = 'sparcv7';
     } elsif ($type =~ /^sun4[dm]/) {
       local $ENV{PATH} = "$ENV{PATH}:/dev/sbin";
       my $info = `(prtconf||devinfo)2>&-`;
@@ -733,6 +732,8 @@ sub find_machine_architecture () {
       $machine = process_sparc $info, 'sparcv8';
     } elsif ($type eq 'sun4u') {
       $machine = 'sparcv9';
+    } elsif ($type =~ /^sun4[ce]?/) {
+      $machine = 'sparcv7';
     } elsif ($type =~ /^i.*pc$/) {
       $machine = 'ix86';
     } elsif ((split ' ', $Config{myuname})[3] eq 'sun') {
@@ -906,8 +907,8 @@ EOP
 sub sparcv8_kernel_files_old {
   my ($asmarch, $pari_version, $Using_gnu_as) = (shift, shift, shift);
   my $_ext = (($pari_version < 2000015) ? 's' : 'S');
-  my $sparcv8_cvt = $Using_gnu_as || $Config{osname} =~ /^(linux|nextstep)$/;
-  my $sparcv8_kernel = ($sparcv8_cvt
+  my $cvt = $Using_gnu_as || $Config{osname} =~ /^(linux|nextstep)$/;
+  my $sparcv8_kernel = ($cvt
 			? ["sparcv8/level0.$_ext", 1,
 			   "sparcv8/level0_$asmarch.$_ext", 1]
 			: ["sparcv8/level0.$_ext", 0,
@@ -921,11 +922,20 @@ sub sparcv8_kernel_files_old {
   return   $sparcv8_kernel;
 }
 
+sub sparcv7_kernel_files {
+  my ($asmarch, $pari_version, $Using_gnu_as) = (shift, shift, shift);
+  my $_ext = (($pari_version < 2000015) ? 's' : 'S');
+  my $cvt = $Using_gnu_as || $Config{osname} =~ /^(linux|nextstep|netbsd)$/;
+  return ["sparcv7/level0.$_ext", $cvt];
+}
+
 sub kernel_files {
   my ($asmarch, $pari_version, $Using_gnu_as) = (shift, shift, shift);
 
   return sparcv8_kernel_files_old($asmarch, $pari_version, $Using_gnu_as)
     if $asmarch =~ /^sparcv8/ and $pari_version < 2002006;
+  return sparcv7_kernel_files($asmarch, $pari_version, $Using_gnu_as)
+    if $asmarch eq 'sparcv7';
 
   my $sparcv8_kernel = ["sparcv8_micro/level0_common.S", 1,
 			"$asmarch/level0.S", 1];	# 2.2.* only
@@ -943,7 +953,7 @@ sub kernel_files {
 		none		     => ["none/level0.c", 0],
 		# ppc is not done yet (2.0.15)
 		sun3		     => '',
-		sparcv7		     => '',
+#		sparcv7		     => '',
 #		sparcv8		     => $sparcv8_kernel,
 		sparcv8_micro	     => $sparcv8_kernel,
 		sparcv8_super	     => $sparcv8_kernel,

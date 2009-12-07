@@ -96,16 +96,18 @@ unless ($common::parilib) {
   make_pod 'libPARI.dumb.pod', '-to_dumb_pod', $paridir;
   %opts = build_paricfg($paridir, $common::do_configure); # ... and paricfg.h
 
-  # Check the correspondence between string interfaces and numeric interfaces
-  my %codes;
-  my %names;
-  ep_in_version($pari_version);
-  ep_codes_from_file("$paridir/src/language/init.c", %codes, %names);
-  ep_codes_from_file("$paridir/src/gp/highlvl.c", %codes, %names);
-  # EpValence reworked in 2.2.7; when exactly was it redone???  XXXX
-  unless ($pari_version > 2002006 or ep_hash_report(%codes)) {
-    print STDERR "Problems with numeric interface codes noted:\n";
-    ep_hash_report(%codes, %names, \*STDERR);
+  if ($ENV{MATH_PARI_REPORT_CODES}) {
+    # Check the correspondence between string interfaces and numeric interfaces
+    my %codes;
+    my %names;
+    ep_in_version($pari_version);
+    ep_codes_from_file("$paridir/src/language/init.c", %codes, %names);
+    ep_codes_from_file("$paridir/src/gp/highlvl.c", %codes, %names);
+    # EpValence reworked in 2.2.7; when exactly was it redone???  XXXX
+    unless ($pari_version > 2002006 or ep_hash_report(%codes)) {
+      print STDERR "Problems with numeric interface codes noted:\n";
+      ep_hash_report(%codes, %names, \*STDERR);
+    }
   }
 }
 

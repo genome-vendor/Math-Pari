@@ -536,3 +536,22 @@ os2$(OBJ_EXT): $(PARI_DIR)/src/systems/os2/os2.c pariinl.h paricfg.h
 	Extra include directory to pretend we are in $paridir/OFOO.
 	Run funclist build process of GP/PARI...  (Modifies Pari directory...)
 	Include forgotten patch for PERL_UNUSED_VAR
+
+2.010700:
+	paridir option to Makefile.PL was not documented
+	With 2.2.10 (2005/1) intnum tests are WAY off:
+	  Failed Test Stat Wstat Total Fail  Failed  List of Failed
+	  ------------------------------------------------------------------
+	  t/intnum.t                50    9  18.00%  11 23-25 27 41-42 45 49
+	Apparently, patches/diff_2.1.6_no-common is needed with 2.1.7 too.
+	sparcv7 build was obsolete.
+			=> overflow not defined
+	The order of checks in find_machine_architecture() was wrong;
+		instead of sparcv9 one would get sparcv7.
+	Handling of private SvIOKp() flags was broken (the semantic changed
+		long time ago).
+	Better assember detection message.
+	Advice how to debug problems with `overflow' and `hiremainder'
+		not defined.
+	Unless MATH_PARI_REPORT_CODES is set and TRUE, do not report ep
+		codes mismatches (we do not use them now?).

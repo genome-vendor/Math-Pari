@@ -665,24 +665,23 @@ sv2pari(SV* sv)
 	  }
       }
   }
+  else if (SvIOK(sv)) return stoi(SvIV(sv));
+  else if (SvNOK(sv)) {
+      double n = (double)SvNV(sv);
+      /* Earlier needed more voodoo, since sv_true sv_false are NOK,
+	 but not IOK.  Now we propagate them to IOK in Pari.pm;
+         This works at least with 5.6.1 onwards. */
+      /* With 5.00553 they are (NOK,POK,READONLY,pNOK,pPOK).
+	 This would special-case all READONLY double-headed stuff;
+	 let's hope it is not too frequent... */
+      if (SvREADONLY(sv) && SvPOK(sv) && (n == 1 || n == 0))
+	  return stoi((long)n);
+      return dbltor(n);
+  }
+  else if (SvPOK(sv)) return lisexpr(SvPV(sv,na));
   else if (SvIOKp(sv)) return stoi(SvIV(sv));
-  else if (SvNOKp(sv)) {
-      /* Need more voodoo, since sv_true sv_false are NOK, but not IOK */
-      if (/*SvIOKp(sv) && */ SvPOKp(sv) && SvCUR(sv)) {
-	  char *s = SvPVX(sv), *e = SvEND(sv);
-
-	  if (*s == '+' || *s == '-')
-	      s++;
-	  while (1) {
-	      if (s == e)
-		  return stoi(SvIV(sv)); /* In fact, is integer */
-	      if (*s < '0' || *s > '9')	/* Not an integer */
-		  break;
-	      s++;
-	  }
-      }
-      return dbltor(SvNV(sv));
-  } else if (SvPOK(sv)) return lisexpr(SvPV(sv,na));
+  else if (SvNOKp(sv)) return dbltor((double)SvNV(sv));
+  else if (SvPOKp(sv)) return lisexpr(SvPV(sv,na));
   else if (!SvOK(sv)) return stoi(0);
   else
     croak("Variable in sv2pari is not of known type");  

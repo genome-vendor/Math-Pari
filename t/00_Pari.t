@@ -425,6 +425,11 @@ test &{ 'ttt'->new(4)->can('isa') }( 'ttt'->new(6), 'Math::Pari') == 1;	# 125
 test 'ttt'->new(4)->can('isa');			# 126
 test !'ttt'->new(4)->can('foobar');		# 127
 
+my $try = 0.1;
+my $try1 = abs($try);
+
+test 0.1 == PARI $try;		# 128
+
 my $ow;
 BEGIN {
   $ow = $^W;
@@ -443,4 +448,4 @@ BEGIN {
   $^W = $ow;
 }
 
-sub last {127}
+sub last {128}

@@ -47,7 +47,8 @@ if ($machine =~ /sparc|alpha|hppa/) {
   $asscmd = '$(CCCMD) $(CCCDLFLAGS)';
 }
 
-my $Using_gnu_as = is_gnu_as();
+my $as_message = not_gnu_as();
+my $Using_gnu_as = not $as_message;
 print STDERR
   "...Assembler is " . ($Using_gnu_as ? "" : "not ") . "GNU assembler\n";
 
@@ -163,6 +164,9 @@ $mycflags .= " -DDYNAMIC_PLOTTING";
 # OMF build needs no underscores:
 $mycflags .= " -D__NO_AOUT" if $^O eq 'os2' and !$OS2::is_aout;
 
+# This is done in Makefile in GP/PARI, and in paricfg.h without do_configure
+$mycflags .= ' -DDL_DFLT_NAME=NULL' if $common::do_configure;
+
 # Fix for broken gcc 2.95 with -ffast-math
 my @opt;
 my $opt = $Config{optimize};
@@ -193,7 +197,7 @@ WriteMakefile(
 				# Extra defines when CPPing assembler files:
 		    ASSCPPDEFINE  => $asmcpp_define,
 				# Use this when assembling:
-		    ASFLAGS	  => assembler_flags($machine, $Using_gnu_as),
+		    ASFLAGS	  => assembler_flags_via($machine, $as_message),
 				# defines used when assembling:
 		    ASSDEFINE	  => ($Using_gnu_as ? '' : '$(DEFINE)'),
 		    MY_CC_PRE_TARGET => ($Using_ms_vc

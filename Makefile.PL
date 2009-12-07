@@ -39,8 +39,10 @@ my $gcc_version
   = defined($Config{gccversion}) ? ", gccversion=$Config{gccversion}" : "";
 print <<EOP;
 Setting up Math::Pari with Perl $] on $^O version $Config{osvers};
-   cc=$Config{cc}$gcc_version, ccflags='$Config{ccflags}',
-   ld=$Config{ld}, ldflags='$Config{ldflags}', optimize='$Config{optimize}'.
+   cc=$Config{cc}$gcc_version, cccdlflags='$Config{cccdlflags}',
+   ccflags='$Config{ccflags}',
+   optimize='$Config{optimize}',
+   ld=$Config{ld}, ldflags='$Config{ldflags}'.
 EOP
 
 if ($common::parilib) {
@@ -48,7 +50,7 @@ if ($common::parilib) {
   $define = '-DNO_HIGHLEVEL_PARI';
   print <<EOP;
 Trying to use existing PARI library (at $common::parilib)
-     (fake integer-formatted version $pari_version).
+     (FAKE integer-formatted version $pari_version).
 EOP
 } else {
   $define = '';
@@ -147,6 +149,9 @@ $define .= ' -DHAVE_PARIPRIV' if -f "$paridir/src/headers/paripriv.h";
 
 # XXXX otherwise segfaults trying to install highlevel functions???
 $define .= ' -DNO_HIGHLEVEL_PARI' if $pari_version >= 2003000;
+
+# This is done in Makefile in GP/PARI, and in paricfg.h without do_configure
+$define .= ' -DDL_DFLT_NAME=NULL' if $common::do_configure;
 
 my $extra_inc = extra_includes($paridir);
 

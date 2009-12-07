@@ -146,18 +146,18 @@ SV_myvoidp_set(SV *sv, void *p)
 
 /* Should be applied to SV* and AV* only */
 #  define SV_myvoidp_get(sv)						\
-	((SvTYPE(sv) == SVt_PVAV) ? *PARI_SV_to_voidpp(sv) : (void*)SvIV(sv))
-#  define CV_myint_get(sv)	(*PARI_SV_to_intp(sv))
-#  define CV_myint_set(sv,i)	SV_myvoidp_set((sv), (void*)(i))
+	((SvTYPE(sv) == SVt_PVAV) ? *PARI_SV_to_voidpp(sv) : INT2PTR(void*,SvIV(sv)))
+#  define CV_myint_get(sv)	INT2PTR(int, *PARI_SV_to_voidpp(sv))
+#  define CV_myint_set(sv,i)	SV_myvoidp_set((sv), INT2PTR(void*,i))
 #else /* !USE_SLOW_NARGS_ACCESS */
 #  define CV_myint_get(sv)	SvIVX(sv)		/* IVOK is not set! */
 #  define CV_myint_set(sv, i)	(SvIVX(sv) = (i))
-#  define SV_myvoidp_get(sv)	((void*)SvIVX(sv))
-#  define SV_myvoidp_set(sv, p)	(SvIVX(sv) = (IV)(p))
+#  define SV_myvoidp_get(sv)	INT2PTR(void*, SvIVX(sv))
+#  define SV_myvoidp_set(sv, p)	(SvIVX(sv) = PTR2IV(p))
 #  define SV_myvoidp_reset_clone	SV_myvoidp_reset_clone_IVX
 #endif
 
-#define SV_myvoidp_reset_clone_IVX(sv)	(SvIVX(sv) = (IV) gclone((GEN)SvIV(sv)))
+#define SV_myvoidp_reset_clone_IVX(sv)	(SvIVX(sv) = PTR2IV(gclone(INT2PTR(GEN, SvIV(sv)))))
 #define CV_NUMARGS_get		CV_myint_get
 #define CV_NUMARGS_set		CV_myint_set
 
@@ -350,7 +350,7 @@ make_PariAV(SV *sv)
 {
     AV *av = (AV*)SvRV(sv);
     char *s = SvPVX(av);
-    void *p = (void*)SvIVX(av);
+    void *p = INT2PTR(void*, SvIVX(av));
     SV *newsub = newRV_noinc((SV*)av);	/* cannot use sv, it may be 
 					   sv_restore()d */
 
@@ -1184,7 +1184,7 @@ resetSVpari(SV* sv, GEN g, long oldavma)
 	    is_pari_ep: 
 	      {
 		  tmp = SvIV(tsv);
-		  tmp = (IV)(((entree*) tmp)->value);
+		  tmp = PTR2IV((INT2PTR(entree*, tmp))->value);
 	      }
 	  }
 	  else if (sv_derived_from(sv, "Math::Pari")) { /* Avoid recursion */
@@ -1194,7 +1194,7 @@ resetSVpari(SV* sv, GEN g, long oldavma)
 		  goto is_pari;
 	  }
 #endif
-	  if (tmp == (IV)g)		/* Did not change */
+	  if (tmp == PTR2IV(g))		/* Did not change */
 	      return;
       }
   }
@@ -1731,12 +1731,12 @@ typedef void (*TSET_FP)(char *s);
 	set_term_funcp((FUNC_PTR)(a),(struct termentry *)(b))
 #  else	/* !( PARI_VERSION_EXP < 2000013 ) */ 
 #    define set_gnuterm(a,b,c) \
-	set_term_funcp3((FUNC_PTR)(a),(struct termentry *)(b), (TSET_FP)(c))
+	set_term_funcp3((FUNC_PTR)(INT2PTR(void*, a)), INT2PTR(struct termentry *, b), INT2PTR(TSET_FP,c))
 extern void set_term_funcp3(FUNC_PTR change_p, void *term_p, TSET_FP tchange);
 
 #  endif	/* PARI_VERSION_EXP < 2000013 */
 
-#  define int_set_term_ftable(a) (v_set_term_ftable((void*)a))
+#  define int_set_term_ftable(a) (v_set_term_ftable(INT2PTR(void*,a)))
 #endif
 
 extern  void v_set_term_ftable(void *a);

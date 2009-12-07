@@ -914,7 +914,7 @@ sub _shiftr {
 $initmem ||= 4000000;		# How much memory for the stack
 $initprimes ||= 500000;		# Calculate primes up to this number
 
-$VERSION = '2.010603';
+$VERSION = '2.010604';
 
 bootstrap Math::Pari;
 

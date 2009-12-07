@@ -531,3 +531,8 @@ os2$(OBJ_EXT): $(PARI_DIR)/src/systems/os2/os2.c pariinl.h paricfg.h
 	Extensive update of the test suite to update to new numint/sumint
 		flavors and extra spaces in the check-tests files.
 	XXXX Temporarily skip nfisincl() - segfaults in 2.2.10...
+
+2.010604:
+	Extra include directory to pretend we are in $paridir/OFOO.
+	Run funclist build process of GP/PARI...  (Modifies Pari directory...)
+	Include forgotten patch for PERL_UNUSED_VAR

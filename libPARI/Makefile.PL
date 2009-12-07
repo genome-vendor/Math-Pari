@@ -159,6 +159,9 @@ if (defined $Config{gccversion} and $Config{gccversion} =~ /^2\.9[46]/
   @opt = ( OPTIMIZE => $opt );
 }
 
+build_funclists($paridir);
+
+
 my $Using_ms_vc = ($^O =~ /win32/i and $Config{cc} =~ /cl/i);
 my $Using_Borland = ($^O =~ /win32/i and $Config{cc} =~ /\bbcc/i);
 

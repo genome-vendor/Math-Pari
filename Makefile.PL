@@ -242,8 +242,8 @@ EOP
     }
   }
 
-  # Special-case v2.0.13
-  if (!%golden and $latest_beta eq '2.0.11' and $latest_alpha eq '2.0.13') {
+  # Special-case v2.0.14
+  if (!%golden and $latest_beta eq '2.0.11' and $latest_alpha eq '2.0.14') {
     $best = 'alpha';		# It is tested!
   }
   

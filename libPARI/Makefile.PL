@@ -126,6 +126,9 @@ $sparc_cvt = $Config{osname} =~ /^(linux|nextstep)$/;
 $inlines = $inlines{$machine} or die "Unknown inlines for '$machine'";
 @inlines = map "$main_paridir/src/kernel/$_", @$inlines;
 
+# Which file to compile, whether to you need to preprocess it to ./level0.s
+# If another object file kernel1.o is needed, same repeated for it.
+# Default ["$asmarch/level0.s", 0]
 %level0 = (
 	     sun3	   => '',
 	     sparcv7	   => '',
@@ -143,7 +146,7 @@ $inlines = $inlines{$machine} or die "Unknown inlines for '$machine'";
 	     alpha	   => '',
 	     hppa	   => ['none/level0.c', 0],
 	     i386	   => ['ix86/l0asm.c', 1],
-	     port	   => '',
+	     port	   => ["$asmarch/level0.c", 0],
 	    );
 
 %asmarch = (

@@ -571,3 +571,10 @@ os2$(OBJ_EXT): $(PARI_DIR)/src/systems/os2/os2.c pariinl.h paricfg.h
 		in "directly linked" functions.
 	Make generated tests start with "55_".
 	Remove generated tests on "clean".
+
+2.010702:
+	Misprint in testing for 64-bitness would always load test results
+		for 32-bit build.
+	The patch for -no-common would break "port" build (in some situations?)
+		remove from auto-patches, and add the note to INSTALL.
+	Patches for -g and restart were omitted.

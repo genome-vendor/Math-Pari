@@ -334,7 +334,8 @@ sub patches_for ($) {
 		 '2.2.2' =>  ['patches/diff_2.2.2_interface'],
 		 '2.1.6' =>  ['patches/diff_2.1.6_ploth64',
 			      'patches/diff_2.1.6_no-common'],
-		 '2.1.7' =>  ['patches/diff_2.1.6_no-common',
+		 '2.1.7' =>  [# 'patches/diff_2.1.6_no-common',
+			      'patches/patch-pari-unnormalized-float',
 			      'patches/diff_2.1.7_-O',
 			      'patches/diff_2.1.7_restart'],
 		);

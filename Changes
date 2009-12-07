@@ -190,3 +190,7 @@ Files=15,  Tests=1378, 108 secs (86.46 cusr  3.82 csys = 90.28 cpu)
 	On Linux RedHat 6.0: one subtest of all.t (ellinit) fails, same with
 	pure PARI.
 	Add autopatches for 2.0.15 (it looks to stay).
+2.001600:
+	Link with Term::Gnuplot was using a wrong version of link_gnuplot().
+	Better reports if run with redirections.
+	Updated for 2.0.16.

@@ -6,6 +6,14 @@ use File::Copy 'copy';
 # Uncomment and change this line if I fail to find it
 # $paridir = "..";
 
+unless (-t STDOUT) {		# Better reports if run with redirections
+    my $odef = select STDERR;
+    $| = 1;
+    select STDOUT;
+    $| = 1;
+    select $odef;  
+}
+
 $latmus = 'src/test/in/nfields';
 
 sub format_pari {
@@ -293,6 +301,7 @@ EOP
 				'patch15/diff_proto_2015',
 				'patch15/diff_errpari_2015',
 				'patch15/diff_pari_gnuplot_2015'],
+		   '2.0.16' => ['patch16/diff_gnuplot_2016'],
 		  );
     if ($patches{$version}) {
       print "Patching...\n";

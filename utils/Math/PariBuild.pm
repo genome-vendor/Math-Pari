@@ -263,6 +263,7 @@ sub patches_for ($) {
 		 '2.0.16' => ['patch16/diff_gnuplot_2016'],
 		 '2.1.2' =>  ['patches/diff_2.1.2_gccism'],
 		 '2.1.3' =>  ['patches/diff_2.1.3_interface'],
+		 '2.1.4' =>  ['patches/diff_2.1.4_interface'],
 		 '2.2.2' =>  ['patches/diff_2.2.2_interface'],
 		);
   print "Looking for patches for $v...\n";
@@ -378,7 +379,9 @@ sub build_tests {
   my $sou = 'test_eng/ex.t';
   my $targ = "$sou-";
   unless (-e $targ and -M $targ <= -M $sou) {
-    system "$^X -pe 's,CHANGE_ME,$dir,' $sou > $targ"
+    $dir =~ s/\\/\\\\\\\\/g;
+    my $quote = ($^O =~ /win32/i) ? '"' : "'";
+    system "$^X -pe $quote s,CHANGE_ME,$dir, $quote $sou > $targ"
       and die "Could not run test converter: $! $?";
   }
   $sou = $targ;
@@ -463,7 +466,7 @@ Existing libPARI/paricfg.h not older than $found.
 EOP
   } else {
     print "Found $found, copying it to libPARI...\n";
-    copy $found, 'libPARI/paricfg.h' 
+    copy $found, 'libPARI/paricfg.h'
       or die "Could not copy $found to paricfg.h: $!"
 	if not -e 'libPARI/paricfg.h' or -M $found < -M 'libPARI/paricfg.h';
   }
@@ -482,8 +485,15 @@ sub write_paricfg {
   scan_headers(\%opts) or $opts{clk_tck_def} = 0;
   warn "Creating libPARI/paricfg.h...\n";
   open F, '> libPARI/paricfg.h' or die "open 'libPARI/paricfg.h' for write: $!";
-  print F <<EOP;
+  print F <<EOP unless $^O =~ /win32/i; # Should not we check for CygWin?
 #define UNIX
+
+EOP
+  my $shellq = ($^O eq 'os2' or $^O =~ /win32/i or $^O eq 'dos') ? q(") : q(');
+  print F <<EOP;
+#define SHELL_Q		'\\$shellq'
+EOP
+  print F <<EOP;
 #define GPDATADIR "/usr/local/lib/pari/galdata"
 #define GPMISCDIR "/usr/local/lib/pari"
 
@@ -497,7 +507,7 @@ EOP
 
 EOP
   } else {
-    print F <<EOP if $Config{d_times};
+    print F <<EOP if $Config{d_times} and $^O !~ /win32/i; # times() missing there...
 #define USE_TIMES 1
 
 EOP
@@ -587,13 +597,17 @@ Returns the type of the processor of the current machine.
 
 =cut
 
-sub find_machine_architecture {
+sub find_machine_architecture () {
   my $os = (split ' ', $Config{myuname})[0];
   my $machine = $os;
+
   if ($os =~ /^hp/) {
     $machine = 'hppa';
   } elsif ($os eq 'os2' or $os eq 'freebsd') {
     $machine = 'ix86';
+  } elsif (0 and $os =~ /win32/i and not $Config{gccversion}) {
+    # Not needed with rename of kernel1.s to kernel1.c?
+    $machine = 'port'; # Win32 compilers would not understand the assmebler anyway
   } elsif ($os eq 'ultrix') {
     $machine = 'mips';
   } elsif ($os eq 'nextstep' or -d '/NextApps') {
@@ -630,6 +644,12 @@ sub find_machine_architecture {
       $machine = 'm86k';
     }
   }
+
+  if ( $machine ne 'alpha'
+       and defined($Config{longsize}) and $Config{longsize} == 8 ) {
+    $machine = 'port';			# No assembler for 64bit - unless alpha
+  }
+
   # For older PARI:
   ###  $machine = 'sparcv8super'
   ###    if $machine eq 'sparcv9' or $machine eq 'sparcv8_hyper'
@@ -673,9 +693,11 @@ my %inlines = (
 	      );
 
 sub inline_headers {
-  my $asmarch = shift;
+  my ($asmarch, $pari_version) = (shift, shift);
   my $inlines = $inlines{$asmarch} or die "Unknown inlines for '$asmarch'";
-  map "\$(PARI_DIR)/src/kernel/$_", @$inlines;
+  my @inlines = @$inlines;
+  unshift @inlines, 'none/int.h' if $pari_version >= 2002005;
+  map "\$(PARI_DIR)/src/kernel/$_", @inlines;
 }
 
 sub known_asmarch { exists $inlines{shift()} }
@@ -817,6 +839,12 @@ sub kernel_fill_data {
 
   $hash->{convert}	=  ($hash->{converted2} eq 'kernel2.s'
 			    or $hash->{converted1} eq 'kernel1.s');
+  if ( $^O =~ /win32/i
+       and $Config{cc} =~ /\bcl/ # M$ VC doesn't understand .s
+       and $hash->{converted1} eq 'kernel1.s' ) {
+    $hash->{converted1} = 'kernel1.c';
+  }
+
 }
 
 sub assembler_flags {
@@ -834,17 +862,19 @@ sub assembler_flags {
   return $assflags;
 }
 
-=item ep_codes_from_file($filename,%hash)
+=item ep_codes_from_file($filename,%hash,%names)
 
 Adds to the %hash the string interface descriptions corresponding to
 the numeric codes use in the file's entree array.  %hash is indexed by
 by the numeric codes; the value are references to arrays with the corresponding
 string interface descriptions.
 
+Adds to %names the list of name => code values.
+
 =cut
 
-sub ep_codes_from_file ($\%) {
-  my ($file, $descrh) = (shift, shift);
+sub ep_codes_from_file ($\%\%) {
+  my ($file, $descrh, $names) = (shift, shift, shift);
   local $_;
   open IN, "< $file" or warn "Cannot open `$file': $!" and return;
   while (<IN>) {
@@ -854,15 +884,18 @@ sub ep_codes_from_file ($\%) {
       unless /^\s*\{\s*"(\w+)"\s*,\s*(\d+)\s*,[^,]*,\s*\d+\s*,(?:\s*\d+\s*,)?\s*("((?:\\.|[^"])*)"|NULL)\s*(,|\})/;
     next unless defined $4;
     #print;
-    my ($code, $descr) = ($2, $4);
+    my ($name, $code, $descr) = ($1, $2, $4);
     $descrh->{$code} = [] unless exists $descrh->{$code};
     push @{$descrh->{$code}}, $descr
       unless grep $descr eq $_, @{$descrh->{$code}};
+    warn "! Duplicate code $code for function '$name' (was $names->{$name})\n"
+      if defined $names->{$name};
+    $names->{$name} = [$code, $descr];
   }
   close IN or warn "Cannot close `$file': $!";
 }
 
-=item ep_hash_report(%hash, $fh)
+=item ep_hash_report(%hash, %names, $fh)
 
 Writes to $fh the diagnostic about problemes with the string interface
 descriptions corresponding to the numeric codes.  If $fh is false,
@@ -926,9 +959,10 @@ my %variations = map {($t = $expected_codes{$_}) =~ s/I/E/ ? ($_, $t) : ()}
 
 my %known_unimplemented = (57 => 1, 62 => 1);
 
-sub ep_hash_report (\%;$) {
-  my ($h, $fh) = (shift, shift);
+sub ep_hash_report (\%;\%$) {
+  my ($h, $names, $fh) = (shift, shift, shift);
   my ($c, @list);
+  $names = {} unless defined $names;
   my @keys = grep {$_ ne 0 and $_ ne 99} keys %$h;
   if (@list = grep {not exists $h->{$_}} keys %expected_codes) {
     return unless $fh;
@@ -950,6 +984,10 @@ EOP
       print $fh <<EOP;
     $c meaning "@{$h->{$c}}"
 EOP
+      my $list = join ", ", grep $names->{$_}[0] == $c, sort keys %$names;
+      print $fh <<EOP;
+      (appears for $list)
+EOP
     }
   }
   if (@list = grep @{$h->{$_}} != 1, @keys) {
@@ -960,6 +998,10 @@ EOP
     for $c (sort @list) {
       print $fh <<EOP;
     $c meaning "@{$h->{$c}}"
+EOP
+      my $list = join ", ", grep $names->{$_}[0] == $c, sort keys %$names;
+      print $fh <<EOP;
+      (appears for $list)
 EOP
     }
   }
@@ -975,6 +1017,12 @@ EOP
     for $c (sort @list) {
       print $fh <<EOP;
     $c meaning "@{$h->{$c}}" (was meaning "$expected_codes{$c}" in $expected_codes_as_in)
+EOP
+      my $list = join ", ",
+	grep {$names->{$_}[0] == $c and $names->{$_}[1] ne $expected_codes{$c}}
+	  sort keys %$names;
+      print $fh <<EOP;
+      (may affect functions $list)
 EOP
     }
   }

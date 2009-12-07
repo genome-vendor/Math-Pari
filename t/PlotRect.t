@@ -8,7 +8,7 @@ if ($ENV{MP_NOGNUPLOT}) {
 eval { link_gnuplot() };
 if ($@ =~ m%^Can't locate Term/Gnuplot.pm in \@INC%) {
   print STDERR "# Can't locate Term/Gnuplot.pm in \@INC, ignoring the test\n";
-  print "1..0\n";
+  print "1..0 # skipped: Can't locate Term/Gnuplot.pm in \@INC\n";
   exit;
 } elsif ($@) {
   die $@;

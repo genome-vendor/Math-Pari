@@ -30,7 +30,7 @@ L<Math::libPARI>).
 =item DEFAULT
 
 By default the package exports functions PARI(), PARIcol(), PARIvar(),
-PARImat() and PARImat_tr() which convert their argument(s) to a 
+PARImat() and PARImat_tr() which convert their argument(s) to a
 PARI object. (In fact PARI() is just an alias for C<new Math::Pari>).
 The function PARI() accepts following data as its arguments
 
@@ -114,7 +114,7 @@ explicitely, or include C<:DEFAULT> tag:
 
 or simply do it in two steps
 
-  use Math::Pari;  
+  use Math::Pari;
   use Math::Pari 'factorint';
 
 The other tags recognized are C<:PARI>, C<:all>, C<prec=NUMBER>,
@@ -124,7 +124,7 @@ functions from the PARI library from the given class (except for
 C<:PARI>, which exports all of the classes).  Tag C<:all> exports all of the
 exportable symbols and C<:PARI>.
 
-Giving C<?> command to C<gp> (B<PARI> calculator) lists the following classes: 
+Giving C<?> command to C<gp> (B<PARI> calculator) lists the following classes:
 
   1: Standard monadic or dyadic OPERATORS
   2: CONVERSIONS and similar elementary functions
@@ -437,7 +437,7 @@ Use the same name inside PARI code:
   fordiv(28, 'j', 'k=k+counter(j)');
   print PARI('k'), "\n";
 
-prints 
+prints
 
    984
 
@@ -520,7 +520,7 @@ the following arithmetic operations are overloaded:
   unary -
   + - * / % ** abs cos sin exp log sqrt
   << >>
-  <= == => <  >  != <=> 
+  <= == => <  >  != <=>
   le eq ge lt gt ne cmp
   | & ^ ~
 
@@ -672,7 +672,7 @@ This directive is lexically scoped.
 Arrays are 1-based in PARI, are 0-based in Perl.  So while array
 access is possible in Perl, you need to use different indices:
 
-  $nf = PARI 'nf';	# assume that PARI variable nf contains a number field 
+  $nf = PARI 'nf';	# assume that PARI variable nf contains a number field
   $a = PARI('nf[7]');
   $b = $nf->[6];
 
@@ -690,7 +690,7 @@ the same order of elements as in PARI.
 
 Some PARI functions, like C<length> and C<eval>, are Perl
 (semi-)reserved words.  To reach these functions, one should either
-import them: 
+import them:
 
   use Math::Pari qw(length eval);
 
@@ -749,7 +749,7 @@ if the actual value is not an integer.
 
 =item *
 
-problems with refcounting of array elements and Mod().  
+problems with refcounting of array elements and Mod().
 
 Workaround: make the modulus live longer than the result of Mod().
 Until Perl version C<5.6.1>, one should exercise a special care so
@@ -827,7 +827,7 @@ setprimelimit(), with performance penalties for recalculation/reallocation.
 
 =head1 AUTHOR
 
-Ilya Zakharevich, I<ilya@math.ohio-state.edu>
+Ilya Zakharevich, I<perl-module-math-pari@ilyaz.org>
 
 =cut
 
@@ -913,7 +913,7 @@ sub _shiftr {
 $initmem = $initmem || 4000000;		# How much memory for the stack
 $initprimes = $initprimes || 500000;	# Calculate primes up to this number
 
-$VERSION = '2.010305';
+$VERSION = '2.010402';
 
 bootstrap Math::Pari;
 
@@ -963,7 +963,7 @@ if (pari_version_exp() >= 2002001) {
   'overload'->import( qw(
 			 << _shiftl
 			 >> _shiftr
-			) );  
+			) );
 }
 
 sub AUTOLOAD {
@@ -1035,9 +1035,9 @@ sub new {
 
 @converted{split /,\s+/, qq(buchimag, buchreal,
     buchgen, buchgenforcefu, buchgenfu, buchinit, buchinitforcefu, buchinitfu,
-    string, addhelp, kill)} = (1) x 100;
+    plotstring, addhelp, kill)} = (1) x 100;
 
-# Highly unfinished
+# Now even tested...
 sub _cvt { PARI(shift) }
 sub _hex_cvt {
   my $in = shift;
@@ -1053,8 +1053,9 @@ sub _hex_cvt {
     while ($b) {
       my $s = substr $b, 0, 16;
       substr($b, 0, 16) = '';
-      $hex .= pack 'h4', unpack 'b16', $s;
+      $hex .= unpack 'H4', pack 'B16', $s;
     }
+    $in = $hex;
   }
   $shift = 1<<(3*7) unless $hex;
   while ($in =~ s/([a-fA-F\d]{1,7})$//) {
@@ -1102,11 +1103,11 @@ sub import {
     }
   } @_;
 
-  overload::constant(splice @const, 0, 2) while @const;  
+  overload::constant(splice @const, 0, 2) while @const;
 
   # print "EXPORT_OK: @EXPORT_OK\n";
   push @EXPORT_OK,
-      grep( ($_ ne ':DEFAULT' 
+      grep( ($_ ne ':DEFAULT'
 	     and not $export_ok{$_}++
 	     and (eval {loadPari($_), 1} or warn $@), !$@) ,
 	    @_);
@@ -1116,6 +1117,23 @@ sub import {
   &Exporter::export($p,(caller(0))[0],@_);
 }
 
+sub _can {			# Without taking into account inheritance...
+  my ($obj, $meth) = (shift, shift);
+  return \&$meth if defined &$meth;
+  return \&$meth if eval {loadPari($meth), 1};
+  return;
+}
+
+sub can {
+  my ($obj, $meth) = (@_);
+  my $f = $obj->SUPER::can($meth);
+  return $f if defined $f;
+  # There is no "usual" way to get the function; try loadPari()
+  $f = eval { loadPari($meth) };
+  return $f if defined $f;
+  return;
+}
+
 sub O ($;$) {
   return PARI("O($_[0]^$_[1])") if @_ == 2;
   return PARI("O($_[0])") if typ($_[0]) == 10; # Poly
@@ -1123,9 +1141,9 @@ sub O ($;$) {
 }
 
 sub PARImat_tr {mattranspose(PARImat(@_))}
-sub string ($$) {
-  PARI (qq'string($_[0],"$_[1]")');
-}
+#sub string ($$) {
+#  PARI (qq'string($_[0],"$_[1]")');
+#}
 
 sub installPerlFunction {my @a=@_; $a[0] = \&{$a[0]}; installPerlFunctionCV(@a)}
 
@@ -1135,10 +1153,10 @@ for $name (keys %converted) {
   push @EXPORT_OK, $name;
   next if defined &$name;
   # string needs to format numbers to 8.3...
-  if ($name eq 'addhelp' or $name eq 'string') {
-    *$name = sub {PARI("$name($_[0],'$_[1]')")}
+  if ($name eq 'addhelp' or $name eq 'plotstring') {
+    *$name = sub { PARI ( qq($name($_[0],"$_[1]")) ) }
   } else {
-    *$name = sub {local $"=',';PARI("$name(@_)")}
+    *$name = sub { local $"=','; PARI("$name(@_)") }
   }
 }
 

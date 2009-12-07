@@ -32,6 +32,14 @@ Could not find GP/PARI build directory, please run Makefile.PL
 with paridir=/directory option.
 EOD
 
+my $gcc_version
+  = defined($Config{gccversion}) ? ", gccversion=$Config{gccversion}" : "";
+print <<EOP;
+Setting up Math::Pari with Perl $] on $^O version $Config{osvers};
+   cc=$Config{cc}$gcc_version, ccflags='$Config{ccflags}',
+   ld=$Config{ld}, ldflags='$Config{ldflags}', optimize='$Config{optimize}'.
+EOP
+
 $pari_version = pari_formatted_version($paridir);
 print <<EOP;
 Found GP/PARI build directory in $paridir
@@ -86,12 +94,13 @@ $define .= ' -DGCC_INLINE' if $Config{gccversion};
 
 # Check the correspondence between string interfaces and numeric interfaces
 my %codes;
+my %names;
 ep_in_version($pari_version);
-ep_codes_from_file("$paridir/src/language/init.c",%codes);
-ep_codes_from_file("$paridir/src/gp/highlvl.c",%codes);
+ep_codes_from_file("$paridir/src/language/init.c", %codes, %names);
+ep_codes_from_file("$paridir/src/gp/highlvl.c", %codes, %names);
 unless (ep_hash_report(%codes)) {
   print STDERR "Problems with numeric interface codes noted:\n";
-  ep_hash_report(%codes, \*STDERR);
+  ep_hash_report(%codes, %names, \*STDERR);
 }
 
 # See lib/ExtUtils/MakeMaker.pm for details of how to influence
@@ -104,7 +113,7 @@ unless (ep_hash_report(%codes)) {
 	       VERSION_FROM  => 'Pari.pm',
 	       DEFINE	     => $define,
 	       dist	     => {COMPRESS=>'gzip -9f', SUFFIX=>'gz'},
-	       clean	     => { FILES => 'pari.ps test_eng/ex.t-' },
+	       clean	     => { FILES => 'pari.ps test_eng/ex.t- libPARI.dumb.pod libPARI.pod' },
 	       macro	     => {
 				 PARI_DIR	  => $paridir,
 				},

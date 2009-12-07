@@ -1,5 +1,5 @@
 #! perl
-# 	$rcs = ' $Id: testout.t,v 1.2 1997/09/22 10:13:37 ilya Exp ilya $ ' ;	
+# 	$rcs = ' $Id: testout.t,v 1.2 1997/09/22 10:13:37 ilya Exp ilya $ ' ;
 
 use Math::Pari qw(:DEFAULT pari_print :all);
 use vars qw($x $y $z $k $t $q $a $u $j $l $name $other $n);
@@ -19,11 +19,12 @@ $tests = @tests;
 
 print "1..$tests\n";
 
-prec($3 || $1, 1) if $mess =~ /realprecision = (\d+) significant digits( \((\d+) digits displayed\))?/;  
+prec($3 || $1, 1) if $mess =~ /realprecision = (\d+) significant digits( \((\d+) digits displayed\))?/;
 
 $| = 1;
-@seen = qw(Pi I Euler getrand a x y z k t q u j l n v p name other mhbi a2 a1 a0 b0 b1
-	 acurve bcurve ccurve cmcurve tcurve mcurve ma mpoints);
+@seen = qw(Pi I Euler getrand a x xx y z k t q u j l n v p e
+	   name other mhbi a2 a1 a0 b0 b1
+	   acurve bcurve ccurve cmcurve tcurve mcurve ma mpoints);
 @seen{@seen}  = (' ', ' ', ' ', ' ', ('$') x 100);
 for (@seen) {
   $$_ = PARI($_);
@@ -45,8 +46,8 @@ if ($file =~ /plot|graph|all/) {
     if ($@ =~ m%^Can't locate Term/Gnuplot.pm in \@INC%) {
       print STDERR "# Can't locate Term/Gnuplot.pm in \@INC, ignoring plotting\n";
       @not_yet_defined{qw(
-	plotbox plotcolor plotcursor plotdraw ploth plothraw plotinit plotlines 
-	plotmove plotpoints plotrline plotrmove plotrpoint psdraw psploth 
+	plotbox plotcolor plotcursor plotdraw ploth plothraw plotinit plotlines
+	plotmove plotpoints plotrline plotrmove plotrpoint psdraw psploth
 	psplothraw
 	plotkill
       )} = (1) x 10000;
@@ -63,7 +64,7 @@ main_loop:
 for (@tests) {
   #print "Doing `$_'";
   1 while s/^\\\\.*\n//;	# Comment
-  $bad = /^\\/;			# \precision = 
+  $bad = /^\\/;			# \precision =
   $wasbadprint = /\b(plot)\b/;
   $wasprint = /\b((|p|tex)print(tex)?|plot)\b/;
   s/\s*\n\?\s*\Z// or die "Not terminated: `$_'\n";
@@ -80,7 +81,7 @@ for (@tests) {
     process_error($in,$_,$1);
     next;
   }
-  process_test($in, 'noans', []), next if /^$/; # Was a void 
+  process_test($in, 'noans', []), next if /^$/; # Was a void
 #  s/^%\d+\s*=\s*// or die "Malformed answer: $_" unless $bad or $wasprint;
   if ($_ eq '' or $wasprint) {	# Answer is multiline
 #    @ans = $_ eq '' ? () : ($_) ;
@@ -155,7 +156,7 @@ sub mformat_transp {
   my @dummy = ('') x @{$arr[0]};
   for my $ind (0..$#{$arr[0]}) {
     for my $subarr (@arr) {
-      @$subarr > $ind or $subarr->[$ind] = ''; 
+      @$subarr > $ind or $subarr->[$ind] = '';
     }
     push @out, join ', ', map {$_->[$ind]} @arr;
   }
@@ -206,6 +207,22 @@ sub process_test {
   $in =~ s/(\w+)\s*\\(\w+(\s*\^\s*\w+)?)/gdivent($1,$2)/g; # random\10^8
   $in =~ s/%(?!\s*[\[_\w])/\$was_prev/g; # foo(%)
   $in =~ s/\b(for)\s*\(\s*(\w+)=/&$1($2,/g; # for(x=1,13,print(x))
+  $in =~ s/
+	    ^
+	    (
+	      \(
+		(?:
+		  [^(,)]+
+		  (?=
+		    [(,)]
+		  )
+		|
+		  \( [^()]* \)
+		)*		# One level of parenths supported
+	      \)
+	    )
+	    ' $
+	  /deriv$1/x; # ((x+y)^5)'
   if ($in =~ /^\\p\s*(\d+)/) {
     prec($1);
   } elsif ($in =~ /^\\ps\s*(\d+)/) {		# \\ for division unsupported
@@ -227,10 +244,10 @@ sub process_test {
     $in =~ s/\[([^\[\];]*)\]\s*~/format_vvector($1)/ge; # Vertical vector
  eval {
     1 while $in =~ s/
-	      \b (if|while|until) \( 
+	      \b (if|while|until) \(
 	      (
 		(?:
-		  [^(,)]+ 
+		  [^(,)]+
 		  (?=
 		    [(,)]
 		  )
@@ -238,10 +255,10 @@ sub process_test {
 		  \( [^()]* \)
 		)*		# One level of parenths supported
 	      )
-	      , 
+	      ,
 	      (
 		(?:
-		  [^(,)]+ 
+		  [^(,)]+
 		  (?=
 		    [(,)]
 		  )
@@ -250,10 +267,10 @@ sub process_test {
 		)*		# One level of parenths supported
 	      )
 	      (?:
-		, 
+		,
 		(
 		  (?:
-		    [^(,)]+ 
+		    [^(,)]+
 		    (?=
 		      [(,)]
 		    )
@@ -277,29 +294,30 @@ sub process_test {
     } elsif ($in =~ /(^|[\(=,])%/) {
       print "# `$in'\nok $c # Skipping (history notation)\n";
       return;
+    } elsif ($in =~ /\b(get(heap|stack)|Total time spent.*gettime)\b/) {
+      print "# `$in'\nok $c # Silently skipping: meaningless for Math::Pari\n";
+      return;
     } elsif ($in =~ /
 		      (
-			\b 
+			\b
 			( if | goto | label | input | break
 			  # | while | until
-                          | gettime | default | sizebyte
-                          # XXXX These need to be done ASAP:
-			  | sumalt | prodinf 
+                          | gettime | default
                         )
-			\b 
+			\b
 		      |
-			(\w+) \s* \( \s* \w+ \s* \) = 
+			(\w+) \s* \( \s* \w+ \s* \) =
 		      |
 			\b install \s* \( \s* (\w+) \s* , [^()]* \)
 		      |
-			\b 
+			\b
 			(
 			  my _
 			)?
-			p? print \( 
+			p? print \(
 			( \[ | (1 ,)? PARImat )
 		      |	  # Too many parens: will not be wrapped in sub{...}
-		      	\b forprime .* \){4}
+		      	\b forprime .* \){5}
 		      )
 		    /x) {
       if (defined $3) {
@@ -321,7 +339,7 @@ sub process_test {
       # It is not clear why changevar gives a different answer in GP
       print "# `$in'\nok $c # Skipping (converting test for '$1' needs additional work)\n";
       return;
-    } elsif ($userfun 
+    } elsif ($userfun
 	     and $in =~ / \b ($userfun) \s* \( /x) {
       print "# `$in'\nok $c # Skipping (user function)\n";
       return;
@@ -334,9 +352,6 @@ sub process_test {
 #      # XXXX Will result in a wrong answer, but we moved these tests to a different
 #      print "# `$in'\nok $c # Skipping (would fail, checked in different place)\n";
 #      return;
-    } elsif ($in =~ /\bget(heap|stack)\b/) { # Meaningless
-      print "# `$in'\nok $c # Skipping meaningless\n";
-      return;
     } elsif ($in =~ /\b(nonesuch now)\b/) {
       print "# `$in'\nok $c # Skipping (possibly FATAL $1)\n";
       return;
@@ -367,50 +382,58 @@ sub process_test {
     } else {
       # Substitute big integer constants
       $in =~ s/(^|\G|\W)(\d{10,}(?!\.\d*))(.?)/$1 PARI('$2') $3/g;
-      # Substitute division 
+      # Substitute division
 	$in =~ s/(^|[\-\(,\[])(\d+)\s*\/\s*(\d+)(?=$|[\),\]])/$1 PARI($2)\/PARI($3) /g;
     }
+    %seen_now = ();
     # Substitute i= in loop commands
     if ($in !~ /\b(hermite|mathnf|until)\s*\(/) { # Special case, not loop-with-=
-      $in =~ s/([\(,]\w+)=(?!=)/$1,/g;
+      $in =~ s/([\(,])(\w+)=(?!=)/ $seen_now{$2} = '$'; "$1$2," /ge;
     }
     # Substitute print
     $in =~ s/\b(|p|tex)print(tex|)\(/ 'my_' . $1 . $2 . 'print(1,' /ge;
     $in =~ s/\b(|p|tex)print1\(/ 'my_' . $1 . 'print(0,'/ge;
     $in =~ s/\b(eval|shift|sort)\(/&$1\(/g; # eval($y)
     # Recognize variables
-    %seen_now = ();
+    # s/\b(direuler\s*\(\s*\w+\s*),/$1=/;	# direuler
+    $in =~ s/\bX\b/PARIvar("X")/g if $in =~ /\bdireuler\b/;
     $in =~ s/(^|[;(])(\w+)(\s*=\s*)/$seen_now{$2} = '$'; $1 . '$' . $2 . $3/ge; # Assignment
     # Substitute variables (not before '^' - inside of 'o(x^17)'):
-    $in =~ s/(^|[^\$])\b([a-zA-Z]\w*)\b(?!\s*[(^])/($1 || '') . ($seen{$2} || $seen_now{$2} || '') . $2/ge;
+    $in =~ s/(^|[^\$])\b([a-zA-Z]\w*)\b(?!\s*[\(^])/
+      		($1 || '') . ($seen{$2} || $seen_now{$2} || '') . $2
+	/ge;
     # Die if did not substitute variables:
     while ($in =~ /(^|[^\$])\b([a-zA-Z]\w*)\b(?!\s*[\{\(^])/g) {
-      print("# `$in'\nok $c # Skipping ($2 was not set)\n"), return
+      print("# `$in'\nok $c # Skipping: variable `$2' was not set\n"), return
 	unless $seen{$2} and $seen{$2} eq ' ' or $in =~ /\"/;
       # Let us hope that lines which contain '"' do not contain unset vars
     }
     # Simplify for the following conversion:
     $in =~ s/\brandom\(\)/random/g;
-    # Sub-ify sum,prod,intnum, psploth, ploth
+    # Sub-ify sum,prod,intnum, psploth, ploth etc
     1 while
       $in =~ s/
 		(
-		  \b 
-		  (
-		    sum 
+		  \b
+		  (?:
+		    sum
 		  |
 		    intnum
+		  |
+		    forprime
 		  |
 		    psploth
 		  |
 		    ploth
 		  |
 		    prod (?: euler )?
+		  |
+		    direuler
 		  ) \s*
-		  \( 
+		  \(
 		  (?:
 		     (?:
-		       [^(=,)]+ 
+		       [^(=,)]+
 		       (?=
 		         [(=,)]
 		       )
@@ -418,29 +441,55 @@ sub process_test {
 		       \( [^()]+ \)
 		     )		# One level of parenths supported
 		  [,=]){3}		# $x,1,100
-		)
-		(?!\s*sub\s*\{)	# Skip already converted...
-		(		# This follows after a comma on toplevel
+	        |
+		  \b
 		  (?:
-		    [^(,)\[\]]+ 
+		    sumalt
+		  |
+		    prodinf
+		  )
+		  \(
+		  (?:
+		     (?:
+		       [^(=,)]+
+		       (?=
+		         [(=,)]
+		       )
+		     |
+		       \( [^()]+ \)
+		     )		# One level of parenths supported
+		  [,=]){2}		# $x,1
+		)				# end group 1
+		(?!\s*sub\s*\{)	# Skip already converted...
+		(		# 2: This follows after a comma on toplevel
+		  (?:
+		    [^(,)\[\]]+
 		    (?=
 		      [(,)\[\]]
 		    )
 		  |
 		    \(		# One level of parenths
 		    (?:
-		      [^()]+ 
+		      [^()]+
 		      (?=
 			[()]
 		      )
 		    |
-		      \( [^()]+ \) # Second level of parenths
+		      \(	# Second level of parenths
+			(?:
+			  [^()]+
+			  (?=
+			    [()]
+			  )
+			  | \( [^()]* \) # Third level of parens
+			)*
+		      \)	# Second level of parenths ends
 		    )*
 		    \)
 		  |
 		    \[		# One level of brackets
 		    (?:
-		      [^\[\]]+ 
+		      [^\[\]]+
 		      (?=
 			[\[\]]
 		      )
@@ -449,71 +498,45 @@ sub process_test {
 		    )*
 		    \]
 		  )*		# Two levels of parenths supported
-		)
+		)				# end group 2
 		(?=
                   [),]
                 )
-	      /$1 sub{$3}/xg;
-    # Sub-ify direuler
+	      /$1 sub{$2}/xg;
+    # Do the rest (do not take = after the variable name)
     1 while
       $in =~ s/
 		(
-		  \b 
+		  \b
 		  (
-		    direuler
-		  ) \s*
-		  \( 
-		  (?:
-		     (?:
-		       [^(=,)]+ 
-		       (?=
-		         [(=,)]
-		       )
-		     |
-		       \( [^()]+ \)
-		     )		# One level of parenths supported
-		  [,=]){3}		# $x,1,100
-		)
-		(?!\s*sub\s*\{)	# Skip already converted...
-                (.*)
-		(?=
-                  \)
-                )
-	      /$1 sub{$3}/xg;
-    # Do the rest
-    1 while
-      $in =~ s/
-		(
-		  \b 
-		  (
-		    solve 
+		    solve
 		  |
 		    (?:
-		      post 
+		      post
 		    )?
 		    ploth (?! raw \b ) \w+
 		  |
-		    # sum \w* 
-		    sum \w+
+		    # sum \w*
+		    sum (?! alt \b) \w+
 		  |
-		    # prod \w* 
+		    # prod \w*
 		    prodinf
 		  |
-		    v? vector v? 
+		    v? vector v?
 		  |
-		    matrix 
+		    matrix
 		  |
-		    intgen 
+		    intgen
 		  #|
-		  #  intnum 
+		  #  intnum
 		  |
-		    intopen 
+		    intopen
 		  |
 		    for \w*
 		  )
-		  \( 
+		  \(
 		  (?:
-		    [^()]+ 
+		    [^()]+
 		    (?=
 		      [(,)]
 		    )
@@ -525,14 +548,14 @@ sub process_test {
 		(?!\s*sub\s*\{)	# Skip already converted...
 		(		# This follows after a comma on toplevel
 		  (?:
-		    [^(,)\[\]]+ 
+		    [^(,)\[\]]+
 		    (?=
 		      [()\[\]]
 		    )
 		  |
 		    \(		# One level of parenths
 		    (?:
-		      [^()]+ 
+		      [^()]+
 		      (?=
 			[()]
 		      )
@@ -543,7 +566,7 @@ sub process_test {
 		  |
 		    \[		# One level of brackets
 		    (?:
-		      [^\[\]]+ 
+		      [^\[\]]+
 		      (?=
 			[\[\]]
 		      )
@@ -561,13 +584,18 @@ sub process_test {
     $in =~ s/([\w\)])\[/$1 -> [-1+/g;
     # Workaround for &eval test:
     $in =~ s/\$y=\$x;&eval\b(.*)/PARI('y=x');&eval$1;\$y=\$x/;
+    $in =~ s/\$yy=\$xx;&eval\b(.*)/PARI('yy=xx');&eval$1;\$yy=\$xx/;
+    # Workaround for hardly-useful support for &:
+    if ($in =~ s/([,\(]\s*)&(\$(\w+)\s*)(?=[,\)])/$1$2/) {
+      #$in = qq(\$$3 = PARI "'$3"; \$OUT = do { $in }; \$$3 = PARI "$3"; \$OUT)
+    }
     # Workaround for kill:
     $in =~ s/^kill\(\$(\w+)\);/kill('$1');\$$1=PARIvar '$1';/;
     # Workaround for plothsizes:
     $in =~ s/\bplothsizes\(/safe_sizes(/;
     print "# eval", ($noans ? "-$noans" : '') ,": $in\n";
     $printout = '';
-    my $have_floats = ($in =~ /\d+\.\d*|\d{10,}/ 
+    my $have_floats = ($in =~ /\d+\.\d*|\d{10,}/
 		       or $in =~ /\b(ellinit|zeta|bin|comprealraw|frac|lseriesell|powrealraw|legendre|suminf|forstep)\b/);
     # Remove the value from texprint:
     # pop @$out if $in =~ /texprint/ and @$out == 2;
@@ -596,7 +624,7 @@ sub process_test {
 	$rout = mformat @$out;
 	if (defined $rres and $rres !~ /\n/) {
 	  $rout =~ s/\]\s*\[/; /g;
-	  $rout =~ s/,\n/, \n/g; # Spaces were removed 
+	  $rout =~ s/,\n/, \n/g; # Spaces were removed
 	  $rout =~ s/\n//g;	# Long wrapped text
 	}
 	if ($rout =~ /\[.*[-+,;]\s/) {
@@ -617,7 +645,7 @@ sub process_test {
 #	$rout = mformat @$out;
 #	if (defined $rres and $rres !~ /\n/) {
 #	  $rout =~ s/\]\s*\[/; /g;
-#	  $rout =~ s/,\n/, \n/g; # Spaces were removed 
+#	  $rout =~ s/,\n/, \n/g; # Spaces were removed
 #	  $rout =~ s/\n//g;	# Long wrapped text
 #	}
 #	if ($rout =~ /\[.*[-+,;]\s/) {
@@ -630,7 +658,7 @@ sub process_test {
     }
 
     if ($@) {
-      if ($@ =~ /^Undefined subroutine &main::(\w+)/ 
+      if ($@ =~ /^Undefined subroutine &main::(\w+)/
 	  and $not_yet_defined{$1}) {
 	print "# in='$in'\nok $c # Skipped: `$1' is known to be undefined\n";
       } elsif ($@ =~ /gnuplot-like plotting environment not loaded yet/
@@ -651,7 +679,7 @@ sub process_test {
 	return;
       }
     }
-    if (not $noans and defined $re_out 
+    if (not $noans and defined $re_out
 	     and (not defined $rres or not $cmp)) {
       $out->[0] =~ s/\n/\t/g;	# @$out usually has 1 elt
       print "not ok $c # in='$in'\n#    out='", $rres, "', type='", ref $res,
@@ -664,7 +692,7 @@ sub process_test {
       print "not ok $c # in='$in'\n#    out='", $rres, "', type='", ref $res,
       "'\n# expect='$rout'\n";
     } elsif ($doprint and $printout ne $rout) {
-      print "not ok $c # in='$in'\n# printout='", $printout, 
+      print "not ok $c # in='$in'\n# printout='", $printout,
       "'\n#   expect='$rout', type='", ref $res,"'\n";
     } else {
       print "ok $c\n";
@@ -677,7 +705,7 @@ sub process_test {
 sub process_error {
   my ($in, $out, $error) = @_;
   $c++;
-  print("# `$in'\nok $c # Skipping error($error) test\n");
+  print("# `$in'\nok $c # Skipping: test producing error unsupported yet ($error)\n");
 }
 
 sub process_definition {
@@ -702,7 +730,7 @@ sub process_set {
 sub process_print {
   my ($in, @out) = @_;
   $c++;
-  print("# $c: `$in'\nok $c # Skipping print\n");
+  print("# $c: `$in'\nok $c # Skipping plot() - can't test it yet\n");
 }
 
 sub process_multi {

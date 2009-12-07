@@ -358,6 +358,61 @@ test -4794037  == ((-1 . (0 x 100)) >> PARI(310)); # 106
 test PARI(6)**100 == (PARI(3)**100 << 100); # 107
 my $pow3_50 = PARI(3)**50;
 test PARI(6)**50  == ("$pow3_50" << PARI 50); # 108
+test( (2**(PARI(4)/3)) =~ /^2\.5198420997897463295344212/ );	# 109
+if (do { local $SIG{__WARN__} = sub {};
+	 eval 'local $^W = 0; 0b1001 == 9'}) {
+  eval <<'EOE';
+   {
+     my @res = (11, PARI '6099284589125821621535');	# 330*2^64 + 42131*2^48 + 51818*2^32 + 19189*2^16 + 25887
+     use Math::Pari ':hex';
+     # printf "# b-hex => %s, expecting %s\n", 0b1011, $res[0];
+     test 0b1011 == $res[0];			# 110
+     test 0b1010010101010010010010011110010100110101001001010111101010110010100011111
+       == 0b00000001010010101010010010010011110010100110101001001010111101010110010100011111; # 111
+     # printf "# b-hex => %s, hex => %s, expecting %s\n",
+     #  0b1010010101010010010010011110010100110101001001010111101010110010100011111,
+     #  0x014aa493ca6a4af5651f, '6099284589125821621535';
+     test 0b1010010101010010010010011110010100110101001001010111101010110010100011111
+       == 0x014aa493ca6a4af5651f;		# 112
+     test 0b1010010101010010010010011110010100110101001001010111101010110010100011111
+       == $res[1];				# 113
+   }
+EOE
+} else {
+  for (1..4) {
+    $test++;
+    print "ok $test # Skipped: no support for binary literals\n";
+  }
+}
+
+my $lift = PARI(1)->_can('lift');
+test  $lift;					# 114
+test !PARI(1)->_can('raft');			# 115
+test  PARI(1)->_can('O');			# 116
+
+test &$lift(Math::Pari::Mod(67,17)) == 16;	# 117
+
+{
+  package ttt;
+  @ISA = 'Math::Pari';
+  sub new { shift; bless ::PARI(shift) }	# Not complete...
+}
+my $denom = 'ttt'->new(1)->can('denominator');
+my $lift1 = 'ttt'->new(1)->can('lift');
+
+test  'ttt' eq ref 'ttt'->new(1);			# 118
+test  $lift1;					# 119
+test  $denom;					# 120
+
+test  'ttt' eq ref 'ttt'->new(Math::Pari::Mod(67,17));	# 121
+test &$lift1('ttt'->new(Math::Pari::Mod(67,17))) == 16;	# 122
+# my $d = &$denom('ttt'->new(4)/68);
+# print "# d=$d\n";
+test &$denom('ttt'->new(4)/78) == 39;		# 123
+test 'ttt'->new(4)->can('can');			# 124
+test &{ 'ttt'->new(4)->can('isa') }( 'ttt'->new(6), 'Math::Pari') == 1;	# 125
+test 'ttt'->new(4)->can('isa');			# 126
+test !'ttt'->new(4)->can('foobar');		# 127
 
 my $ow;
 BEGIN {
@@ -377,4 +432,4 @@ BEGIN {
   $^W = $ow;
 }
 
-sub last {108}
+sub last {127}

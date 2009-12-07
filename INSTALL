@@ -121,3 +121,7 @@ x) Patches to some versions of GP/PARI may be needed (in `patches11',
 x) We skip "compatibility" tests, and do not support "compatibility" mode
    (with very old versions of GP/PARI).
 
+x) dmake on Win32 is buggy.  The symptom is a message about not being able
+   to find the target 'all'.  The workaround is to run `dmake -i'.  One must
+   watch for errors (with "Ignored" in the error message), since in this regime
+   dmake won't stop on an error.

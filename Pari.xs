@@ -110,6 +110,10 @@ realloc(void *mp, size_t nbytes)
 
 #define setSVpari(sv, in, oldavma) do {				\
     sv_setref_pv(sv, "Math::Pari", (void*)in);			\
+    morphSVpari(sv, in, oldavma);				\
+} while (0)
+
+#define morphSVpari(sv, in, oldavma) do {			\
     if (is_matvec_t(typ(in)) && SvTYPE(SvRV(sv)) != SVt_PVAV) {	\
 	make_PariAV(sv);					\
     }								\
@@ -152,25 +156,6 @@ long offStack;
 
 #define pari_version_exp() PARI_VERSION_EXP
 
-#if PARI_VERSION_EXP >= 2002001
-
-GEN gcopy_av(GEN x, GEN *AVMA);
-
-#else	/* !( PARI_VERSION_EXP >= 2002001 ) */
-
-GEN gcopy_av(GEN x, GEN *AVMA)
-{
-    long pos = (long)*AVMA;
-
-    pos -= taille(x)<<TWOPOTBYTES_IN_LONG;
-    *AVMA = (GEN)pos;
-    brutcopy(x, *AVMA);
-    return *AVMA;
-}
-
-
-#endif	/* PARI_VERSION_EXP >= 2002001 */
-
 #if PARI_VERSION_EXP >= 2000018
 
 GEN
@@ -199,6 +184,8 @@ _gbitshiftr(GEN g, long s)
 
 #endif	/* PARI_VERSION_EXP >= 2002001 */
 
+/* Upgrade to PVAV, attach a magic of type 'P' (non-standard
+   refcounts, so needs special logic on DESTROY) */
 void
 make_PariAV(SV *sv)
 {
@@ -273,6 +260,12 @@ changevalue(entree *ep, GEN val)
   killbloc(x);   /* destroy intermediate one */
 }
 #endif
+
+static GEN
+my_gpui(GEN x, GEN y)
+{
+  return gpui(x, y, prec);
+}
 
 static long
 numvar(GEN x)
@@ -356,20 +349,31 @@ findVariable(SV *sv, int generate)
       SV* tsv = SvRV(sv);
       if (SvOBJECT(tsv)) {
 	  if (SvSTASH(tsv) == pariStash) {
-	      GEN x = (GEN)SvIV(tsv);
-	      if (typ(x) == t_POL	/* Polynomial. */
-		  && lgef(x)==4		/* 2 terms */
-		  && (gcmp0((GEN)x[2]))	/* Free */
-		  && (gcmp1((GEN)x[3]))) { /* Leading */
-		  s = varentries[ordvar[varn(x)]]->name;
-		  goto repeat;
+	    is_pari:
+	      {
+		  GEN x = (GEN)SvIV(tsv);
+		  if (typ(x) == t_POL	/* Polynomial. */
+		      && lgef(x)==4		/* 2 terms */
+		      && (gcmp0((GEN)x[2]))	/* Free */
+		      && (gcmp1((GEN)x[3]))) { /* Leading */
+		      s = varentries[ordvar[varn(x)]]->name;
+		      goto repeat;
+		  }
+		  goto ignore;
 	      }
-	      goto ignore;
 	  } else if (SvSTASH(tsv) == pariEpStash) {
-	      /* It is not good to croak: $v=PARIvar 'v'; vector(3,$v,'v'); */
-	      if (generate)
-		  /*croak("Same iterator in embedded PARI loop construct")*/;
-	      return (entree*) SvIV(tsv);
+	    is_pari_ep:
+	      {
+		  /* Itsn't good to croak: $v=PARIvar 'v'; vector(3,$v,'v'); */
+		  if (generate)
+		      /*croak("Same iterator in embedded PARI loop construct")*/;
+		  return (entree*) SvIV(tsv);
+	      }
+	  } else if (sv_derived_from(sv, "Math::Pari")) { /* Avoid recursion */
+	      if (sv_derived_from(sv, "Math::Pari::Ep"))
+		  goto is_pari_ep;
+	      else
+		  goto is_pari;
 	  }
       }
   }
@@ -499,9 +503,14 @@ svputc(char c)
   sv_catpvn(worksv,&c,1);
 }
 
+#if PARI_VERSION_EXP >= 2002005
+#  define PUTS_CONST	const
+#else
+#  define PUTS_CONST
+#endif
 
 void
-svputs(char* p)
+svputs(PUTS_CONST char* p)
 {
   sv_catpv(worksv,p);
 }
@@ -514,7 +523,7 @@ svErrputc(char c)
 
 
 void
-svErrputs(char* p)
+svErrputs(PUTS_CONST char* p)
 {
   sv_catpv(workErrsv,p);
 }
@@ -557,11 +566,22 @@ sv2pari(SV* sv)
       SV* tsv = SvRV(sv);
       if (SvOBJECT(tsv)) {
 	  if (SvSTASH(tsv) == pariStash) {
-	      IV tmp = SvIV(tsv);
-	      return (GEN) tmp;
+	    is_pari:
+	      {
+		  IV tmp = SvIV(tsv);
+		  return (GEN) tmp;
+	      }
 	  } else if (SvSTASH(tsv) == pariEpStash) {
-	      IV tmp = SvIV(tsv);
-	      return (GEN)(((entree*) tmp)->value);
+	    is_pari_ep: 
+	      {
+		  IV tmp = SvIV(tsv);
+		  return (GEN)(((entree*) tmp)->value);
+	      }
+	  } else if (sv_derived_from(sv, "Math::Pari")) { /* Avoid recursion */
+	      if (sv_derived_from(sv, "Math::Pari::Ep"))
+		  goto is_pari_ep;
+	      else
+		  goto is_pari;
 	  }
       }
       {
@@ -681,6 +701,10 @@ do_nv:
     return newSVnv(gtodouble(in));	/* XXXX to NV, not to double? */
 }
 
+#if PARI_VERSION_EXP >= 2002005
+#  define _gtodouble	gtodouble
+#else
+
 double
 _gtodouble(GEN x)
 {
@@ -689,6 +713,9 @@ _gtodouble(GEN x)
   if (typ(x)==t_REAL) return rtodbl(x);
   gaffect(x,(GEN)reel4); return rtodbl((GEN)reel4);
 }
+
+#endif
+
 
 SV*
 pari2nv(GEN in)
@@ -797,6 +824,44 @@ pari2mortalsv(GEN in, long oldavma)
 
     setSVpari(sv, in, oldavma);
     return sv;
+}
+
+void
+resetSVpari(SV* sv, GEN g, long oldavma)
+{
+  if (SvROK(sv)) {
+      SV* tsv = SvRV(sv);
+
+      if (g && SvOBJECT(tsv)) {
+	  IV tmp = 0;
+
+	  if (SvSTASH(tsv) == pariStash) {
+	    is_pari:
+	      {
+		  tmp = SvIV(tsv);
+	      }
+	  }
+#if 0		/* To dangerous to muck with this */
+	  else if (SvSTASH(tsv) == pariEpStash) {
+	    is_pari_ep: 
+	      {
+		  tmp = SvIV(tsv);
+		  tmp = (IV)(((entree*) tmp)->value);
+	      }
+	  }
+	  else if (sv_derived_from(sv, "Math::Pari")) { /* Avoid recursion */
+	      if (sv_derived_from(sv, "Math::Pari::Ep"))
+		  goto is_pari_ep;
+	      else
+		  goto is_pari;
+	  }
+#endif
+	  if (tmp == (IV)g)		/* Did not change */
+	      return;
+      }
+  }
+  /* XXXX do it the non-optimized way */
+  setSVpari(sv,g,oldavma);
 }
 
 static const 
@@ -955,8 +1020,10 @@ callPerlFunction(entree *ep, ...)
        can get the answer: */
     res = sv2pari(sv);			/* XXXX When to decrement the count? */
     /* We need to copy it back to stack, otherwise we cannot decrement
-     the count.  XXXX not necessary! */
-    res = gcopy_av(res, (GEN*)&avma);
+     the count.  The ABI is that a C function [which can be put into a
+     GP/PARI function C-function slot] should have its result
+     completely on stack. */
+    res = forcecopy(res);
     SvREFCNT_dec(sv);
     
     return res;
@@ -1022,7 +1089,7 @@ exprHandler_Perl(char *s)
     res = sv2pari(sv);
     /* We need to copy it back to stack, otherwise we cannot decrement
      the count. */
-    res = gcopy_av(res, (GEN*)&avma);
+    res = forcecopy(res);
     SvREFCNT_dec(sv);
     
     return res;
@@ -1098,12 +1165,15 @@ check_pointer(unsigned int ptrs, GEN argvec[])
 #define RETTYPE_LONG 1
 #define RETTYPE_GEN 2
 
+#define ARGS_SUPPORTED	9
+
 static void
 fill_argvect(entree *ep, char *s, long *has_pointer, GEN *argvec,
-	     long *rettype, SV **args, int items)
-{
+	     long *rettype, SV **args, int items,
+	     SV **sv_OUT, GEN *gen_OUT, long *OUT_cnt)
+{	/* The last 3 to support '&' code - treated after the call */
     entree *ep1;
-    int i = 0, j = 0;
+    int i = 0, j = 0, saw_M = 0;
     long fake;
     PariExpr expr;
 
@@ -1112,8 +1182,9 @@ fill_argvect(entree *ep, char *s, long *has_pointer, GEN *argvec,
     if (!s)
 	croak("XSUB call through interface with a NULL code");
 
+    *OUT_cnt = 0;
     while (*s) {
-	if (i >= 8)
+	if (i >= ARGS_SUPPORTED - 1)
 	    croak("Too many args for a flexible-interface function");
 	switch (*s++)
 	    {
@@ -1122,8 +1193,7 @@ fill_argvect(entree *ep, char *s, long *has_pointer, GEN *argvec,
 		break;
 
 	    case 'M': /* long or a mneumonic string (string not supported) */
-		while (s[0] && s[0] != ',')
-		    s++;		/* Skip descriptor of mneumonics */
+		saw_M = 1;
 		/* Fall through */
 	    case 'L': /* long */
 		argvec[i++] = (GEN) (long)SvIV(args[j]);
@@ -1145,11 +1215,9 @@ fill_argvect(entree *ep, char *s, long *has_pointer, GEN *argvec,
 		argvec[i++] = (GEN)ep1;
 		break;
 	    case '&': /* *GEN */
-		ep1 = bindVariable(args[j++]);
-		if (ep1->value == (void*)initial_value(ep1))
-		    changevalue(ep1, gzero); /* don't overwrite initial value */
-		*has_pointer |= (1 << i);
-		argvec[i++] = (GEN) &(ep1->value); 
+		gen_OUT[*OUT_cnt] = sv2pari(args[j]);
+		argvec[i++] = (GEN)(gen_OUT + *OUT_cnt);
+		sv_OUT[(*OUT_cnt)++]   = args[j++];
 		break;
 	    case  'E': /* Input position - subroutine */
 	    case  'I': /* Input position - subroutine */
@@ -1202,8 +1270,7 @@ fill_argvect(entree *ep, char *s, long *has_pointer, GEN *argvec,
 			    goto unknown;
 			case 'M': /* long or a mneumonic string
 				     (string not supported) */
-			    while (s[1] && s[1] != ',')
-				s++;	/* Skip descriptor of mneumonics */
+			    saw_M = 1;
 			    /* Fall through */
 			case 'L': /* long */
 			    argvec[i++] = (GEN) atol(pre);
@@ -1246,6 +1313,12 @@ fill_argvect(entree *ep, char *s, long *has_pointer, GEN *argvec,
 	    case 'v': /* Return void */
 		*rettype = RETTYPE_VOID; break;
 
+	    case '\n':			/* Mneumonic starts */
+		if (saw_M) {
+		    s = "";		/* Finish processing */
+		    break;
+		}		
+		/* FALL THROUGH */
 	    default: 
 		croak("Unsupported code '%.1s' in signature of a PARI function", s-1);
 	    }
@@ -1255,9 +1328,17 @@ fill_argvect(entree *ep, char *s, long *has_pointer, GEN *argvec,
     if (j < items)
 	croak("%d unused args for PARI function %s", items - j, ep->name);
 #if PURIFY
-    for ( ; i<9; i++) argvec[i]=NULL; 
+    for ( ; i<ARGS_SUPPORTED; i++) argvec[i]=NULL; 
 #endif
 }
+
+static void
+fill_outvect(SV **sv_OUT, GEN *gen_OUT, long c, long oldavma)
+{
+    while (c-- > 0)
+	resetSVpari(sv_OUT[c], gen_OUT[c], oldavma);
+}
+
 
 #define _to_int(in,dummy1,dummy2) to_int(in)
 
@@ -1446,11 +1527,15 @@ long	oldavma=avma;
     entree *ep = (entree *) XSANY.any_dptr, *ep1;
     void (*FUNCTION_real)(VARARG)
 	= (void (*)(VARARG))ep->value;
-    GEN argvec[9];
+    GEN argvec[ARGS_SUPPORTED];
     long rettype = RETTYPE_GEN;
     long has_pointer = 0;		/* XXXX ?? */
+    long OUT_cnt;
+    SV *sv_OUT[ARGS_SUPPORTED];
+    GEN gen_OUT[ARGS_SUPPORTED];
 
-    fill_argvect(ep, ep->code, &has_pointer, argvec, &rettype, &ST(0), items);
+    fill_argvect(ep, ep->code, &has_pointer, argvec, &rettype, &ST(0), items,
+		 sv_OUT, gen_OUT, &OUT_cnt);
 
     if (rettype != RETTYPE_VOID)
 	croak("Expected VOID return type, got code '%s'", ep->code);
@@ -1459,6 +1544,8 @@ long	oldavma=avma;
 	          argvec[4], argvec[5], argvec[6], argvec[7], argvec[8]);
     if (has_pointer) 
 	check_pointer(has_pointer,argvec);
+    if (OUT_cnt)
+	fill_outvect(sv_OUT, gen_OUT, OUT_cnt, oldavma);
   }
 
 GEN
@@ -1472,8 +1559,12 @@ long	oldavma=avma;
     GEN argvec[9];
     long rettype = RETTYPE_GEN;
     long has_pointer = 0;		/* XXXX ?? */
+    long OUT_cnt;
+    SV *sv_OUT[ARGS_SUPPORTED];
+    GEN gen_OUT[ARGS_SUPPORTED];
 
-    fill_argvect(ep, ep->code, &has_pointer, argvec, &rettype, &ST(0), items);
+    fill_argvect(ep, ep->code, &has_pointer, argvec, &rettype, &ST(0), items,
+		 sv_OUT, gen_OUT, &OUT_cnt);
 
     if (rettype != RETTYPE_GEN)
 	croak("Expected GEN return type, got code '%s'", ep->code);
@@ -1482,6 +1573,8 @@ long	oldavma=avma;
 	          argvec[4], argvec[5], argvec[6], argvec[7], argvec[8]);
     if (has_pointer) 
 	check_pointer(has_pointer,argvec);
+    if (OUT_cnt)
+	fill_outvect(sv_OUT, gen_OUT, OUT_cnt, oldavma);
   }
  OUTPUT:
    RETVAL
@@ -1497,8 +1590,12 @@ long	oldavma=avma;
     GEN argvec[9];
     long rettype = RETTYPE_GEN;
     long has_pointer = 0;		/* XXXX ?? */
+    long OUT_cnt;
+    SV *sv_OUT[ARGS_SUPPORTED];
+    GEN gen_OUT[ARGS_SUPPORTED];
 
-    fill_argvect(ep, ep->code, &has_pointer, argvec, &rettype, &ST(0), items);
+    fill_argvect(ep, ep->code, &has_pointer, argvec, &rettype, &ST(0), items,
+		 sv_OUT, gen_OUT, &OUT_cnt);
 
     if (rettype != RETTYPE_LONG)
 	croak("Expected long return type, got code '%s'", ep->code);
@@ -1507,6 +1604,8 @@ long	oldavma=avma;
 	          argvec[4], argvec[5], argvec[6], argvec[7], argvec[8]);
     if (has_pointer) 
 	check_pointer(has_pointer,argvec);
+    if (OUT_cnt)
+	fill_outvect(sv_OUT, gen_OUT, OUT_cnt, oldavma);
   }
  OUTPUT:
    RETVAL
@@ -2664,7 +2763,7 @@ loadPari(name)
 	   case 'p':
 	       if (strEQ(name,"gpui")) {
 		   valence=2;
-		   func=(void (*)(void*)) gpui;
+		   func=(void (*)(void*)) my_gpui;
 	       }
 	       break;
 	   case 's':
@@ -2777,7 +2876,7 @@ loadPari(name)
 	       case 'p':
 		   if (strEQ(name,"_gpui")) {
 		       valence=299;
-		       func=(void (*)(void*)) gpui;
+		       func=(void (*)(void*)) my_gpui;
 		   }
 		   break;
 	       case 's':

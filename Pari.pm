@@ -676,7 +676,7 @@ access is possible in Perl, you need to use different indices:
   $a = PARI('nf[7]');
   $b = $nf->[6];
 
-Now $a nd $b contain the same value.
+Now $a and $b contain the same value.
 
 =item matrices
 
@@ -913,7 +913,7 @@ sub _shiftr {
 $initmem = $initmem || 4000000;		# How much memory for the stack
 $initprimes = $initprimes || 500000;	# Calculate primes up to this number
 
-$VERSION = '2.010304';
+$VERSION = '2.010305';
 
 bootstrap Math::Pari;
 

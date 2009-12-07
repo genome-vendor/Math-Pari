@@ -360,3 +360,6 @@ Files=15,  Tests=1378, 108 secs (86.46 cusr  3.82 csys = 90.28 cpu)
 	Sanity check: correspondence between numeric and string interfaces.
 	Define GCC_INLINE if the compiler is gcc.
 	New target `build_tests' for make.
+
+2.010305:
+	Misprint in PariBuild.pm fixed (thanks to John Borwick).

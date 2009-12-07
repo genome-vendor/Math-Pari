@@ -430,6 +430,16 @@ my $try1 = abs($try);
 
 test 0.1 == PARI $try;		# 128
 
+for my $l (0..22) {		# + 23*9
+  for my $d (1..9) {
+    my $n = $d . (0 x $l);
+    my $p = eval "PARI($n)";
+    $p = "$p";
+    $p =~ s/\.0*$//;
+    print "# `$n' ==> `$p'\n" if $n ne $p;
+    test ($n eq $p or $p =~ /(0{15}|9{15})\d{0,3}e\d\d$/i);
+  }
+}
 my $ow;
 BEGIN {
   $ow = $^W;
@@ -448,4 +458,4 @@ BEGIN {
   $^W = $ow;
 }
 
-sub last {128}
+sub last {128 + 23*9}

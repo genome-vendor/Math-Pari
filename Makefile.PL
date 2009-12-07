@@ -120,6 +120,12 @@ $offset = index($Config{byteorder}, "1");
 $offset = 3 if $offset > 3;	# SvFLAGS is actually I32
 $define .= " -DLSB_in_U32=$offset";
 
+my $longsize = length(eval { pack 'l!', 1 } or pack 'l', 1);
+my $pari_int_size = $Config{'ivsize'} || $Config{'intsize'}
+	or die "Can't deduce PARI int size";
+
+$define .= ' -DLONG_SHORTER_THAN_IV' if $pari_int_size > $longsize;
+
 $define .= ' -Derr=pari_err'; # On linux it can get a wrong dynamic loading
 $define .= ' -DHAVE_LADD' if $opts{have_ladd};
 $define .= ' -DGCC_INLINE' if $Config{gccversion} and not $Config{optimize} =~ /-g\b/;

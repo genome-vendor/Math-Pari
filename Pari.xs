@@ -145,7 +145,7 @@ realloc(void *mp, size_t nbytes)
 		setSVpari_or_do(sv, in, oldavma, avma = oldavma)
 
 #define setSVpari_keep_avma(sv, in, oldavma)	\
-		setSVpari_or_do(sv, in, oldavma, )
+		setSVpari_or_do(sv, in, oldavma, ((void)0))
 
 #define setSVpari_or_do(sv, in, oldavma, action) do {		\
     sv_setref_pv(sv, "Math::Pari", (void*)in);			\
@@ -198,7 +198,7 @@ long offStack;
 
 #define pari_version_exp() PARI_VERSION_EXP
 
-#if PARI_VERSION_EXP >= 2002013
+#if PARI_VERSION_EXP >= 2002012
 #  define	prec	precreal
 #endif
 
@@ -278,7 +278,7 @@ wrongT(SV *sv, char *file, int line)
 HV *pariStash;				/* For quick id. */
 HV *pariEpStash;
 
-#if PARI_VERSION_EXP >= 2002013		/* Probably earlier too */
+#if PARI_VERSION_EXP >= 2002012		/* Probably earlier too */
 #  define HAVE_FETCH_NAMED_VAR
 #else
 
@@ -298,7 +298,7 @@ installep(void *f, char *name, int len, int valence, int add, entree **table)
   ep->menu    = 0;
   return *table = ep;
 }
-#endif	/* PARI_VERSION_EXP >= 2002013 */ 
+#endif	/* PARI_VERSION_EXP >= 2002012 */ 
 
 #if PARI_VERSION_EXP <= 2002000		/* Global after 2.2.0 */
 static void
@@ -645,6 +645,54 @@ svErrdie()
 PariOUT perlOut={svputc, svputs, svOutflush, NULL};
 PariOUT perlErr={svErrputc, svErrputs, svErrflush, svErrdie};
 
+static GEN
+my_ulongtoi(ulong uv)
+{
+  long oldavma = avma;
+  GEN a = stoi((long)(uv>>1));
+
+  a = gshift(a, 1);
+  if (uv & 0x1)
+      a = gadd(a, gun);
+  return gerepileupto(oldavma, a);
+}
+
+#ifdef LONG_SHORTER_THAN_IV
+#  error "LONG_SHORTER_THAN_IV not implemented"
+GEN
+my_UVtoi(UV uv)
+{
+  long oldavma = avma;
+  GEN a = my_ulongtoi((ulong)(uv>>(8*sizeof(ulong))));
+  GEN b = my_ulongtoi((ulong)(uv & ((((UV)1)<<(8*sizeof(ulong))) - 1));
+
+  a = gshift(a, (8*sizeof(ulong)));
+  return gerepileupto(oldavma, gadd(a,b));
+}
+GEN
+my_IVtoi(IV iv)
+{
+  long oldavma = avma;
+  GEN a;
+
+  if (iv >= 0)
+    return my_UVtoi((UV)iv);
+  oldavma = avma;
+  return gerepileupto(oldavma, gneg(my_UVtoi((UV)-iv)));
+}
+
+#else
+#define my_IVtoi		stoi
+#define my_UVtoi		my_ulongtoi
+#endif
+
+#ifdef SvIsUV
+#  define mySvIsUV	SvIsUV
+#else
+#  define mySvIsUV(sv)	0
+#endif
+#define PerlInt_to_i(sv) (mySvIsUV(sv) ? my_UVtoi(SvUV(sv)) : my_IVtoi(SvIV(sv)))
+
 GEN
 sv2pari(SV* sv)
 {
@@ -689,7 +737,7 @@ sv2pari(SV* sv)
 	  }
       }
   }
-  else if (SvIOK(sv)) return stoi(SvIV(sv));
+  else if (SvIOK(sv)) return PerlInt_to_i(sv);
   else if (SvNOK(sv)) {
       double n = (double)SvNV(sv);
 #if !defined(PERL_VERSION) || (PERL_VERSION < 6)
@@ -705,7 +753,7 @@ sv2pari(SV* sv)
       return dbltor(n);
   }
   else if (SvPOK(sv)) return lisexpr(SvPV(sv,na));
-  else if (SvIOKp(sv)) return stoi(SvIV(sv));
+  else if (SvIOKp(sv)) return PerlInt_to_i(sv);
   else if (SvNOKp(sv)) return dbltor((double)SvNV(sv));
   else if (SvPOKp(sv)) return lisexpr(SvPV(sv,na));
   else if (!SvOK(sv)) return stoi(0);
@@ -871,7 +919,7 @@ setprecision(long digits)
   return m;
 }
 
-#if PARI_VERSION_EXP < 2002013
+#if PARI_VERSION_EXP < 2002012
 long
 setseriesprecision(long digits)
 {
@@ -880,7 +928,7 @@ setseriesprecision(long digits)
   if(digits>0) {precdl = digits;}
   return m;
 }
-#endif	/* PARI_VERSION_EXP < 2002013 */
+#endif	/* PARI_VERSION_EXP < 2002012 */
 
 static IV primelimit;
 static UV parisize;
@@ -944,25 +992,26 @@ pari2mortalsv(GEN in, long oldavma)
 }
 
 typedef struct {
-    long items, bytes;
+    long items, words;
     SV *acc;
     int context;
 } heap_dumper_t;
 
+#define BL_HEAD 3			/* from init.c */
 static void
 heap_dump_one(heap_dumper_t *d, GEN x)
 {
     SV* tmp;
 
-    d->items++; d->bytes += 4*sizeof(long);
+    d->items++;
     if(!x[0]) { /* user function */
-	d->bytes += strlen((char *)(x+2))/sizeof(long);
+	d->words += strlen((char *)(x+2))/sizeof(long);
 	tmp = newSVpv((char*)(x+2),0);
     } else if (x==bernzone) {
-	d->bytes += x[0];
+	d->words += x[0];
 	tmp = newSVpv("bernzone",8);
     } else { /* GEN */
-	d->bytes += taille(x);
+	d->words += taille(x);
 	tmp = pari_print(x);
     }
     /* add to output */
@@ -975,7 +1024,7 @@ heap_dump_one(heap_dumper_t *d, GEN x)
     }
 }
 
-#if PARI_VERSION_EXP >= 2002013
+#if PARI_VERSION_EXP >= 2002012
 
 static void
 heap_dump_one_v(GEN x, void *v)
@@ -991,7 +1040,7 @@ heap_dumper(heap_dumper_t *d)
     traverseheap(&heap_dump_one_v, (void*)d);
 }
 
-#else	/* !( PARI_VERSION_EXP >= 2002013 ) */
+#else	/* !( PARI_VERSION_EXP >= 2002012 ) */
 
 static void
 heap_dumper(heap_dumper_t *d)
@@ -1007,7 +1056,7 @@ heap_dumper(heap_dumper_t *d)
 	heap_dump_one(d, x);
 }
 
-#endif	/* !( PARI_VERSION_EXP >= 2002013 ) */
+#endif	/* !( PARI_VERSION_EXP >= 2002012 ) */
 
 void
 resetSVpari(SV* sv, GEN g, long oldavma)
@@ -3534,7 +3583,7 @@ BOOT:
    if (!pri || !SvOK(pri)) {
        croak("$Math::Pari::initprimes not defined!");
    }
-#if PARI_VERSION_EXP < 2002013		/* XXXX HOW to do otherwise */
+#if PARI_VERSION_EXP < 2002012		/* XXXX HOW to do otherwise */
    if (reboot) {
 	detach_stack();
 	if (reset_on_reload)
@@ -3543,7 +3592,7 @@ BOOT:
 	   allocatemoremem(1008);
    }
 #endif
-#if PARI_VERSION_EXP >= 2002013
+#if PARI_VERSION_EXP >= 2002012
    pari_init_defaults();
 #else
    INIT_JMP_off;
@@ -3553,19 +3602,19 @@ BOOT:
 #endif
    if (!(reboot++)) {
 #ifndef NO_HIGHLEVEL_PARI
-#if PARI_VERSION_EXP >= 2002013
+#if PARI_VERSION_EXP >= 2002012
        pari_add_module(functions_highlevel);
-#else	/* !( PARI_VERSION_EXP >= 2002013 ) */
+#else	/* !( PARI_VERSION_EXP >= 2002012 ) */
        pari_addfunctions(&pari_modules,
 			 functions_highlevel, helpmessages_highlevel);
-#endif	/* !( PARI_VERSION_EXP >= 2002013 ) */
+#endif	/* !( PARI_VERSION_EXP >= 2002012 ) */
        init_graph();
 #endif
    }
 
    primelimit = SvIV(pri);
    parisize = SvIV(mem);
-#if PARI_VERSION_EXP >= 2002013
+#if PARI_VERSION_EXP >= 2002012
    pari_init_opts(parisize, primelimit, INIT_DFTm);
 				 /* Default: take four million bytes of
 			        * memory for the stack, calculate
@@ -3646,7 +3695,7 @@ PPCODE:
     case G_ARRAY:  ret = (SV*)newAV();	 break;
     }
 
-    hd.bytes = hd.items = 0;
+    hd.words = hd.items = 0;
     hd.acc = ret;
     hd.context = context;
 
@@ -3656,11 +3705,12 @@ PPCODE:
     case G_VOID:
     case G_SCALAR: {
 	SV* tmp = newSVpvf("heap had %ld bytes (%ld items)\n",
-			   hd.bytes, hd.items);
+			   (hd.words + BL_HEAD * hd.items) * sizeof(long),
+			   hd.items);
 	sv_catsv(tmp,ret);
 	SvREFCNT_dec(ret);
 	if(GIMME_V == G_VOID) {
-	    fputs(SvPV_nolen(tmp),stdout);
+	    PerlIO_puts(PerlIO_stdout(), SvPV_nolen(tmp));
 	    SvREFCNT_dec(tmp);
 	    XSRETURN(0);
 	} else {

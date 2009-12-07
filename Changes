@@ -151,3 +151,8 @@ Files=15,  Tests=1378, 108 secs (86.46 cusr  3.82 csys = 90.28 cpu)
 2.001300:
 	Special-case version 2.0.13 too (prefer alpha over betas).
 	First step to allow dynalinking set_output_file().
+2.001301:
+	Change interfaces 83 and 84: they are void now.
+	Define PERL_POLLUTE.
+	During test environment variable MP_NOGNUPLOT may be set to
+	not load Term::Gnuplot.

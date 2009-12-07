@@ -38,17 +38,22 @@ $DEFAULT = undef;
   )} = (1) x 10000;
 
 if ($file =~ /plot|graph|all/) {
-  eval { link_gnuplot() };
-  if ($@ =~ m%^Can't locate Term/Gnuplot.pm in \@INC%) {
-    print STDERR "# Can't locate Term/Gnuplot.pm in \@INC, ignoring plotting\n";
-    @not_yet_defined{qw(
-      plotbox plotcolor plotcursor plotdraw ploth plothraw plotinit plotlines 
-      plotmove plotpoints plotrline plotrmove plotrpoint psdraw psploth 
-      psplothraw
-      plotkill
-    )} = (1) x 10000;
-  } elsif ($@) {
-    die $@;
+  if ($ENV{MP_NOGNUPLOT}) {
+    $skip_gnuplot = 1;
+  } else {
+    eval { link_gnuplot() };
+    if ($@ =~ m%^Can't locate Term/Gnuplot.pm in \@INC%) {
+      print STDERR "# Can't locate Term/Gnuplot.pm in \@INC, ignoring plotting\n";
+      @not_yet_defined{qw(
+	plotbox plotcolor plotcursor plotdraw ploth plothraw plotinit plotlines 
+	plotmove plotpoints plotrline plotrmove plotrpoint psdraw psploth 
+	psplothraw
+	plotkill
+      )} = (1) x 10000;
+      $skip_gnuplot = 1;
+    } elsif ($@) {
+      die $@;
+    }
   }
 }
 
@@ -621,6 +626,9 @@ sub process_test {
       if ($@ =~ /^Undefined subroutine &main::(\w+)/ 
 	  and $not_yet_defined{$1}) {
 	print "# in='$in'\nok $c # Skipped: `$1' is known to be undefined\n";
+      } elsif ($@ =~ /gnuplot-like plotting environment not loaded yet/
+	       and $skip_gnuplot) {
+	print "# in='$in'\nok $c # Skipped: Term::Gnuplot is not loaded\n";
       } else {
 	print "not ok $c # in='$in', err='$@'\n";
       }

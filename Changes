@@ -482,3 +482,12 @@ os2$(OBJ_EXT): $(PARI_DIR)/src/systems/os2/os2.c pariinl.h paricfg.h
 		RUN_IF_DEBUG_PARI.  From userland, use PARI_DEBUG(),
 		PARI_DEBUG_set(), and environment variable MATHPARI_DEBUG.
 	Add -w to test scripts.
+
+2.010601:
+	A memory leak on the PARI stack was possible in a rare situaton:
+		if a PARI function returning a value which is not on stack
+		(very few possibilities: gnil, gun etc.) is called when
+		no Math::Pari temporary values are on stack, the GENs
+		created for the function arguments would leak.
+	Two new contributed debugging functions: dumpStack(), dumpHeap()
+		(untested, undocumented).

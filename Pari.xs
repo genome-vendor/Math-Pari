@@ -124,21 +124,33 @@ realloc(void *mp, size_t nbytes)
 
 /* We make a "fake" PVAV, not enough entries.  */
 
-#define setSVpari(sv, in, oldavma) do {				\
+/* This macro resets avma *immediately* if IN is a global
+   static GEN (such as gnil, gun etc).  So it should be called near
+   the end of stack-manipulating scope */
+#define setSVpari(sv, in, oldavma)	\
+		setSVpari_or_do(sv, in, oldavma, avma = oldavma)
+
+#define setSVpari_keep_avma(sv, in, oldavma)	\
+		setSVpari_or_do(sv, in, oldavma, )
+
+#define setSVpari_or_do(sv, in, oldavma, action) do {		\
     sv_setref_pv(sv, "Math::Pari", (void*)in);			\
-    morphSVpari(sv, in, oldavma);				\
+    morphSVpari(sv, in, oldavma, action);			\
 } while (0)
 
-#define morphSVpari(sv, in, oldavma) do {			\
+#define morphSVpari(sv, in, oldavma, action) do {		\
     if (is_matvec_t(typ(in)) && SvTYPE(SvRV(sv)) != SVt_PVAV) {	\
 	make_PariAV(sv);					\
     }								\
     if (isonstack(in)) {					\
-	SvCUR(SvRV(sv)) = oldavma - bot;			\
-	SvPVX(SvRV(sv)) = (char*)PariStack;			\
-	PariStack = SvRV(sv);					\
+	SV* g = SvRV(sv);					\
+	SvCUR(g) = oldavma - bot;				\
+	SvPVX(g) = (char*)PariStack;				\
+	PariStack = g;						\
 	perlavma = avma;					\
 	onStack_inc;						\
+    } else {							\
+	action;							\
     }								\
     SVnum_inc;							\
 } while (0)
@@ -626,7 +638,7 @@ sv2pari(SV* sv)
 	      int i;
 	      for (i=0;i<=len;i++) {
 		  SV** svp=av_fetch(av,i,0);
-		  if (!svp) croak("Internal error in perl2pari!");
+		  if (!svp) croak("Internal error in sv2pari!");
 		  ret[i+1]=(long)sv2pari(*svp);
 	      }
 	      return ret;
@@ -655,7 +667,7 @@ sv2pari(SV* sv)
   } else if (SvPOK(sv)) return lisexpr(SvPV(sv,na));
   else if (!SvOK(sv)) return stoi(0);
   else
-    croak("Variable in perl2pari is not of known type");  
+    croak("Variable in sv2pari is not of known type");  
 }
 
 GEN
@@ -868,14 +880,13 @@ pari_texprint(GEN in)
   return worksv;
 }
 
-/* Should be used for conversion of procedure arguments only. */
 SV*
 pari2mortalsv(GEN in, long oldavma)
 {				/* Oldavma should keep the value of
 				 * avma when entering a function call. */
     SV *sv = sv_newmortal();
 
-    setSVpari(sv, in, oldavma);
+    setSVpari_keep_avma(sv, in, oldavma);
     return sv;
 }
 
@@ -914,7 +925,7 @@ resetSVpari(SV* sv, GEN g, long oldavma)
       }
   }
   /* XXXX do it the non-optimized way */
-  setSVpari(sv,g,oldavma);
+  setSVpari_keep_avma(sv,g,oldavma);
 }
 
 static const 
@@ -1050,6 +1061,8 @@ callPerlFunction(entree *ep, ...)
     PUSHMARK(sp);
     EXTEND(sp, numargs + 1);
     for (i = 0; i < numargs; i++) {
+	/* It should be OK to have the same oldavma here, since avma
+	   is not modified... */
 	PUSHs(pari2mortalsv(va_arg(args, GEN), oldavma));
     }
     va_end(args);
@@ -1220,6 +1233,9 @@ check_pointer(unsigned int ptrs, GEN argvec[])
 #define RETTYPE_INT	3
 
 #define ARGS_SUPPORTED	9
+#define THE_ARGS_SUPPORTED					\
+	argvec[0], argvec[1], argvec[2], argvec[3],		\
+	argvec[4], argvec[5], argvec[6], argvec[7], argvec[8]
 
 static void
 fill_argvect(entree *ep, char *s, long *has_pointer, GEN *argvec,
@@ -1619,8 +1635,7 @@ long	oldavma=avma;
     if (rettype != RETTYPE_VOID)
 	croak("Expected VOID return type, got code '%s'", ep->code);
     
-    (FUNCTION_real)(argvec[0], argvec[1], argvec[2], argvec[3],
-	          argvec[4], argvec[5], argvec[6], argvec[7], argvec[8]);
+    (FUNCTION_real)(THE_ARGS_SUPPORTED);
     if (has_pointer) 
 	check_pointer(has_pointer,argvec);
     if (OUT_cnt)
@@ -1648,8 +1663,7 @@ long	oldavma=avma;
     if (rettype != RETTYPE_GEN)
 	croak("Expected GEN return type, got code '%s'", ep->code);
     
-    RETVAL=(FUNCTION_real)(argvec[0], argvec[1], argvec[2], argvec[3],
-	          argvec[4], argvec[5], argvec[6], argvec[7], argvec[8]);
+    RETVAL = (FUNCTION_real)(THE_ARGS_SUPPORTED);
     if (has_pointer) 
 	check_pointer(has_pointer,argvec);
     if (OUT_cnt)
@@ -1679,8 +1693,7 @@ long	oldavma=avma;
     if (rettype != RETTYPE_LONG)
 	croak("Expected long return type, got code '%s'", ep->code);
     
-    RETVAL=FUNCTION_real(argvec[0], argvec[1], argvec[2], argvec[3],
-	          argvec[4], argvec[5], argvec[6], argvec[7], argvec[8]);
+    RETVAL = FUNCTION_real(THE_ARGS_SUPPORTED);
     if (has_pointer) 
 	check_pointer(has_pointer,argvec);
     if (OUT_cnt)
@@ -3344,6 +3357,98 @@ PPCODE:
   PUSHs(sv_2mortal(newSViv(offStack)));
 #endif  
   
+
+void
+dumpStack()
+PPCODE:
+	GEN x = (GEN)avma;
+	UV i = 0;
+	long ssize = getstack();
+	SV* ret;
+
+	switch(GIMME_V) {
+	case G_VOID:
+	case G_SCALAR:
+	    ret = newSVpvf("stack size is %d bytes (%d x %d longs)\n",
+			   ssize,sizeof(long),ssize/sizeof(long));
+	    for(; (long)x < top; x += taille(x), i++) {
+		SV* tmp = pari_print(x);
+		sv_catpvf(ret," %2d: %s\n",i,SvPV_nolen(tmp));
+		SvREFCNT_dec(tmp);
+	    }
+	    if(GIMME_V == G_VOID) {
+		fputs(SvPV_nolen(ret),stdout);
+		SvREFCNT_dec(ret);
+		XSRETURN(0);
+	    } else {
+		ST(0) = sv_2mortal(ret);
+		XSRETURN(1);
+	    }
+	case G_ARRAY:
+	    for(; (long)x < top; x += taille(x), i++)
+		XPUSHs(sv_2mortal(pari_print(x)));
+	}
+
+void
+dumpHeap()
+PPCODE:
+    /* create a new block on the heap so we can examine the linked list */
+    GEN tmp = newbloc(1);  /* at least 1 to avoid warning */
+    GEN x = (GEN)bl_prev(tmp);
+    long m = 0, l = 0;
+    SV* ret;
+
+    killbloc(tmp);
+
+    switch(GIMME_V) {
+    case G_VOID:
+    case G_SCALAR: ret = newSVpvn("",0); break;
+    case G_ARRAY:  ret = (SV*)newAV();	 break;
+    }
+
+    /* code adapted from getheap() in PARI src/language/init.c */
+    for(; x; x = (GEN)bl_prev(x)) {
+	SV* tmp;
+	m++; l += 4*sizeof(long);
+	if(!x[0]) { /* user function */
+	    l += strlen((char *)(x+2))/sizeof(long);
+	    tmp = newSVpv((char*)(x+2),0);
+	} else if (x==bernzone) {
+	    l += x[0];
+	    tmp = newSVpv("bernzone",8);
+	} else { /* GEN */
+	    l += taille(x);
+	    tmp = pari_print(x);
+	}
+	/* add to output */
+	switch(GIMME_V) {
+        case G_VOID:
+	case G_SCALAR: sv_catpvf(ret," %2d: %s\n",m-1,SvPV_nolen(tmp));
+		       SvREFCNT_dec(tmp);     break;
+	case G_ARRAY:  av_push((AV*)ret,tmp); break;
+	}
+    }
+
+    switch(GIMME_V) {
+    case G_VOID:
+    case G_SCALAR: {
+	SV* tmp = newSVpvf("heap had %d bytes (%d items)\n",l,m);
+	sv_catsv(tmp,ret);
+	SvREFCNT_dec(ret);
+	if(GIMME_V == G_VOID) {
+	    fputs(SvPV_nolen(tmp),stdout);
+	    SvREFCNT_dec(tmp);
+	    XSRETURN(0);
+	} else {
+	    ST(0) = sv_2mortal(tmp);
+	    XSRETURN(1);
+	}
+    }
+    case G_ARRAY:
+	for(m = 0; m <= av_len((AV*)ret); m++)
+	    XPUSHs(sv_2mortal(SvREFCNT_inc(*av_fetch((AV*)ret,m,0))));
+	SvREFCNT_dec(ret);
+    }
 
 MODULE = Math::Pari PACKAGE = Math::Pari
 

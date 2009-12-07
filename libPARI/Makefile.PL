@@ -24,7 +24,7 @@ $machine = $common::machine unless defined $machine;
 
 if ( $machine eq 'port'			# Set by find_machine_architecture()
      and defined($Config{longsize}) and $Config{longsize} == 8 ) {
-  $mycflags .= " -DLONG_IS_64BIT";
+  #$mycflags .= " -DLONG_IS_64BIT";
 }
 
 if (defined $machine) {
@@ -70,7 +70,12 @@ $mpinlh	     = "$kernel_dir/none/level1.h"; # Put as a dependence
   grep !m(/ ( plot (?!port|gnuplot)
 	    | ix86 | version | mpin | dummy
 	    | gp_(rl|init) | kerntest | whatnow | gp\. )
-	 )x,  <$main_paridir/src/*/*.c>; # kernel C files deeper in the tree
+	 )x,	<$main_paridir/src/*/*.c>, # kernel C files deeper in the tree
+		<$main_paridir/src/systems/$^O/*.c>;
+@cat_cfiles =			# Remaining kernel C files
+  grep !m(/ ( level \d+ | mp ) )x,  <$main_paridir/src/kernel/none/*.c>;
+
+
 @cfiles = grep ! m(/test/[^/]+\.c$), @cfiles;
 map s/^\Q$main_paridir/\$(PARI_DIR)/, @cfiles;
 %cfiles = map {m,/([^/.]*)\.c$,i; ($1,$_)} @cfiles; # By basename
@@ -78,15 +83,15 @@ map s/^\Q$main_paridir/\$(PARI_DIR)/, @cfiles;
 $noexp2 = '';			# Not used any more - but would be nice!
 $libs="-lm";
 if ($Config{osname} eq 'solaris') {
-  @sc_dirs = '/opt/SUNWspro/lib' if -d '/opt/SUNWspro/lib';
-  @sc_dirs = </opt/SUNWspro/SC*/lib> unless @sc_dirs;
+#  @sc_dirs = '/opt/SUNWspro/lib' if -d '/opt/SUNWspro/lib';
+#  @sc_dirs = </opt/SUNWspro/SC*/lib> unless @sc_dirs;
   #warn "Cannot find SUNWspro dirs, needed for -lsunmath, using NOEXP2.\n"
   #  unless @sc_dirs;
-  if (@sc_dirs) {
-    $libs .= " -L$sc_dirs[-1] -lsunmath";
-  } else {
+#  if (@sc_dirs) {
+#    $libs .= " -L$sc_dirs[-1] -lsunmath";
+#  } else {
     $noexp2 = 1;
-  }
+#  }
 } elsif ($Config{osname} eq 'sunos') {
   # $machine = 'sparcv8_super' if $Config{myuname} =~ /\bsun4m\b/o;
   $mycflags .= ' -DULONG_NOT_DEFINED';
@@ -95,11 +100,13 @@ if ($Config{osname} eq 'solaris') {
 # We remove optimize options, since Perl probably knows them
 # and one can specify "OPTIMIZE=-O2 -m486" on the command line
 
+my $extra_inc = extra_includes($paridir);
+
 my $inc = '';
 if ($Config{cc} eq 'gcc') {
   # We do not put -ansi to avoid versioncflags
   $mycflags="";			#$mycflags="-O2 -g";
-  if ($Config{osname} eq 'os2') {
+  if ($Config{osname} eq 'os2' and not $extra_inc) {
     # 2.1.3 does not include dlctl.h
     $mycflags .= ' -DRTLD_LAZY=0 -DRTLD_GLOBAL=0';
     $inc .= ' -I$(PERL_INC)';
@@ -118,7 +125,7 @@ if ($Config{cc} eq 'gcc') {
 $mycflags .= ' -Derr=pari_err'; # On linux it can get a wrong dynamic loading
 
 if ($machine eq 'alpha') {
-  $mycflags .= " -DLONG_IS_64BIT";
+  #$mycflags .= " -DLONG_IS_64BIT";
 } elsif ($Config{osname} eq 'solaris') {
   $mycflags .= " -DSOLARIS";
 } elsif ($Config{osname} eq 'os2') {
@@ -189,7 +196,7 @@ WriteMakefile(
 		    MY_EMPTY_STR  => '',
 		   },
     DEFINE	=> $mycflags,
-    INC		=> '-I$(PARI_DIR)/src/headers -I$(PARI_DIR)/src/graph -I.'
+    INC		=> $extra_inc . ' -I$(PARI_DIR)/src/headers -I$(PARI_DIR)/src/graph -I.'
 			. $inc,
     C		=> \@cfiles,
     SKIP	=> [qw( distclean test dist makeaperl xs_o static)],
@@ -220,7 +227,7 @@ EOC
     $mp = 'mp.c';
     my $kern = "$kernel_dir/none";
     my @dep			# Copied from src/kernel/none/MakeLVL1.SH 2.2.5
-      ="$kern/mp.c $kern/gcdll.c $kern/ratlift.c $kern/gcd.c $kern/mp_indep.c";
+      ="$kern/mp.c $kern/gcdll.c $kern/ratlift.c $kern/gcd.c $kern/invmod.c $kern/mp_indep.c $kern/add.c";
     $create_mp = <<EOS;
 mp.c: @dep
 	\$(PERL) -pe1 @dep > \$@

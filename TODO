@@ -1,3 +1,19 @@
 ULONG test is not robust enough.
 
 Compile of Pari.c requires pariinl.h, which may be not built yet.
+
+On 64-bit even with 'Configure' and fixed IS_64 macro:
+
+   Failed Test  Stat Wstat Total Fail  Failed  List of Failed
+   ---------------------------------------------------------------------------
+   t/elliptic.t               46    6  13.04%  3 25 32 38-40
+   t/linear.t                105    3   2.86%  37 65-66
+   t/nfields.t               161    8   4.97%  7 12 14-15 21 25-26 159
+   t/number.t                 83    2   2.41%  29-30
+   t/polyser.t                51    1   1.96%  34
+   t/sumiter.t                21    2   9.52%  10-11
+   t/trans.t                  62    3   4.84%  10 39 51
+   1 test and 106 subtests skipped.
+   Failed 7/14 test scripts, 50.00% okay. 25/823 subtests failed, 96.96% okay.
+
+ASMINLINE?

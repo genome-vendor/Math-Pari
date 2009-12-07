@@ -73,14 +73,14 @@ if ($os eq "solaris") {
 
   # Below -R specifies the path to search for this file when the
   # program will run, -L the path to search when the program is linked
-  @sc_dirs = '/opt/SUNWspro/lib' if -d '/opt/SUNWspro/lib';
-  @sc_dirs = </opt/SUNWspro/SC*/lib> unless @sc_dirs;
-  if (@sc_dirs) {
-    $libs .= " -R$sc_dirs[-1] -L$sc_dirs[-1] -lsunmath -lm";
-  } else {
-    #warn "Cannot find SUNWspro dirs, needed for -lsunmath, using NOEXP2.\n";
+#  @sc_dirs = '/opt/SUNWspro/lib' if -d '/opt/SUNWspro/lib';
+#  @sc_dirs = </opt/SUNWspro/SC*/lib> unless @sc_dirs;
+#  if (@sc_dirs) {
+#    $libs .= " -R$sc_dirs[-1] -L$sc_dirs[-1] -lsunmath -lm";
+#  } else {
+#    #warn "Cannot find SUNWspro dirs, needed for -lsunmath, using NOEXP2.\n";
     $noexp2 = 1;
-  }
+#  }
 } elsif ($os eq "os2") {
   $noexp2 = 1;
   $define .= " -DMALLOC_PROCS";
@@ -101,7 +101,8 @@ unless ($common::parilib) {
   ep_in_version($pari_version);
   ep_codes_from_file("$paridir/src/language/init.c", %codes, %names);
   ep_codes_from_file("$paridir/src/gp/highlvl.c", %codes, %names);
-  unless (ep_hash_report(%codes)) {
+  # EpValence reworked in 2.2.7; when exactly was it redone???  XXXX
+  unless ($pari_version > 2002006 or ep_hash_report(%codes)) {
     print STDERR "Problems with numeric interface codes noted:\n";
     ep_hash_report(%codes, %names, \*STDERR);
   }
@@ -118,14 +119,15 @@ $define .= " -DLSB_in_U32=$offset";
 
 $define .= ' -Derr=pari_err'; # On linux it can get a wrong dynamic loading
 $define .= ' -DHAVE_LADD' if $opts{have_ladd};
-$define .= ' -DGCC_INLINE' if $Config{gccversion};
+$define .= ' -DGCC_INLINE' if $Config{gccversion} and not $Config{optimize} =~ /-g\b/;
 
+my $extra_inc = extra_includes($paridir);
 
 # See lib/ExtUtils/MakeMaker.pm for details of how to influence
 # the contents of the Makefile being created.
 &WriteMakefile(
 	       LIBS	     =>  $libs,
-	       INC	     => '-I$(PARI_DIR)/src/headers -I$(PARI_DIR)/src -I./libPARI',
+	       INC	     => $extra_inc . ' -I$(PARI_DIR)/src/headers -I$(PARI_DIR)/src -I./libPARI',
 	       NAME	     => 'Math::Pari',
 	       ($common::parilib ? () :
 		 (MYEXTLIB   =>  'libPARI/libPARI$(LIB_EXT)')),

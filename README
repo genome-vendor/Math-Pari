@@ -11,6 +11,9 @@ a) Math::Pari is the PERL interface to the PARI part of GP/PARI
      use of most PARI functions (>500) as Perl functions, and (almost)
      seamless merging of PARI and Perl data.
 
+   The code is distributed with the same license as Perl (i.e., Artistic or
+   or GPL); however, it uses GP/PARI code, which is purely GPL.
+
 b) This module includes a part written in C; thus it is requires a *fully*
    working Perl installation, including a C compiler which Perl knows about.
    Since prebuild configurations are typically broken (in many subtle ways),
@@ -76,7 +79,31 @@ e) Reporting bugs/problems
      perl Makefile.PL
      perl -V
 
-   and the relevant messages "near the failure".
+   and the relevant messages "near the failure".  Additionally, Math::Pari
+   can be build in several way (see INSTALL); unless you know what you are
+   doing, please rebuild with
+
+     cp libPARI/paricfg.h libPARI/paricfg.h-no-configure
+     make realclean
+     perl Makefile.PL Configure
+
+   and retest the bug you found.  If this does not fix the bug, just mention
+   this in your bug report.  If this fixes the bug, please supply the result
+   of
+
+     diff -u libPARI/paricfg.h-no-configure libPARI/paricfg.h
+
+   too.  Additionally, if this does not fix the bug, and your build is
+   architecture-specific (you saw a message similar to
+
+ ...I will use assembler build of type 'ix86'.
+
+   during `perl Makefile.PL'), please also do
+
+     make realclean
+     perl Makefile.PL machine=none
+
+   retest your problem, and report whether it fixed the bug.
 
    elliptic.t subtest 41 often fails on GP/PARI itself, so currently I
    do not consider its failure to be a Math::Pari's bug.

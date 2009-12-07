@@ -18,6 +18,7 @@ extern "C" {
 #include "EXTERN.h"
 #include "perl.h"
 #include "XSUB.h"
+#include "func_codes.h"
 
 #ifdef __cplusplus
 }
@@ -44,7 +45,7 @@ extern "C" {
 #define dFUNCTION(retv)  retv (*FUNCTION)(VARARG) = \
             (retv (*)(VARARG)) XSANY.any_dptr
 
-#define DO_INTERFACE(inter) subaddr = CAT2(XS_Math__Pari_interface, inter)
+#define DO_INTERFACE(inter) math_pari_subaddr = CAT2(XS_Math__Pari_interface, inter)
 #define CASE_INTERFACE(inter) case inter: \
                    DO_INTERFACE(inter); break
 
@@ -83,6 +84,9 @@ typedef entree * PariVar;		/* For loop variables. */
 typedef entree * PariName;		/* For changevalue.  */
 typedef char * PariExpr;
 typedef GEN * GEN_Ptr;
+
+XS((*math_pari_subaddr));		/* On CygWin XS() has attribute conflicting with static */
+
 
 #if defined(MYMALLOC) && defined(EMBEDMYMALLOC) && defined(UNEMBEDMYMALLOC)
 
@@ -193,14 +197,14 @@ make_PariAV(SV *sv)
     char *s = SvPVX(av);
     IV i = SvIVX(av);
     MAGIC *mg;
-    SV *new = newRV_noinc((SV*)av);	/* cannot use sv, it may be 
+    SV *newsub = newRV_noinc((SV*)av);	/* cannot use sv, it may be 
 					   sv_restore()d */
 
     SvUPGRADE((SV*)av, SVt_PVAV);    
     SvPVX(av)	= s;
     SvIVX(av)	= i;
-    sv_magic((SV*)av, new, 'P', Nullch, 0);
-    SvREFCNT_dec(new);			/* now RC(new)==1 */
+    sv_magic((SV*)av, newsub, 'P', Nullch, 0);
+    SvREFCNT_dec(newsub);		/* now RC(newsub)==1 */
 	/* We avoid an reference loop, so should be careful on DESTROY */
 #if 0
     if ((mg = SvMAGIC((SV*)av)) && mg->mg_type == 'P' /* be extra paranoid */
@@ -215,7 +219,7 @@ make_PariAV(SV *sv)
 SV*
 wrongT(SV *sv, char *file, int line)
 {
-  if (SvTYPE(sv) != SVt_PVCV || SvTYPE(sv) != SVt_PVGV) {
+  if (SvTYPE(sv) != SVt_PVCV && SvTYPE(sv) != SVt_PVGV) {
     croak("Got the type 0x%x instead of CV=0x%x or GV=0x%x in %s, %i", 
 	  SvTYPE(sv), SVt_PVCV, SVt_PVGV, file, line);      
   } else {
@@ -534,13 +538,23 @@ svOutflush()
     /* EMPTY */
 }
 
+/*  Support error messages of the form (calling PARI('O(det2($mat))')):
+PARI:   ***   obsolete function: O(det2($mat))
+                                   ^----------- */
+
 void
 svErrflush()
 {
-    STRLEN len;
+    STRLEN l;
+    char *s = SvPV(workErrsv, l);
 
-    if (SvPV(workErrsv, len) && len) {
-	warn("PARI: %s",SvPV(workErrsv,na));
+    if (s && l) {
+	char *nl = memchr(s,'\n',l);
+
+	if (nl && nl - s < l - 1)
+	    warn("PARI: %.*s%*s%s", nl + 1 - s, s, 6, "", nl + 1);
+	else
+	    warn("PARI: %s", s);
 	sv_setpv(workErrsv,"");
     }
 }
@@ -549,9 +563,16 @@ void
 svErrdie()
 {
   SV *errSv = newSVsv(workErrsv);
+  STRLEN l;
+  char *s = SvPV(errSv,l);
+  char *nl = memchr(s,'\n',l);
 
   sv_setpv(workErrsv,"");
-  croak("PARI: %s", SvPV(errSv,na));
+  sv_2mortal(errSv);
+  if (nl && nl - s < l - 1)
+    croak("PARI: %.*s%*s%s", nl + 1 - s, s, 6, "", nl + 1);
+  else
+    croak("PARI: %s", s);
 }
 
 
@@ -703,6 +724,24 @@ do_nv:
 
 #if PARI_VERSION_EXP >= 2002005
 #  define _gtodouble	gtodouble
+static void
+_initout(pariout_t *T, char f, long sigd, long sp, long fieldw, int prettyp)
+{
+  T->format = f;
+  T->sigd = sigd;
+  T->sp = sp;
+  T->fieldw = fieldw;
+  T->initial = 1;
+  T->prettyp = prettyp;
+}
+
+void
+mybruteall(GEN g, char f, long d, long sp)
+{
+  pariout_t T; _initout(&T,f,d,sp,0, f_RAW);
+  gen_output(g, &T);
+}
+
 #else
 
 double
@@ -713,6 +752,8 @@ _gtodouble(GEN x)
   if (typ(x)==t_REAL) return rtodbl(x);
   gaffect(x,(GEN)reel4); return rtodbl((GEN)reel4);
 }
+
+#define mybruteall	bruteall
 
 #endif
 
@@ -732,7 +773,7 @@ pari2pv(GEN in)
 	PariOUT *oldOut = pariOut;
 	pariOut = &perlOut;
 	worksv = newSVpv("",0);
-	bruteall(in,'g',-1,0);		/* 0: compact pari-readable form */
+	mybruteall(in,'g',-1,0);	/* 0: compact pari-readable form */
 	pariOut = oldOut;
 	return worksv;
     }
@@ -1144,7 +1185,7 @@ Arr_STORE(GEN g, I32 n, GEN elt)
 	settyp(elt, t_COL);
 
     /* anal.c is optimizing inspection away around here... */
-    if (isclone(old)) killbloc0(old, 1);
+    if (isclone(old)) killbloc(old);
     g[n + 1] = (long)elt;
 }
 
@@ -1161,9 +1202,10 @@ check_pointer(unsigned int ptrs, GEN argvec[])
     if (ptrs & 1) *((GEN*)argvec[i]) = gclone(*((GEN*)argvec[i]));
 }
 
-#define RETTYPE_VOID 0
-#define RETTYPE_LONG 1
-#define RETTYPE_GEN 2
+#define RETTYPE_VOID	0
+#define RETTYPE_LONG	1
+#define RETTYPE_GEN	2
+#define RETTYPE_INT	3
 
 #define ARGS_SUPPORTED	9
 
@@ -1309,6 +1351,9 @@ fill_argvect(entree *ep, char *s, long *has_pointer, GEN *argvec,
 
 	    case 'l': /* Return long */
 		*rettype = RETTYPE_LONG; break;
+
+	    case 'i': /* Return int */
+		*rettype = RETTYPE_INT; break;
 
 	    case 'v': /* Return void */
 		*rettype = RETTYPE_VOID; break;
@@ -1619,6 +1664,37 @@ long	oldavma=avma;
  OUTPUT:
    RETVAL
 
+int
+interface_flexible_int(...)
+long	oldavma=avma;
+ CODE:
+  {
+    entree *ep = (entree *) XSANY.any_dptr, *ep1;
+    int (*FUNCTION_real)(VARARG)
+	= (int (*)(VARARG))ep->value;
+    GEN argvec[9];
+    long rettype = RETTYPE_GEN;
+    long has_pointer = 0;		/* XXXX ?? */
+    long OUT_cnt;
+    SV *sv_OUT[ARGS_SUPPORTED];
+    GEN gen_OUT[ARGS_SUPPORTED];
+
+    fill_argvect(ep, ep->code, &has_pointer, argvec, &rettype, &ST(0), items,
+		 sv_OUT, gen_OUT, &OUT_cnt);
+
+    if (rettype != RETTYPE_INT)
+	croak("Expected long return type, got code '%s'", ep->code);
+    
+    RETVAL=FUNCTION_real(argvec[0], argvec[1], argvec[2], argvec[3],
+	          argvec[4], argvec[5], argvec[6], argvec[7], argvec[8]);
+    if (has_pointer) 
+	check_pointer(has_pointer,argvec);
+    if (OUT_cnt)
+	fill_outvect(sv_OUT, gen_OUT, OUT_cnt, oldavma);
+  }
+ OUTPUT:
+   RETVAL
+
 GEN
 interface0()
 long	oldavma=avma;
@@ -1636,7 +1712,7 @@ long	oldavma=avma;
    RETVAL
 
 GEN
-interface00()
+interface9900()
 long	oldavma=avma;
  CODE:
   {
@@ -2670,8 +2746,9 @@ long	oldavma=avma;
      RETVAL
 
 CV *
-loadPari(name)
+loadPari(name, v = 99)
      char *	name
+     int  v
    CODE:
      {
        char *olds = name;
@@ -2962,7 +3039,26 @@ loadPari(name)
 	 if (ep && (EpVALENCE(ep) < EpUSER 
 		    /* && ep>=fonctions && ep < fonctions+NUMFUNC) */)) {
 	     /* Builtin */
-	   valence=EpVALENCE(ep);
+	   IV table_valence = 99, res;
+
+	   if (ep->code
+	       && (*(ep->code) ? (PERL_constant_ISIV == func_ord_by_type (aTHX_ ep->code, 
+					 strlen(ep->code), &table_valence))
+			: (table_valence = 9900)))
+	     valence = table_valence;
+	   else
+	     valence = 99;
+#ifdef CHECK_VALENCE
+	   if (ep->code && valence != EpVALENCE(ep)
+	       && !(valence == 23 && EpVALENCE(ep) == 21)
+	       && !(valence == 48 && EpVALENCE(ep) == 47)
+	       && !(valence == 96 && EpVALENCE(ep) == 91)
+	       && !(valence == 99 && EpVALENCE(ep) == 0)
+	       && !(valence == 9900 && EpVALENCE(ep) == 0)
+	       && EpVALENCE(ep) != 99)
+	     warn("funcname=`%s', code=`%s', val=%d, calc_val=%d\n",
+		  name, ep->code, (int)EpVALENCE(ep), (int)valence);
+#endif
 	   func=(void (*)(void*)) ep->value;
 	   if (!func) {
 	     func = unsupported;
@@ -2973,7 +3069,6 @@ loadPari(name)
 	 croak("Do not know how to work with Pari control structure `%s'",
 	       olds);
        } else if (func) {
-	 XS((*subaddr));
 	 char* file = __FILE__, *proto = NULL;
 	 char subname[276]="Math::Pari::";
 	 char buf[64], *s, *s1;
@@ -2988,7 +3083,7 @@ loadPari(name)
 	     } else if (ep->code[0] == 'p' && ep->code[1] == 0) {
 		 DO_INTERFACE(0);
 	     } else if (ep->code[0] == 0) {
-		 DO_INTERFACE(00);
+		 DO_INTERFACE(9900);
 	     } else {
 		 goto flexible;
 	     }
@@ -3042,6 +3137,7 @@ loadPari(name)
 	   CASE_INTERFACE(73);
 	   CASE_INTERFACE(86);
 	   CASE_INTERFACE(87);
+	   CASE_INTERFACE(9900);
 
 	 default: 
 	     if (!ep->code)
@@ -3059,6 +3155,10 @@ loadPari(name)
 		 strcpy(buf, "_flexible_long");
 		 DO_INTERFACE(_flexible_long);
 	     }
+	     else if (*s1 == 'i') {
+		 strcpy(buf, "_flexible_int");
+		 DO_INTERFACE(_flexible_int);
+	     }
 	     else {
 		 strcpy(buf, "_flexible_gen");
 		 DO_INTERFACE(_flexible_gen);
@@ -3074,7 +3174,7 @@ loadPari(name)
 	 }
 	 
 	 strcpy(subname+12,olds);
-	 RETVAL = newXS(subname,subaddr,file);
+	 RETVAL = newXS(subname,math_pari_subaddr,file);
 	 if (proto)
 	     sv_setpv((SV*)RETVAL, proto);
 	 XSINTERFACE_FUNC_SET(RETVAL, flexible ? (void*)ep : (void*)func);

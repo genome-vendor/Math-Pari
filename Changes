@@ -435,3 +435,32 @@ Files=15,  Tests=1378, 108 secs (86.46 cusr  3.82 csys = 90.28 cpu)
 	Allow running tests from a different directory (non-Unix filespec?).
 	Somehow the patches to 2.1.4 were not applied.  Apply them to 2.1.5 too.
 	May download via LWP (thanks to Slaven Rezic).
+
+2.010501:
+	Autogenerate valence tables func_codes.h by code_C_translator()
+  perl -I utils -MMath::PariBuild -wle "print code_C_translator">func_codes.h
+		and use	them from Pari.xs instead of EpVALENCE(ep)
+		[which is now used to distinguish user functions only].
+			[Workaround for bug in C_constant...  XXXX]
+	-DLONG_IS_64BITS is detected in Math::PariBuild and put in paricfg.h.
+	Rename t/Pari.t to t/00_Pari.t
+	XS((*subaddr)) moved out of function ('dllexport' attribute on cygwin
+		is not compatible with static).
+	Always define DL_DFLT_NAME as NULL.
+	Remove GCC_INLINE if perl is build with -g (needed with 2.1.5 too).
+	Misprint in wrongT() [unused function].
+	Do not use -O1 for assembler on alpha (not supported any more).
+	Document the licence terms.
+	Make C code C++-compatible: rename new.
+	Do not use undecleared killblock0().
+	Support error messages of the form (calling PARI('O(det2($mat))')):
+PARI:   ***   obsolete function: O(det2($mat))
+                                   ^-----------
+	Try to retry with Passive FTP if the default fails (untested).
+	Update the list of files to append to libPARI/mp.c up to 2.2.7.
+	Compensate to missing bruteall().	XXXX
+	Compensate for new "gettime;" idiom in the tests.
+	Need to add this on OS/2:
+os2$(OBJ_EXT): $(PARI_DIR)/src/systems/os2/os2.c pariinl.h paricfg.h
+	$(CCCMD) $(CCCDLFLAGS) $(DEFINE) $(MY_CC_PRE_TARGET)$@ -I $(PARI_DIR)/src/systems/os2 $(PARI_DIR)/src/systems/os2/os2.c
+	Support code 'i' (this finishes support for 2.2.7).

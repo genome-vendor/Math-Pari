@@ -22,9 +22,11 @@ require Exporter;
 	     kernel_files
 	     kernel_fill_data
 	     assembler_flags
+	     extra_includes
 	     ep_codes_from_file
 	     ep_hash_report
 	     ep_in_version
+	     code_C_translator
 	    );
 
 use strict;
@@ -178,12 +180,14 @@ EOP
   my($ftp, $ua);
   eval {
     require Net::FTP;
+
     $ftp = Net::FTP->new($host) or die "Cannot create FTP object: $!";
     $ftp->login("anonymous","Math::Pari@")
       or die "Cannot login anonymously (",$ftp->message(),"): $!";
     $ftp->cwd($dir) or die "Cannot cwd (",$ftp->message(),"): $!";
     $ftp->binary() or die "Cannot switch to binary (",$ftp->message(),"): $!";
-    my @lst = $ftp->ls() or die "Cannot list (",$ftp->message(),"): $!";
+    my @lst = $ftp->ls();
+    @lst or ($ftp->passv() and @lst = $ftp->ls()) or die "Cannot list (",$ftp->message(),"): $!";
     #print "list = `@lst'\n";
 
     my $c = 0;
@@ -586,7 +590,14 @@ EOP
 
 EOP
 
-  if ($Config{longsize} == 4) {
+  my $bits64 = (find_machine_architecture() eq 'alpha'
+		or defined($Config{longsize}) and $Config{longsize} == 8);
+  print F <<EOP if $bits64;
+#define LONG_IS_64BIT	1
+
+EOP
+
+  if (!$bits64) {
      # Order of words in a double
      my @w = unpack 'LL', pack 'd', 2;
      my $f = $w[1] ? 1 : 0;
@@ -596,6 +607,11 @@ EOP
 
 EOP
   }
+
+  print F <<EOP;
+#define DL_DFLT_NAME	NULL
+
+EOP
 
   close F or die "close 'libPARI/paricfg.h' for write: $!";
   %opts;
@@ -905,7 +921,7 @@ sub kernel_fill_data {
 sub assembler_flags {
   my ($machine, $Using_gnu_as) = (shift, shift);
   my %assf  = (
-	       alpha  => "-O1",
+	       # alpha  => "-O1",		# Not supported any more
 	       sparc  => ($Config{osname} eq 'solaris'
 			  ? "-P -T -I."
 			  : "-P -I."),
@@ -915,6 +931,12 @@ sub assembler_flags {
   $assflags .= ' -D__GNUC__'	# hiremainder problem with gcc on Solaris
     if not $Using_gnu_as and $Config{gccversion};
   return $assflags;
+}
+
+sub extra_includes {
+  my $pari_dir = shift;
+  return '' unless -d "$pari_dir/src/systems/$^O";
+  return "-I $pari_dir/src/systems/$^O";
 }
 
 =item ep_codes_from_file($filename,%hash,%names)
@@ -961,9 +983,11 @@ returns TRUE if no problem were found.
 
 my $expected_codes_as_in = '2.1.3';
 # Not in 2.1.3
-#			13	GD0,L,D0,G,
-#			34	vLLL
-my %expected_codes = qw(
+my ($dummy1, %old_expected_codes) = split /\s+/, qq(
+			13	GD0,L,D0,G,
+			34	vLLL
+	);
+my ($dummy2, %expected_codes) = split /\s+/, qq(
 			1	Gp
 			2	GG
 			3	GGG
@@ -1100,6 +1124,42 @@ sub ep_in_version ($) {
       delete $expected_codes{$c};
     }
   }
+}
+
+=item code_C_translator()
+
+Returns string for C code to translate code string to the interface number.
+
+Due to a bug in C_constant(), need to translate C<''> to 9900 by hand outside
+of this subroutine.
+
+=cut
+
+sub code_C_translator {
+  # Some historic changes in interfaces we do not care about (E vs I)
+  my %c = (%old_expected_codes, %expected_codes);
+  my %codes;
+  @codes{values %c} = keys %c;
+  my $k;
+  for $k (keys %codes) {
+    (my $kk = $k) =~ s/I/E/g;
+    $codes{$kk} = $codes{$k} unless exists $codes{$kk};
+    ($kk = $k) =~ s/D0,G,/DG/g;			# New alternative syntax
+    $codes{$kk} = $codes{$k} unless exists $codes{$kk};
+  }
+  #$codes{''} = 9900;		# bug in C_constant - can't handle
+  $codes{'p'} = 0;
+
+  require ExtUtils::Constant;
+  my @t = ExtUtils::Constant::constant_types(); # macro defs
+  my @tt =
+    ExtUtils::Constant::C_constant(
+	  'Math::Pari::func_type', 
+          'func_ord_by_type', undef, undef, undef, undef,
+          map {{name => $_, value => $codes{$_}, macro => 1}} keys %codes);
+
+  # 23 == 21  47==48  91 == 96 (this one unsupported)
+  join '', @t, @tt;
 }
 
 =back

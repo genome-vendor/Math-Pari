@@ -7,6 +7,7 @@ INSTALL
 Makefile.PL
 README
 TODO
+func_codes.h
 libPARI/Makefile.PL
 libPARI/gphelp
 libPARI/extract_codes.pl
@@ -17,7 +18,7 @@ patches/diff_2.1.3_interface
 patches/diff_2.1.4_interface
 patches/diff_2.2.2_interface
 patches/diff_pari-2.1.3-ix86-divl
-t/Pari.t
+t/00_Pari.t
 t/PlotRect.t
 test_eng/Testout.pm
 test_eng/ex.t

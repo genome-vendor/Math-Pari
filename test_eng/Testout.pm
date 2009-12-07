@@ -13,7 +13,7 @@ $file = CORE::shift;
   close TO or die "close: $!";
 }
 
-$mess = CORE::shift @tests;		# Messages
+$mess = CORE::shift @tests unless @tests and $tests[0] =~ /^\?/; # Messages
 pop @tests;			# \q
 if ($tests = @tests) {
   print "1..$tests\n";
@@ -21,7 +21,10 @@ if ($tests = @tests) {
   print "1..0 # skipped: no tests found in `$file'\n";
 }
 
-prec($3 || $1, 1) if $mess =~ /realprecision = (\d+) significant digits( \((\d+) digits displayed\))?/;
+prec($3 || $1, 1) if ($mess || '') =~ /realprecision = (\d+) significant digits( \((\d+) digits displayed\))?/;
+
+#Math::Pari::dumpStack,allocatemem(8e6),Math::Pari::dumpStack if $file =~ /intnum/; # Due to our allocation policy we need more?
+
 
 $| = 1;
 @seen = qw(Pi I Euler getrand a x xx y z k t q u j l n v p e
@@ -73,8 +76,9 @@ for (@tests) {
   s/\A(\s*\?)+\s*//;
 #  s/[^\S\n]+$//gm;
   s/\A(.*)\s*; $ \s*(\w+)\s*\(/$1;$2(/mx; # Continuation lines of questions
-  # Special-case test nfields-3 with a wrapped question:
+  # Special-case tests nfields-3 and intnum-23 with a wrapped question:
   s/\A(p2=.*\d{10})\n(7\n)/$1$2/;
+  s/\n(?=\/\w)//;
   s/\A(.*)\s*$//m or die "No question: `$_'\n";
   $in = $1;
   1 while s/^\n//;		# Before warnings
@@ -373,13 +377,14 @@ sub process_test {
     if ($in !~ /\w\(/) { # No function calls
       # XXXX Primitive!
       # Constants: (.?) eats following + or - (2+3 ==> PARI(2)+PARI(3))
-      $in =~ s/(^|\G|\W)([-+]?\d+(\.\d*)?)(.?)/$1 PARI($2) $4/g;
+      $in =~ s/(^|\G|\W)([-+]?)(\d+(\.\d*)?)(.?)/$1 $2 PARI($3) $5/g;
       # Big integer constants:
       $in =~ s/\bPARI\((\d{10,})\)/PARI('$1')/g;
-    } elsif ($in =~ /\belllseries\b|\bbinomial\b|\*mathilbert\b/) { # high precision needed?
+    } elsif ($in =~ /\b(elllseries|binomial|mathilbert|intnum|intfuncinit)\b/) { # high precision needed?
       # XXXX Primitive!
-      # Substitute constants where they are not arguments to functions
-      $in =~ s/(^|\G|\W)([-+]?\d+\.\d*)/$1 PARI('$2') /g;
+      # Substitute constants where they are not arguments to functions,
+      # (except small half-integers, which should survive conversion)
+      $in =~ s/(^|\G|\W)([-+]?)(?!\d{0,6}\.5\b)(\d+\.\d*)/$1 $2 PARI('$3') /g;
       # Big integer constants:
       $in =~ s/\bPARI\((\d{10,})\)/PARI('$1')/g;
     } else {
@@ -471,8 +476,8 @@ sub process_test {
 		         [(=,)]
 		       )
 		     |
-		       \( [^()]+ \)
-		     )		# One level of parenths supported
+		       \s*\w*\( [^()]+ \)\s*
+		     )		# One level of func-call (PARI('.3')) supported
 		  [,=]){2}		# $x,1
 		)				# end group 1
 		(?!\s*sub\s*\{)	# Skip already converted...

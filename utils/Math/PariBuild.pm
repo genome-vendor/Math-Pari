@@ -17,6 +17,7 @@ require Exporter;
 	     find_machine_architecture
 	     known_asmarch
 	     inline_headers
+	     inline_headers2
 	     is_gnu_as
 	     choose_and_report_assembler
 	     kernel_files
@@ -283,7 +284,8 @@ EOP
     } else {
       print qq(Downloading...\n);
       if ($ftp) {
-        $ftp->get($file) or die "Cannot get (",$ftp->message(),"): $!";
+        $ftp->get($file) or die "Cannot get via FTP (",$ftp->message(),"): $!";
+	$ftp->quit or die "Cannot quit FTP: ", ftp->message();
       } else {
 	my $req = HTTP::Request->new(GET => "$base_url/$file");
 	my $resp = $ua->request($req);
@@ -304,9 +306,6 @@ EOP
     ($dir = $file) =~ s,(?:.*[\\/])?(.*)\.t(ar\.)?gz$,$1,
       or die "malformed name `$file'";
     -d $dir or die "Did not find directory $dir!";
-  }
-  if ($ftp) {
-    $ftp->quit or die "Cannot quit: $!";
   }
   return ($dir, $version);
 }
@@ -623,7 +622,7 @@ EOP
 EOP
 
   my $arch = find_machine_architecture();
-  my $bits64 = ($arch =~ /alpha|ia64/
+  my $bits64 = ($arch =~ /alpha|64/ # ppc is 32bit
 		or defined($Config{longsize}) and $Config{longsize} == 8);
   print F <<EOP if $bits64;
 #define LONG_IS_64BIT	1
@@ -684,7 +683,7 @@ EOP
 }
 
 # The following two functions are based on the logic in the PARI
-# Configure script (updated to 2.2.8's config/arch-osname):
+# Configure script (updated to 2.3.0's config/arch-osname):
 
 sub process_sparc {
   my $info = shift;
@@ -716,6 +715,11 @@ sub find_machine_architecture () {
     $machine = 'irix';
   } elsif ($os =~ /^hp/) {
     $machine = `uname -m` || 'hppa';
+    if ($machine =~ m(^9000/[34])) {
+      $machine = 'm68k';
+    } elsif ($machine ne 'ia64') {
+      $machine = 'hppa';
+    }
   } elsif ($os eq 'os2' or $os eq 'netbsd'
 	   or $os eq 'freebsd' or $os =~ /^cygwin/) {
     chomp($machine = `uname -m`);
@@ -734,9 +738,8 @@ sub find_machine_architecture () {
   } elsif ($os eq 'linux') {
     chomp($machine = `uname -m`);
     $machine = 'sparcv9' if $machine eq 'sparc64';
-    $machine = 'hppa' if $machine eq 'parisc';
-    $machine = 'hppa' if $machine eq 'parisc64';
-    if (-e '/proc/cpuinfo' && -R '/proc/cpuinfo') {
+    $machine = 'hppa' if $machine =~ /^parisc/;
+    if ($machine eq 'sparc' and -e '/proc/cpuinfo' && -R '/proc/cpuinfo') {
       open IN, '/proc/cpuinfo' or die "open /proc/cpuinfo: $!";
       local $/ = undef;		# Needed?
       my $info = <IN>;
@@ -745,31 +748,39 @@ sub find_machine_architecture () {
     }
   } elsif ($os eq 'sunos') {
     my $type = (split ' ', $Config{myuname})[4];
-    if ($type =~ /^sun3/) {
-      $machine = 'm68k';
-    } elsif ($type =~ /^sun4[dm]/) {
-      local $ENV{PATH} = "$ENV{PATH}:/dev/sbin";
-      my $info = `(prtconf||devinfo)2>&-`;
-      $info = join ' ', grep /(TI|FMI|Cypress|Ross),/, split "\n", $info;
-      $machine = process_sparc $info, 'sparcv8';
-    } elsif ($type eq 'sun4u') {
-      $machine = 'sparcv9';
-    } elsif ($type =~ /^sun4[ce]?/) {
-      $machine = 'sparcv7';
-    } elsif ($type =~ /^i.*pc$/) {
-      $machine = 'ix86';
-    } elsif ((split ' ', $Config{myuname})[3] eq 'sun') {
-      $machine = 'm86k';
+    # format: SunOS name 5.9 Generic_118558-26 sun4u sparc SUNW,Ultra-5_10
+    # But Generic* part can be skipped???
+    $type = (split ' ', $Config{myuname})[3] if $type eq 'sparc';
+    my $redo;
+  find_machine:  {
+      if ($type =~ /^sun3/) {
+	$machine = 'm68k';
+      } elsif ($type =~ /^sun4[dm]/) {
+	local $ENV{PATH} = "$ENV{PATH}:/dev/sbin";
+	my $info = `(prtconf||devinfo)2>&-`;
+	$info = join ' ', grep /(TI|FMI|Cypress|Ross),/, split "\n", $info;
+	$machine = process_sparc $info, 'sparcv8';
+      } elsif ($type eq 'sun4u') {
+	$machine = 'sparcv9';
+      } elsif ($type =~ /^sun4[ce]?$/) {
+	# $machine = 'sparcv7';
+	$machine = 'none';	# sparcv7 not available with 2.3.0
+      } elsif ($type =~ /^i.*pc$/) {
+	$machine = 'ix86';
+      } elsif ((split ' ', $Config{myuname})[3] eq 'sun') {
+	$machine = 'm86k';
+      } elsif ($redo++ == 0) {
+	$type = `uname -m`;
+	redo find_machine;
+      }
     }
-  } elsif ($os eq 'gnu') {
+  } elsif ($os eq 'gnu') {# Cover GNU/Hurd, GNU/kFreeBSD and other GNU userland
     chomp($machine = `uname -m`);
     $machine = 'ix86' if $machine =~ /^i386-/;
   }
 
-  if ( $machine ne 'alpha'
-       and defined($Config{longsize}) and $Config{longsize} == 8 ) {
-    $machine = 'port';			# No assembler for 64bit - unless alpha
-  }
+  $machine = 'port'		# No assembler for 64bit - unless alpha/ia64
+    if $machine !~ m(alpha|64) and ($Config{longsize} || 0) == 8;
 
   # For older PARI:
   ###  $machine = 'sparcv8super'
@@ -791,10 +802,36 @@ sub find_machine_architecture () {
   return $machine;
 }
 
-# Which files to catenate to produce pariinl.h.  Apparently, the only
-# need to go to asm0.h is to undo the effect of ASMINLINE in paricfg.h.
-# Note that we do ASMINLINE from the command line.
+sub is_gnu_as {
+  local $/;
+  my $ass = $ENV{AS} || 'as';
+  open ASS, "$ass --version 2>&1 |";
+  my $assout;
+  eval {
+    local $SIG{ALRM} = sub {die};
+    eval {alarm 10};			# Be extra safe...
+    $assout = <ASS>;
+    close ASS;
+    unless ($assout) {
+      open ASS, "$ass -v 2>&1 |";
+      $assout = <ASS>;
+      close ASS;
+    }
+    eval {alarm 0};
+  };
+  return ($assout and $assout =~ /GNU/);
+}
 
+# Which files to catenate to produce pariinl.h.  Apparently, the only
+# need to go to asm0.h in pre-2.3 is to undo the effect of ASMINLINE in
+# paricfg.h. Note that we do ASMINLINE from the command line.
+
+# 2.3.0 does something like this:
+# ../config/genkernel ../src/kernel/ix86/asm0.h > parilvl0.h
+# cat ../src/kernel/none/tune.h ../src/kernel/none/int.h ../src/kernel/none/level1.h > parilvl1.h
+# cat parilvl0.h parilvl1.h > pariinl.h
+
+# This logic works with up to 2.2.13
 sub sparcv8_inl {
   my ($asmarch, $pari_version) = (shift, shift);
   return ['none/asm0.h','none/level1.h']
@@ -835,37 +872,60 @@ sub inline_headers {
   my $inlines = inline_headers_arr($asmarch, $pari_version)
 	or die "Unknown inlines for '$asmarch'";
   my @inlines = @$inlines;
-  unshift @inlines, 'none/int.h' if $pari_version >= 2002005;
-  unshift @inlines, 'none/tune.h' if $pari_version >= 2002008;
+  if ($pari_version < 2003000) { # Old, explicit logic
+    unshift @inlines, 'none/int.h' if $pari_version >= 2002005;
+    unshift @inlines, 'none/tune.h' if $pari_version >= 2002008;
+  }
   map "\$(PARI_DIR)/src/kernel/$_", @inlines;
+}
+
+sub generic_build_method {
+  my ($asmarch, $pari_version, $paridir) = (shift, shift, shift);
+  $pari_version >= 2003000
+    and not -f "$paridir/src/kernel/$asmarch/MakeLVL1.SH";
+}
+
+sub inline_headers_by_dir {	# logic of 2.3.0
+  my ($asmarch, $pari_version, $paridir) = (shift, shift, shift);
+  my $dir = "$paridir/src/kernel";
+  unless (generic_build_method($asmarch, $pari_version, $paridir)) {
+    die "Do not know how to process MakeLVL1.SH";
+  }
+  my $f = "$dir/$asmarch/asm0.h";
+  #local $/ = "\n";
+  open F, "< $f" or die "Error opening `$f' for read: $!";
+  my @I = ([], [$f]);		# INL, NOINL
+  while (<F>) {
+    next unless /^(NO)?ASM\s+(\S.*?)\s*$/;
+    # print "Found <$_>\n";
+    my $arr = $I[ $1 ? 1 : 0 ];
+    push @$arr, map "$dir/none/$_.h", split ' ', $2;
+  }
+  close F or die "Error closing `$f' for read: $!";
+  push @{$I[1]}, map "$dir/none/$_.h", qw(tune int level1);
+  return @I;
+}
+
+sub inline_headers_pre {
+  my ($asmarch, $pari_version, $paridir) = (shift, shift, shift);
+  return if $pari_version < 2003000;
+  my $script = "$paridir/src/kernel/$asmarch/";
+  return;
+}
+
+sub inline_headers2 {
+  my ($asmarch, $pari_version, $paridir) = (@_);
+  return ([inline_headers_pre(@_)], [inline_headers(@_)])
+    if $pari_version < 2003000;
+  return inline_headers_by_dir(@_);
 }
 
 sub known_asmarch {
   defined inline_headers_arr(@_);
 }
 
-sub is_gnu_as {
-  local $/;
-  my $ass = $ENV{AS} || 'as';
-  open ASS, "$ass --version 2>&1 |";
-  my $assout;
-  eval {
-    local $SIG{ALRM} = sub {die};
-    eval {alarm 10};			# Be extra safe...
-    $assout = <ASS>;
-    close ASS;
-    unless ($assout) {
-      open ASS, "$ass -v 2>&1 |";
-      $assout = <ASS>;
-      close ASS;
-    }
-    eval {alarm 0};
-  };
-  return ($assout and $assout =~ /GNU/);
-}
-
 sub choose_and_report_assembler {
-  my $machine = shift;
+  my($machine, $pari_version) = (shift, shift);
   my %asmarch = (
 	      sun3	   => 'm86k',
 	      sparc	   => 'sparcv8_micro',
@@ -873,11 +933,19 @@ sub choose_and_report_assembler {
 	      port	   => 'none',
 	      mips	   => 'none',
 	      fx2800	   => 'none',
+	      ia64	   => (($Config{longsize}||4) == 8 ? 'ia64' : 'none'),
 	      hppa	   => ($Config{osvers} =~ /^.\.10\./
 			       ? 'hppa' : 'none'),
 	     );
   my $asmarch = $asmarch{$machine} || $machine; # Temporary only
-  unless (known_asmarch $asmarch) {
+  my %skip64 = (alpha => 1, none => 1, ia64 => 1);
+  if (not $skip64{$asmarch}
+      and ($Config{longsize} || 0) == 8) {
+    $asmarch .= '_64';
+    $asmarch = 'hppa64' if $asmarch eq 'hppa_64';
+    $asmarch = 'x86_64' if $asmarch eq 'ix86_64';
+  }
+  unless (known_asmarch $asmarch, $pari_version) {
     warn <<EOW;
 ####	Do not know how to build for assembler `$asmarch'.	####
 ####	Reversing to assembler-less type `port'.		####
@@ -885,11 +953,13 @@ sub choose_and_report_assembler {
 ####	If you think your processor's assembler is supported	####
 ####	by PARI, edit libPARI/Makefile.PL and report.		####
 ####						 		####
-####	Alternatively, specify machine=YOURTYPE on the		####
-####	  perl Makefile.PL line			 		####
+####	Alternatively, specify machine=YOURTYPE or machine=none	####
+####	on the							####
+####	  perl Makefile.PL			 		####
+####	command line.				 		####
 ####	Recognized types:			 		####
 ####	  alpha hppa m86k none sparcv7 sparcv8 sparcv8_micro	####
-####	  sparcv8_super ix86			 		####
+####	  sparcv8_super ix86 (ppc ia64 after 2.2.7) 		####
 EOW
     $machine = 'port';
     $asmarch = 'none';
@@ -900,7 +970,7 @@ EOW
     print "...I will use assembler build of type '$asmarch'.\n";
   }
 
-  print <<EOP if $asmarch eq 'hppa';
+  print <<EOP if $asmarch =~ /^hppa/;
 ###
 ###  Some time ago HPPA assembler files were not relocatable,
 ###    if this is still true, they are probably unsuitable for dynamic linking.
@@ -952,7 +1022,9 @@ sub sparcv7_kernel_files {
 }
 
 sub kernel_files {
-  my ($asmarch, $pari_version, $Using_gnu_as) = (shift, shift, shift);
+  my ($asmarch, $pari_version, $Using_gnu_as, $paridir) = (@_);
+
+  return [] if generic_build_method($asmarch, $pari_version, $paridir);
 
   return sparcv8_kernel_files_old($asmarch, $pari_version, $Using_gnu_as)
     if $asmarch =~ /^sparcv8/ and $pari_version < 2002006;
@@ -988,6 +1060,8 @@ sub kernel_files {
 sub kernel_fill_data {
   my ($kernels, $hash) = (shift, shift);
   # The original file
+  return unless @$kernels;
+
   $hash->{file1}	= "\$(PARI_DIR)/src/kernel/$kernels->[0]";
   $hash->{convert1}	= $kernels->[1];
 
@@ -1000,7 +1074,7 @@ sub kernel_fill_data {
   ($hash->{dir1}	= $hash->{file1}) =~ s/[^\/]*\.[csS]$//; # Include with -I
 
   # Additional file to compile (original and converted)
-  $hash->{file2}	= $hash->{converted2} = "\$(PARI_DIR)/src/kernel/$kernels->[2]";
+  $hash->{file2}	= $hash->{converted2} = "\$(PARI_DIR)/src/kernel/$kernels->[2]" if $kernels->[2];
   $hash->{file2}	= $hash->{converted2} = '' unless $kernels->[2];
   $hash->{converted2}	= 'kernel2.s' if $kernels->[3];
 

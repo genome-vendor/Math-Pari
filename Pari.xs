@@ -1,5 +1,10 @@
 #  include <pari.h>
 #  include <language/anal.h>
+
+#ifdef HAVE_PARIPRIV
+#  include <headers/paripriv.h>
+#endif
+
 #  include <gp/gp.h>			/* init_opts */
 
 /* On some systems /usr/include/sys/dl.h attempts to declare
@@ -193,6 +198,11 @@ long offStack;
 
 #define pari_version_exp() PARI_VERSION_EXP
 
+#if PARI_VERSION_EXP >= 2002013
+#  define	prec	precreal
+#endif
+
+
 #if PARI_VERSION_EXP >= 2000018
 
 GEN
@@ -268,6 +278,10 @@ wrongT(SV *sv, char *file, int line)
 HV *pariStash;				/* For quick id. */
 HV *pariEpStash;
 
+#if PARI_VERSION_EXP >= 2002013		/* Probably earlier too */
+#  define HAVE_FETCH_NAMED_VAR
+#else
+
 /* Copied from anal.c. */
 static entree *
 installep(void *f, char *name, int len, int valence, int add, entree **table)
@@ -284,6 +298,7 @@ installep(void *f, char *name, int len, int valence, int add, entree **table)
   ep->menu    = 0;
   return *table = ep;
 }
+#endif	/* PARI_VERSION_EXP >= 2002013 */ 
 
 #if PARI_VERSION_EXP <= 2002000		/* Global after 2.2.0 */
 static void
@@ -327,8 +342,12 @@ PARIvar(char *s)
 #endif
   long hash;
   SV *sv;
-  entree *ep = is_entry_intern(s, functions_hash, &hash);
+  entree *ep;
 
+#ifdef HAVE_FETCH_NAMED_VAR
+  ep = fetch_named_var(s);
+#else
+  ep = is_entry_intern(s, functions_hash, &hash);
   if (ep) {
       if (EpVALENCE(ep) != EpVAR)
 	  croak("Got a function name instead of a variable");
@@ -336,7 +355,7 @@ PARIvar(char *s)
       ep = installep(NULL, s, strlen(s), EpVAR, 7*sizeof(long),
 		     functions_hash + hash);
       manage_var(0,ep);
-#if 0
+#  if 0
       ep = (entree *)gpmalloc(sizeof(entree) + 7*BYTES_IN_LONG 
 			    + s - olds + 1);
       ep->name = (char *)ep + sizeof(entree) + 7*BYTES_IN_LONG;
@@ -359,9 +378,10 @@ PARIvar(char *s)
       polun[nvar] = p1;
       varentries[nvar++] = ep;
       setlg(polvar, nvar+1);    
-#endif
+#  endif
   }
-  
+#endif	/* !( defined HAVE_FETCH_NAMED_VAR ) */
+
 #if 0
  found:
 #endif
@@ -443,7 +463,10 @@ findVariable(SV *sv, int generate)
       s = name;
       goto repeat;
   }
-  
+
+#ifdef HAVE_FETCH_NAMED_VAR
+  ep = fetch_named_var(s);
+#else
   ep = is_entry_intern(s, functions_hash, &hash);
 
   if (ep) {
@@ -454,6 +477,7 @@ findVariable(SV *sv, int generate)
 		     functions_hash + hash);
       manage_var(0,ep);
   }
+#endif	/* !( defined HAVE_FETCH_NAMED_VAR ) */
 
 #if 0
   olds = s;
@@ -847,6 +871,7 @@ setprecision(long digits)
   return m;
 }
 
+#if PARI_VERSION_EXP < 2002013
 long
 setseriesprecision(long digits)
 {
@@ -855,6 +880,7 @@ setseriesprecision(long digits)
   if(digits>0) {precdl = digits;}
   return m;
 }
+#endif	/* PARI_VERSION_EXP < 2002013 */
 
 static IV primelimit;
 static UV parisize;
@@ -916,6 +942,72 @@ pari2mortalsv(GEN in, long oldavma)
     setSVpari_keep_avma(sv, in, oldavma);
     return sv;
 }
+
+typedef struct {
+    long items, bytes;
+    SV *acc;
+    int context;
+} heap_dumper_t;
+
+static void
+heap_dump_one(heap_dumper_t *d, GEN x)
+{
+    SV* tmp;
+
+    d->items++; d->bytes += 4*sizeof(long);
+    if(!x[0]) { /* user function */
+	d->bytes += strlen((char *)(x+2))/sizeof(long);
+	tmp = newSVpv((char*)(x+2),0);
+    } else if (x==bernzone) {
+	d->bytes += x[0];
+	tmp = newSVpv("bernzone",8);
+    } else { /* GEN */
+	d->bytes += taille(x);
+	tmp = pari_print(x);
+    }
+    /* add to output */
+    switch(d->context) {
+    case G_VOID:
+    case G_SCALAR: sv_catpvf(d->acc, " %2d: %s\n",
+			     d->items - 1, SvPV_nolen(tmp));
+		   SvREFCNT_dec(tmp);     break;
+    case G_ARRAY:  av_push((AV*)d->acc,tmp); break;
+    }
+}
+
+#if PARI_VERSION_EXP >= 2002013
+
+static void
+heap_dump_one_v(GEN x, void *v)
+{
+    heap_dumper_t *d = (heap_dumper_t *)v;
+
+    heap_dump_one(d, x);
+}
+
+static void
+heap_dumper(heap_dumper_t *d)
+{
+    traverseheap(&heap_dump_one_v, (void*)d);
+}
+
+#else	/* !( PARI_VERSION_EXP >= 2002013 ) */
+
+static void
+heap_dumper(heap_dumper_t *d)
+{
+    /* create a new block on the heap so we can examine the linked list */
+    GEN tmp1 = newbloc(1);  /* at least 1 to avoid warning */
+    GEN x = (GEN)bl_prev(tmp1);
+
+    killbloc(tmp1);
+
+    /* code adapted from getheap() in PARI src/language/init.c */
+    for(; x; x = (GEN)bl_prev(x))
+	heap_dump_one(d, x);
+}
+
+#endif	/* !( PARI_VERSION_EXP >= 2002013 ) */
 
 void
 resetSVpari(SV* sv, GEN g, long oldavma)
@@ -1491,7 +1583,8 @@ extern void set_term_funcp3(FUNC_PTR change_p, void *term_p, TSET_FP tchange);
 
 extern  void v_set_term_ftable(void *a);
 
-#define s_type_name(x) type_name(typ(x));
+/* Cast off `const' */
+#define s_type_name(x) (char *)type_name(typ(x));
 
 static int reset_on_reload = 0;
 
@@ -3441,6 +3534,7 @@ BOOT:
    if (!pri || !SvOK(pri)) {
        croak("$Math::Pari::initprimes not defined!");
    }
+#if PARI_VERSION_EXP < 2002013		/* XXXX HOW to do otherwise */
    if (reboot) {
 	detach_stack();
 	if (reset_on_reload)
@@ -3448,23 +3542,39 @@ BOOT:
 	else
 	   allocatemoremem(1008);
    }
+#endif
+#if PARI_VERSION_EXP >= 2002013
+   pari_init_defaults();
+#else
    INIT_JMP_off;
    INIT_SIG_off;
    /* These guys are new in 2.0. */
    init_defaults(1);
+#endif
    if (!(reboot++)) {
 #ifndef NO_HIGHLEVEL_PARI
+#if PARI_VERSION_EXP >= 2002013
+       pari_add_module(functions_highlevel);
+#else	/* !( PARI_VERSION_EXP >= 2002013 ) */
        pari_addfunctions(&pari_modules,
 			 functions_highlevel, helpmessages_highlevel);
+#endif	/* !( PARI_VERSION_EXP >= 2002013 ) */
        init_graph();
 #endif
    }
 
    primelimit = SvIV(pri);
    parisize = SvIV(mem);
+#if PARI_VERSION_EXP >= 2002013
+   pari_init_opts(parisize, primelimit, INIT_DFTm);
+				 /* Default: take four million bytes of
+			        * memory for the stack, calculate
+			        * primes up to 500000. */
+#else
    init(parisize, primelimit); /* Default: take four million bytes of
 			        * memory for the stack, calculate
 			        * primes up to 500000. */
+#endif
    PariStack = (SV *) GENfirstOnStack;
    workErrsv = newSVpv("",0);
    pariErr = &perlErr;
@@ -3525,47 +3635,28 @@ PPCODE:
 void
 dumpHeap()
 PPCODE:
-    /* create a new block on the heap so we can examine the linked list */
-    GEN tmp = newbloc(1);  /* at least 1 to avoid warning */
-    GEN x = (GEN)bl_prev(tmp);
-    long m = 0, l = 0;
+    heap_dumper_t hd;
+    int context = GIMME_V, m;
+
     SV* ret = Nullsv;			/* Avoid unit warning */
 
-    killbloc(tmp);
-
-    switch(GIMME_V) {
+    switch(context) {
     case G_VOID:
     case G_SCALAR: ret = newSVpvn("",0); break;
     case G_ARRAY:  ret = (SV*)newAV();	 break;
     }
 
-    /* code adapted from getheap() in PARI src/language/init.c */
-    for(; x; x = (GEN)bl_prev(x)) {
-	SV* tmp;
-	m++; l += 4*sizeof(long);
-	if(!x[0]) { /* user function */
-	    l += strlen((char *)(x+2))/sizeof(long);
-	    tmp = newSVpv((char*)(x+2),0);
-	} else if (x==bernzone) {
-	    l += x[0];
-	    tmp = newSVpv("bernzone",8);
-	} else { /* GEN */
-	    l += taille(x);
-	    tmp = pari_print(x);
-	}
-	/* add to output */
-	switch(GIMME_V) {
-        case G_VOID:
-	case G_SCALAR: sv_catpvf(ret," %2d: %s\n",m-1,SvPV_nolen(tmp));
-		       SvREFCNT_dec(tmp);     break;
-	case G_ARRAY:  av_push((AV*)ret,tmp); break;
-	}
-    }
+    hd.bytes = hd.items = 0;
+    hd.acc = ret;
+    hd.context = context;
 
-    switch(GIMME_V) {
+    heap_dumper(&hd);
+
+    switch(context) {
     case G_VOID:
     case G_SCALAR: {
-	SV* tmp = newSVpvf("heap had %d bytes (%d items)\n",l,m);
+	SV* tmp = newSVpvf("heap had %ld bytes (%ld items)\n",
+			   hd.bytes, hd.items);
 	sv_catsv(tmp,ret);
 	SvREFCNT_dec(ret);
 	if(GIMME_V == G_VOID) {

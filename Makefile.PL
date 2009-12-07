@@ -123,6 +123,7 @@ $define .= " -DLSB_in_U32=$offset";
 $define .= ' -Derr=pari_err'; # On linux it can get a wrong dynamic loading
 $define .= ' -DHAVE_LADD' if $opts{have_ladd};
 $define .= ' -DGCC_INLINE' if $Config{gccversion} and not $Config{optimize} =~ /-g\b/;
+$define .= ' -DHAVE_PARIPRIV' if -f "$paridir/src/headers/paripriv.h";
 
 my $extra_inc = extra_includes($paridir);
 

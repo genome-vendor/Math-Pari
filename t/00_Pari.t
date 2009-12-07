@@ -441,6 +441,9 @@ eval <<'EOE' or warn $@;	# 129..131
   test "$i" eq "$ii";
 EOE
 
+my $ff = Math::Pari::factor(24);
+test "[2,3;3,1]" eq "$ff";	# 132
+
 for my $l (0..22) {		# + 23*9*2
   for my $d (1..9, -9..-1) {
     my $n = $d . (0 x $l);
@@ -470,4 +473,4 @@ BEGIN {
   $^W = $ow;
 }
 
-sub last {131 + 23*9*2}
+sub last {132 + 23*9*2}

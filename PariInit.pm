@@ -51,7 +51,7 @@ Math::Pari is already loaded.
 
 =head1 AUTHOR
 
-Ilya Zakharevich L<ilya@math.ohio-state.edu>
+Ilya Zakharevich L<ilyaz@cpan.org>
 
 =cut
 

@@ -634,3 +634,28 @@ os2$(OBJ_EXT): $(PARI_DIR)/src/systems/os2/os2.c pariinl.h paricfg.h
              t/55_intnum.t                51    2   3.92%  12 50
              t/55_ploth.t                 34    1   2.94%  4
              t/55_program.t               37    1   2.70%  2
+
+2.010707:
+	Allow specification of 2.3.0 via pari_tgz.
+	Add version to BuildPari.pm.
+	Accomodate Darwin AS which tries to read from STDIN.
+	Temporary disable skip if LVL1 is found (in 2.3.0); leads to
+		Test returned status 0 (wstat 10, 0xa) on Darwin/port.
+	On darwin, diagnoze arch via uname -p.  (SIGBUS during build)
+
+2.010707:
+	machine=port builds on 2.3.0 too (same failures).
+	-DNO_GRAPHICS_PARI is not enough with 2.3.0; need -DNO_HIGHLEVEL_PARI,
+		otherwise segfaults ???
+	The branch with UV > ulong had a parens mismatch.
+
+	Allow specification of 2.3.0 via pari_tgz, so manual override
+		(for testing purposes only so far!) is easier.
+	Add version to BuildPari.pm.
+	Accomodate Darwin AS which tries to read from STDIN.
+	Temporary disable skip if LVL1 is found (in 2.3.0); leads to
+		Test returned status 0 (wstat 10, 0xa) on Darwin/port.
+	On darwin, diagnoze arch via uname -p.  (SIGBUS during build)
+	More verbose hints on "Should I auto-download?".
+	LWP download code would not binmode()...
+	Test OLD subdirectory of GP/PARI ftp directory too.

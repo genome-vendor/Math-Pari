@@ -31,8 +31,9 @@ extern "C" {
 #define dFUNCTION(retv)  retv (*FUNCTION)(VARARG) = \
             (retv (*)(VARARG)) XSANY.any_dptr
 
+#define DO_INTERFACE(inter) subaddr = CAT2(XS_Math__Pari_interface, inter)
 #define CASE_INTERFACE(inter) case inter: \
-                   subaddr = CAT2(XS_Math__Pari_interface, inter); break
+                   DO_INTERFACE(inter); break
 
 /* Here is the rationals for managing SVs which keep GENs: when newly
    created SVs from GENs on stack, the same moved to heap, and
@@ -63,6 +64,7 @@ extern "C" {
 typedef entree * PariVar;		/* For loop variables. */
 typedef entree * PariName;		/* For changevalue.  */
 typedef char * PariExpr;
+typedef GEN * GEN_Ptr;
 
 /* We make a "fake" PVAV, not enough entries.  */
 
@@ -725,9 +727,14 @@ autoloadPerlFunction(char *s, long len)
 {
     CV *cv;
     SV* name;
+    HV* converted;
 
     if (doing_PARI_autoload)
 	return 0;
+    converted = perl_get_hv("Math::Pari::converted",TRUE);
+    if (hv_fetch(converted, s, len, FALSE)) 
+	return 0;
+
     name = sv_2mortal(newSVpv(s, len));
 
     cv = perl_get_cv(SvPVX(name), FALSE);
@@ -936,6 +943,22 @@ long	oldavma=avma;
    RETVAL
 
 GEN
+interface00()
+long	oldavma=avma;
+ CODE:
+  {
+    dFUNCTION(GEN);
+
+    if (!FUNCTION) {
+      croak("XSUB call through interface did not provide *function");
+    }
+
+    RETVAL=FUNCTION();
+  }
+ OUTPUT:
+   RETVAL
+
+GEN
 interface1(arg1)
 long	oldavma=avma;
 GEN	arg1
@@ -1028,7 +1051,7 @@ long	arg1
       croak("XSUB call through interface did not provide *function");
     }
 
-    RETVAL=FUNCTION(arg1,prec);
+    RETVAL=FUNCTION(arg1);
   }
  OUTPUT:
    RETVAL
@@ -1053,6 +1076,23 @@ long	arg1
    avma=oldavma;
 
 GEN
+interface18(arg1)
+long	oldavma=avma;
+GEN	arg1
+ CODE:
+  {
+    dFUNCTION(GEN);
+
+    if (!FUNCTION) {
+      croak("XSUB call through interface did not provide *function");
+    }
+
+    RETVAL=FUNCTION(arg1);
+  }
+ OUTPUT:
+   RETVAL
+
+GEN
 interface2(arg1,arg2)
 long	oldavma=avma;
 GEN	arg1
@@ -1065,7 +1105,7 @@ GEN	arg2
       croak("XSUB call through interface did not provide *function");
     }
 
-    RETVAL=FUNCTION(arg1,arg2,prec);
+    RETVAL=FUNCTION(arg1,arg2);
   }
  OUTPUT:
    RETVAL
@@ -1158,6 +1198,24 @@ bool	inv
    avma=oldavma;
 
 GEN
+interface29(arg1,arg2)
+long	oldavma=avma;
+GEN	arg1
+GEN	arg2
+ CODE:
+  {
+    dFUNCTION(GEN);
+
+    if (!FUNCTION) {
+      croak("XSUB call through interface did not provide *function");
+    }
+
+    RETVAL=FUNCTION(arg1,arg2,prec);
+  }
+ OUTPUT:
+   RETVAL
+
+GEN
 interface3(arg1,arg2,arg3)
 long	oldavma=avma;
 GEN	arg1
@@ -1171,7 +1229,7 @@ GEN	arg3
       croak("XSUB call through interface did not provide *function");
     }
 
-    RETVAL=FUNCTION(arg1,arg2,arg3,prec);
+    RETVAL=FUNCTION(arg1,arg2,arg3);
   }
  OUTPUT:
    RETVAL
@@ -1212,7 +1270,7 @@ GEN	arg4
       croak("XSUB call through interface did not provide *function");
     }
 
-    RETVAL=FUNCTION(arg1,arg2,arg3,arg4,prec);
+    RETVAL=FUNCTION(arg1,arg2,arg3,arg4);
   }
  OUTPUT:
    RETVAL
@@ -1258,26 +1316,27 @@ GEN	arg2
 
 
 GEN
-interface13(arg1)
+interface13(arg1, arg2=0, arg3=gzero)
 long	oldavma=avma;
 GEN	arg1
+long	arg2
+GEN	arg3
  CODE:
   {
-    long junk;
     dFUNCTION(GEN);
 
     if (!FUNCTION) {
       croak("XSUB call through interface did not provide *function");
     }
 
-    RETVAL=FUNCTION(arg1, &junk);
+    RETVAL=FUNCTION(arg1, arg2, arg3);
   }
  OUTPUT:
    RETVAL
 
 
 GEN
-interface14(arg1,arg2)
+interface14(arg1,arg2=0)
 long	oldavma=avma;
 GEN	arg1
 GEN	arg2
@@ -1289,7 +1348,7 @@ GEN	arg2
       croak("XSUB call through interface did not provide *function");
     }
 
-    RETVAL=FUNCTION(arg1,numvar(arg2));
+    RETVAL=FUNCTION(arg1,arg2 ? numvar(arg2) : -1);
   }
  OUTPUT:
    RETVAL
@@ -1328,7 +1387,7 @@ PariExpr	arg3
       croak("XSUB call through interface did not provide *function");
     }
 
-    RETVAL=FUNCTION(arg2, arg1, arg3);
+    RETVAL=FUNCTION(arg1, arg2, arg3);
   }
  OUTPUT:
    RETVAL
@@ -1346,7 +1405,7 @@ long	arg2
       croak("XSUB call through interface did not provide *function");
     }
 
-    RETVAL=FUNCTION(arg1,arg2,prec);
+    RETVAL=FUNCTION(arg1,arg2);
   }
  OUTPUT:
    RETVAL
@@ -1364,16 +1423,17 @@ GEN	arg2
       croak("XSUB call through interface did not provide *function");
     }
 
-    RETVAL=FUNCTION(arg1,arg2,prec);
+    RETVAL=FUNCTION(arg1,arg2);
   }
  OUTPUT:
    RETVAL
 
 GEN
-interface25(arg1,arg2)
+interface25(arg1,arg2,arg3=0)
 long	oldavma=avma;
 GEN	arg1
 GEN	arg2
+long	arg3
  CODE:
   {
     dFUNCTION(GEN);
@@ -1382,7 +1442,7 @@ GEN	arg2
       croak("XSUB call through interface did not provide *function");
     }
 
-    RETVAL=FUNCTION(arg1,arg2);
+    RETVAL=FUNCTION(arg1,arg2,arg3);
   }
  OUTPUT:
    RETVAL
@@ -1445,7 +1505,7 @@ GEN	arg2
    RETVAL
 
 long
-interface29(arg1,arg2)
+interface29_old(arg1,arg2)
 long	oldavma=avma;
 GEN	arg1
 long	arg2
@@ -1465,22 +1525,21 @@ long	arg2
    avma=oldavma;
 
 GEN
-interface31(arg1,arg2,arg3)
+interface31(arg1,arg2,arg3=0,arg4=0)
 long	oldavma=avma;
 GEN	arg1
 GEN	arg2
 GEN	arg3
+GEN	arg4
  CODE:
   {
-    GEN junk;
     dFUNCTION(GEN);
 
     if (!FUNCTION) {
       croak("XSUB call through interface did not provide *function");
     }
 
-    RETVAL=FUNCTION(arg1, arg2, arg3, &junk);
-    cgiv(junk);
+    RETVAL=FUNCTION(arg1, arg2, arg3, arg4 ? &arg4 : NULL);
   }
  OUTPUT:
    RETVAL
@@ -1505,11 +1564,12 @@ long	arg3
    RETVAL
 
 GEN
-interface33(arg1,arg2,arg3)
+interface33(arg1,arg2,arg3,arg4=0)
 long	oldavma=avma;
 GEN	arg1
-long	arg2
-long	arg3
+GEN	arg2
+GEN	arg3
+long	arg4
  CODE:
   {
     dFUNCTION(GEN);
@@ -1518,7 +1578,7 @@ long	arg3
       croak("XSUB call through interface did not provide *function");
     }
 
-    RETVAL=FUNCTION(arg1,arg2,arg3);
+    RETVAL=FUNCTION(arg1,arg2,arg3,arg4,prec);
   }
  OUTPUT:
    RETVAL
@@ -1582,7 +1642,7 @@ PariExpr	arg4
    RETVAL
 
 GEN
-interface48(arg0,arg1,arg2,arg3,arg4=gzero)
+interface47(arg1,arg2,arg3,arg4,arg0=gun)
 long	oldavma=avma;
 GEN	arg0
 PariVar	arg1
@@ -1597,7 +1657,28 @@ PariExpr	arg4
       croak("XSUB call through interface did not provide *function");
     }
 
-    RETVAL=FUNCTION(arg1, arg0, arg2, arg3, arg4);
+    RETVAL=FUNCTION(arg1, arg2, arg3, arg4, arg0);
+  }
+ OUTPUT:
+   RETVAL
+
+GEN
+interface48(arg1,arg2,arg3,arg4,arg0=gzero)
+long	oldavma=avma;
+GEN	arg0
+PariVar	arg1
+GEN	arg2
+GEN	arg3
+PariExpr	arg4
+ CODE:
+  {
+    dFUNCTION(GEN);
+
+    if (!FUNCTION) {
+      croak("XSUB call through interface did not provide *function");
+    }
+
+    RETVAL=FUNCTION(arg1, arg2, arg3, arg4, arg0);
   }
  OUTPUT:
    RETVAL
@@ -1626,7 +1707,7 @@ PariExpr	arg3
       croak("XSUB call through interface did not provide *function");
     }
 
-    RETVAL=FUNCTION(arg1, arg2, arg0, arg00, arg3);
+    RETVAL=FUNCTION(arg0, arg00, arg1, arg2, arg3);
   }
  OUTPUT:
    RETVAL
@@ -1692,7 +1773,7 @@ long	oldavma=avma;
    avma=oldavma;
 
 
-GEN
+void
 interface19(arg1, arg2)
 long	oldavma=avma;
     long arg1
@@ -1705,10 +1786,8 @@ long	oldavma=avma;
       croak("XSUB call through interface did not provide *function");
     }
 
-    RETVAL=FUNCTION(arg1, arg2);
+    FUNCTION(arg1, arg2);
   }
- OUTPUT:
-   RETVAL
 
 
 GEN
@@ -1799,7 +1878,7 @@ long	oldavma=avma;
    RETVAL
 
 
-GEN
+void
 interface86(arg1, arg2, arg3, arg4, arg5)
 long	oldavma=avma;
     PariVar arg1
@@ -1815,18 +1894,17 @@ long	oldavma=avma;
       croak("XSUB call through interface did not provide *function");
     }
 
-    RETVAL=FUNCTION(arg1, arg2, arg3, arg4, arg5);
+    FUNCTION(arg1, arg2, arg3, arg4, arg5);
   }
- OUTPUT:
-   RETVAL
 
 
-GEN
-interface87(arg1, arg2, arg3)
+void
+interface87(arg1, arg2, arg3, arg4=0)
 long	oldavma=avma;
     PariVar arg1
     GEN arg2
     PariExpr arg3
+    long arg4
  CODE:
   {
     dFUNCTION(GEN);
@@ -1835,10 +1913,8 @@ long	oldavma=avma;
       croak("XSUB call through interface did not provide *function");
     }
 
-    RETVAL=FUNCTION(arg1, arg2, arg3, prec);
+    FUNCTION(arg1, arg2, arg3, arg4);
   }
- OUTPUT:
-   RETVAL
 
 
 bool
@@ -2156,7 +2232,16 @@ loadPari(name)
 	 
 	 strcpy(subname+12,olds);
 	 switch (valence) {
-	   CASE_INTERFACE(0);
+	 case 0:
+	     if (ep->code[0] == 'p' && ep->code[1] == 0) {
+		 DO_INTERFACE(0);
+	     } else if (ep->code[0] == 0) {
+		 DO_INTERFACE(00);
+	     } else {
+		 croak("Unsupported interface %d for a Pari function %s with code \"%s\"",
+		       valence, olds, ep->code);
+	     }
+	     break;
 	   CASE_INTERFACE(1);
 	   CASE_INTERFACE(10);
 	   CASE_INTERFACE(199);
@@ -2190,10 +2275,12 @@ loadPari(name)
 	   CASE_INTERFACE(22);
 	   CASE_INTERFACE(27);
 	   CASE_INTERFACE(37);
+	   CASE_INTERFACE(47);
 	   CASE_INTERFACE(48);
 	   CASE_INTERFACE(49);
 	   CASE_INTERFACE(83);
 	   CASE_INTERFACE(84);
+	   CASE_INTERFACE(18);
 	   /* These interfaces were automatically generated: */
 	   CASE_INTERFACE(16);
 	   CASE_INTERFACE(19);
@@ -2234,7 +2321,11 @@ listPari(tag)
 	   if (tag == -1 || ep->menu == tag) {
 	       switch (valence) {
 		   case 0:
-		   case 1:
+		       if ((ep->code[0] != 0) 
+			   && ((ep->code[0] != 'p' || ep->code[1] != 0)))
+			   break;
+		       /* FALL THROUGH */
+	           case 1:
 		   case 10:
 		   case 199:
 		   case 109:
@@ -2267,10 +2358,12 @@ listPari(tag)
 		   case 22:
 		   case 27:
 		   case 37:
+		   case 47:
 		   case 48:
 		   case 49:
 		   case 83:
 		   case 84:
+		   case 18:
 		       /* These interfaces were automatically generated: */
 	           case 16:
 		   case 19:
@@ -2298,6 +2391,11 @@ BOOT:
    }
    INIT_JMP_off;
    INIT_SIG_off;
+   /* These guys are new in 2.0. */
+   init_defaults(1);
+   pari_addfunctions(&pari_modules, functions_highlevel,helpmessages_highlevel);
+   init_graph();
+
    init(SvIV(mem),SvIV(pri)); /* Default: take four million bytes of
 			       * memory for the stack, calculate
 			       * primes up to 500000. */

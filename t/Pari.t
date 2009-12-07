@@ -274,7 +274,7 @@ eval { $res = PARI('get2(3,1,67)') };
 #print "# res='$res' err=`$@'\n";
 test($res == 9 and $@ =~ /expected\scharacter:\s\'\)/); # 76
 
-$res = Math::Pari::sum(7,$l,5,9,sub{'kk'**$l});
+$res = Math::Pari::sum($l,5,9,sub{'kk'**$l},7);
 #print "res = `$res'\n";
 test("$res" eq 'kk^9+kk^8+kk^7+kk^6+kk^5+7') or print "$res\n";	# 77
 

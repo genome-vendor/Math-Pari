@@ -698,7 +698,7 @@ sub AUTOLOAD {
 $initmem = $initmem || 4000000;		# How much memory for the stack
 $initprimes = $initprimes || 500000;	# Calculate primes up to this number
 
-$VERSION = 0.95;
+$VERSION = 0.9501;
 
 bootstrap Math::Pari;
 
@@ -728,6 +728,10 @@ sub new {
 	      );
 @sections{values %names} = keys %names;
 
+@converted{split /,\s+/, qq(buchimag, buchreal,
+    buchgen, buchgenforcefu, buchgenfu, buchinit, buchinitforcefu, buchinitfu,
+    string, addhelp, kill)} = (1) x 100;
+
 sub import {
   my $p=shift;
   @_ = map {
@@ -745,8 +749,11 @@ sub import {
     }
   } @_;
   
+  # print "EXPORT_OK: @EXPORT_OK\n";
   push @EXPORT_OK,
-      grep( ($_ ne ':DEFAULT' and eval {loadPari($_)}, !$@) ,
+      grep( ($_ ne ':DEFAULT' 
+	     and not $export_ok{$_}
+	     and (eval {loadPari($_), 1} or warn $@), !$@) ,
 	    @_);
   # print "EXPORT_OK: @EXPORT_OK\n";
   &Exporter::export($p,(caller(0))[0],@_);
@@ -767,19 +774,18 @@ sub installPerlFunction {my @a=@_; $a[0] = \&{$a[0]}; installPerlFunctionCV(@a)}
 
 my $name;
 
-for $name (split /,\s+/, qq(buchimag, buchreal,
-    buchgen, buchgenforcefu, buchgenfu, buchinit, buchinitforcefu, buchinitfu,
-    string,
-    addhelp, kill)) {
+for $name (keys %converted) {
   push @EXPORT_OK, $name;
   next if defined &$name;
   # string needs to format numbers to 8.3...
   if ($name eq 'addhelp' or $name eq 'string') {
     *$name = sub {PARI("$name($_[0],'$_[1]')")}
   } else {
-    *$name = sub {local $"=','; PARI("$name(@_)")}
+    *$name = sub {local $"=',';PARI("$name(@_)")}
   }
 }
+
+@export_ok{@EXPORT_OK,@EXPORT} = (1) x (@EXPORT_OK + @EXPORT);
 
 sub link_gnuplot {
   eval 'use Term::Gnuplot 0.4; 1' or die;

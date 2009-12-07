@@ -1,0 +1,11 @@
+a) T_PariPtr (to process &) is not implemented.
+b) I introduced a new valence 18 for "G".
+c) I introduced a new valence 29 for "GGp".
+d) Valences 2 and 3 and 4 and 11 - and a lot of others are changed.
+e) New valence 47 for prod.
+f) fordiv() was wrongly changed from "vGVI"
+
+1) Lookup for autoloaded functions happens too early: after
+   functions_hash, but before gp_hash.  Say, `kill' wants to be autoloaded.
+2) default() uses a static.
+3) tests/analyz does not check answers...

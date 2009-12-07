@@ -1,0 +1,501 @@
+# Please feed this to your shell
+
+touch ./src/language/highlevel.c
+exit 0
+
+This patch passes the tests OK.  It adds no new functionality to GP and PARI,
+but allows access to more functions from a program using PARI library.
+
+The problem: the current library code allows a build of a restricted 
+interpreter, without many necessary higher-level functions: addhelp/install/
+type/any-graphics.  These functions are necessary for a Perl interface
+to PARI.
+
+On the other hand, if you try to
+
+   pari_addfunctions(&pari_modules, functions_gp,helpmessages_gp);
+
+then the whole gp.c is pulled in, so that you need to link with readline
+library and so on.
+
+Solution: I split gp_init.c into two parts, one of them (language/highlevel.c)
+contains entries which do not require a full GP interpreter present, so that
+an application which wants access to higher-level functions may do
+
+  pari_addfunctions(&pari_modules, functions_highlevel,helpmessages_highlevel);
+
+This needed some code moved from gp.c to highlevel.c.
+
+I also corrected valences in highlevel.c to ensure unique correspondence
+  valence ===> code
+outside of valence==0 and valence==99.
+
+Enjoy,
+Ilya
+
+--- ./src/gp/gp.c-pre-newhash	Sat Jul 25 13:40:58 1998
++++ ./src/gp/gp.c	Tue Sep 22 14:41:08 1998
+@@ -851,6 +851,7 @@ main(int argc, char **argv)
+ #endif
+   precmd = read_opt(argc,argv);
+   pari_addfunctions(&pari_modules, functions_gp,helpmessages_gp);
++  pari_addfunctions(&pari_modules, functions_highlevel,helpmessages_highlevel);
+   pari_addfunctions(&pari_oldmodules, functions_oldgp,helpmessages_oldgp);
+ 
+   init_graph(); INIT_SIG_off;
+@@ -2740,73 +2741,6 @@ input0()
+   return res;
+ }
+ 
+-static long
+-get_type_num(char *st)
+-{
+-  if (isdigit(*st))
+-  {
+-    char *s = st;
+-    while (*s && isdigit(*s)) s++;
+-    if (! *s) return atol(st);
+-
+-    err(talker,"Unknown type: %s",s);
+-  }
+-
+-  if (!strncmp(st,"t_",2)) st += 2; /* skip initial part */
+-
+-  switch(strlen(st))
+-  {
+-    case 3:
+-      if (!strcmp(st,"INT")) return t_INT;
+-      if (!strcmp(st,"POL")) return t_POL;
+-      if (!strcmp(st,"SER")) return t_SER;
+-      if (!strcmp(st,"QFR")) return t_QFR;
+-      if (!strcmp(st,"QFI")) return t_QFI;
+-      if (!strcmp(st,"VEC")) return t_VEC;
+-      if (!strcmp(st,"COL")) return t_COL;
+-      if (!strcmp(st,"MAT")) return t_MAT;
+-      if (!strcmp(st,"STR")) return t_STR;
+-      break;
+-
+-    case 4:
+-      if (!strcmp(st,"REAL")) return t_REAL;
+-      if (!strcmp(st,"FRAC")) return t_FRAC;
+-      if (!strcmp(st,"QUAD")) return t_QUAD;
+-      if (!strcmp(st,"LIST")) return t_LIST;
+-      break;
+-
+-    case 5:
+-      if (!strcmp(st,"FRACN")) return t_FRACN;
+-      if (!strcmp(st,"PADIC")) return t_PADIC;
+-      if (!strcmp(st,"RFRAC")) return t_RFRAC;
+-      break;
+-
+-    case 6:
+-      if (!strcmp(st,"INTMOD")) return t_INTMOD;
+-      if (!strcmp(st,"POLMOD")) return t_POLMOD;
+-      if (!strcmp(st,"RFRACN")) return t_RFRACN;
+-      break;
+-
+-    case 7:
+-      if (!strcmp(st,"COMPLEX")) return t_COMPLEX;
+-      break;
+-  }
+-  err(talker,"Unknown type: t_%s",st);
+-  return 0; /* not reached */
+-}
+-
+-GEN
+-type0(GEN x, char *st)
+-{
+-  if (! *st) 
+-  {
+-    char *s = type_name(typ(x));
+-    return strtoGEN(s,strlen(s));
+-  }
+-  x = gcopy(x); settyp(x,get_type_num(st));
+-  return x;
+-}
+-
+ void
+ xwrite(char *s, GEN x)
+ {
+@@ -2859,14 +2793,6 @@ error0(GEN *g)
+   err_recover(talker);
+ }
+ 
+-void
+-addhelp(entree *ep, char *s)
+-{
+-  if (ep->help && ! EpSTATIC(ep)) free(ep->help);
+-  ep->help = (char*) gpmalloc(strlen(s) + 1);
+-  strcpy(ep->help, s);
+-}
+-
+ long
+ setprecr(long n)
+ {
+@@ -2876,39 +2802,3 @@ setprecr(long n)
+   return m;
+ }
+ 
+-#ifdef HAS_DLOPEN
+-#include <dlfcn.h>
+-void 
+-install0(char *name, char *code, char *gpname, char *lib)
+-{
+-  void *f, *handle;
+-
+- /* dlopen(NULL) returns a handle to the running process. 
+-  * bug report Y. Uchikawa: does not work for gp-dyn on FreeBSD 2.2.5
+-  */
+-#ifdef __FreeBSD__
+-  if (! *lib) lib = DL_DFLT_NAME;
+-#else
+-  if (! *lib) lib = NULL;
+-#endif
+-  if (! *gpname) gpname=name;
+-  
+-  handle = dlopen(lib,RTLD_LAZY);
+-  if (!handle)
+-  {
+-    const char *s = dlerror(); if (s) fprintferr("%s\n\n",s);
+-    if (lib) err(talker,"couldn't open dynamic library '%s'",lib);
+-    err(talker,"couldn't open dynamic symbol table of process");
+-  }
+-  f = dlsym(handle,name);
+-  if (!f)
+-  {
+-    if (lib) err(talker,"can't find symbol '%s' in library '%s'",name,lib);
+-    err(talker,"can't find symbol '%s' in dynamic symbol table of process",name);
+-  }
+-  install(f,gpname,code);
+-}
+-#else
+-void 
+-install0(char *name, char *code, char *gpname, char *lib) { err(archer); }
+-#endif
+--- ./src/gp/gp_init.c-pre-newhash	Thu Jul 23 08:40:12 1998
++++ ./src/gp/gp_init.c	Tue Sep 22 14:30:04 1998
+@@ -33,51 +33,19 @@ static void
+ whatnow0(char *s) { whatnow(s,0); }
+ 
+ entree functions_gp[]={
+-{"addhelp",99,(void*)addhelp,11,"vSs"},
+ {"allocatemem",0,(void*)allocatemem0,11,"vD0,L,"},
+ {"default",0,(void*)default0,11,"D\"\",r,D\"\",s,D0,L,"},
+ {"error",0,(void*)error0,11,"vs*"},
+ {"extern",1,(void*)extern0,11,"s"},
+ {"input",0,(void*)input0,11,""},
+-{"install",4,(void*)install0,11,"vrrD\"\",r,D\"\",r,"},
+-{"kill",85,(void*)kill0,11,"vS"},
+-{"plot",37,(void*)plot,10,"vV=GGI"},
+-{"plotbox",35,(void*)rectbox,10,"vLGG"},
+-{"plotcolor",2,(void*)rectcolor,10,"vLL"},
+-{"plotcopy",44,(void*)rectcopy,10,"vLLLL"},
+-{"plotcursor",11,(void*)rectcursor,10,"L"},
+-{"plotdraw",1,(void*)rectdraw,10,"vG"},
+-{"ploth",37,(void*)ploth,10,"V=GGIpD0,L,D0,L,"},
+-{"plothraw",2,(void*)plothraw,10,"GGD0,L,"},
+-{"plothsizes",0,(void*)plothsizes,10,""},
+-{"plotinit",34,(void*)initrect,10,"vLLL"},
+-{"plotkill",11,(void*)killrect,10,"vL"},
+-{"plotlines",35,(void*)rectlines,10,"vLGGD0,L,"},
+-{"plotlinetype",19,(void*)rectlinetype,10,"vLL"},
+-{"plotmove",35,(void*)rectmove,10,"vLGG"},
+-{"plotpoints",35,(void*)rectpoints,10,"vLGG"},
+-{"plotpointtype",19,(void*)rectpointtype,10,"vLL"},
+-{"plotrbox",35,(void*)rectrbox,10,"vLGG"},
+-{"plotrecth",73,(void*)rectploth,10,"LV=GGIpD0,L,D0,L,"},
+-{"plotrecthraw",45,(void*)rectplothraw,10,"LGD0,L,"},
+-{"plotrline",35,(void*)rectrline,10,"vLGG"},
+-{"plotrmove",35,(void*)rectrmove,10,"vLGG"},
+-{"plotrpoint",35,(void*)rectrpoint,10,"vLGG"},
+-{"plotscale",59,(void*)rectscale,10,"vLGGGG"},
+-{"plotstring",57,(void*)rectstring,10,"vLs"},
+-{"plotterm",16,(void*)term_set,10,"sl"},
+ {"print",0,(void*)print0,11,"vs*D0,L,"},
+ {"print1",0,(void*)print0,11,"vs*D4,L,"},
+ {"printp",0,(void*)print0,11,"vs*D2,L,"},
+ {"printp1",0,(void*)print0,11,"vs*D6,L,"},
+ {"printtex",0,(void*)print0,11,"vs*D3,L,"},
+-{"psdraw",1,(void*)postdraw,10,"vG"},
+-{"psploth",37,(void*)postploth,10,"V=GGIpD0,L,D0,L,"},
+-{"psplothraw",2,(void*)postplothraw,10,"GGD0,L,"},
+ {"quit",0,(void*)gp_quit,11,"v"},
+ {"read",0,(void*)read0,11,"D\"\",s,"},
+ {"system",70,(void*) system0,11,"vs"},
+-{"type",1,(void*)type0,11,"GD\"\",r,"},
+ {"whatnow",1,(void*)whatnow0,11,"vr"},
+ {"write",0,(void*)write0,11,"vss*D0,L,"},
+ {"write1",0,(void*)write0,11,"vss*D4,L,"},
+@@ -87,51 +55,19 @@ entree functions_gp[]={
+ };
+ 
+ char *helpmessages_gp[]={
+-  "addhelp(symbol,\"message\"): add/change help message for a symbol",
+   "allocatemem({s=0}): allocates a new stack of s bytes. doubles the stack if s is omitted",
+   "default({opt},{v},{flag}): set the default opt to v. If v is omitted, print the current default for opt. If no argument is given, print a list of all defaults as well as their values. If flag is non-zero, return the result instead of printing it on screen. See manual for details",
+   "error(\"msg\"): abort script with error message msg",
+   "extern(cmd): execute shell command cmd, and feeds the result to GP (as if loading from file)",
+   "input(): read an expression from the input file or standard input",
+-  "install(name,code,{gpname},{lib}): load from dynamic library 'lib' the function 'name'. Assign to it the name 'gpname' in this GP session, with argument code 'code'. If 'lib' is omitted use 'libpari.so'. If 'gpname' is omitted, use 'name'",
+-  "kill(x):  kills the present value of the variable or function x. Returns new value or 0",
+-  "plot(X=a,b,expr): crude plot of expression expr, X goes from a to b",
+-  "plotbox(w,x2,y2): if the cursor is at position (x1,y1), draw a box with diagonal (x1,y1) and (x2,y2) in rectwindow w (cursor does not move)",
+-  "plotcolor(w,c): in rectwindow w, set default color to c. Possible values for c are 1=black, 2=blue, 3=sienna, 4=red, 5=cornsilk, 6=grey, 7=gainsborough",
+-  "plotcopy(sourcew,destw,dx,dy): copy the contents of rectwindow sourcew to rectwindow destw with offset (dx,dy)",
+-  "plotcursor(w): current position of cursor in rectwindow w",
+-  "plotdraw(list): draw vector of rectwindows list at indicated x,y positions; list is a vector w1,x1,y1,w2,x2,y2,etc. . ",
+-  "ploth(X=a,b,expr,{flags=0},{n=0}): plot of expression expr, X goes from a to b in high resolution. Both flags and n are optional. Binary digits of flags mean : 1 parametric plot, 2 recursive plot, 8 omit x-axis, 16 omit y-axis, 32 omit frame, 64 do not join points. n specifies number of reference points on the graph (0=use default value). Returns a vector for the bounding box",
+-  "plothraw(listx,listy,{flag=0}): plot in high resolution points whose x (resp. y) coordinates are in listx (resp. listy). If flag is non zero, join points",
+-  "plothsizes(): returns array of 6 elements: terminal width and height, sizes for ticks in horizontal and vertical directions (in pixels), width and height of characters",
+-  "plotinit(w,x,y): initialize rectwindow w to size x,y",
+-  "plotkill(w): erase the rectwindow w",
+-  "plotlines(w,listx,listy,{flag=0}): draws an open polygon in rectwindow w where listx and listy contain the x (resp. y) coordinates of the vertices. If listx and listy are both single values (i.e not vectors), draw the corresponding line (and move cursor). If (optional) flag is non-zero, close the polygon",
+-  "plotlinetype(w,type): change the type of following lines in rectwindow w. -2 corresponds to frames, -1 to axes, larger values may correspond to something else",
+-  "plotmove(w,x,y): move cursor to position x,y in rectwindow w",
+-  "plotpoints(w,listx,listy): draws in rectwindow w the points whose x (resp y) coordinates are in listx (resp listy). If listx and listy are both single values (i.e not vectors), draw the corresponding point (and move cursor)",
+-  "plotpointtype(w,type): change the type of following points in rectwindow w. -1 corresponds to a dot, larger values may correspond to something else",
+-  "plotrbox(w,dx,dy): if the cursor is at (x1,y1), draw a box with diagonal (x1,y1)-(x1+dx,y1+dy) in rectwindow w (cursor does not move)",
+-  "plotrecth(w,X=xmin,xmax,expr,{flags=0},{n=0}): plot graph(s) for expr in rectwindow w, where expr is scalar for a single non-parametric plot, and a vector otherwise. If plotting is parametric, its length should be even and pairs of entries give points coordinates. If not, all entries but the first are y-coordinates. Both flags and n are optional. Binary digits of flags mean: 1 parametric plot, 2 recursive plot, 4 do not rescale w, 8 omit x-axis, 16 omit y-axis, 32 omit frame, 64 do not join points. n specifies the number of reference points on the graph (0=use default value). Returns a vector for the bounding box",
+-  "plotrecthraw(w,data,{flags=0}): plot graph(s) for data in rectwindow w, where data is a vector of vectors. If plot is parametric, length of data should be even, and pairs of entries give curves to plot. If not, first entry gives x-coordinate, and the other ones y-coordinates. Admits the same optional flags as plotrecth, save that recursive plot is meaningless",
+-  "plotrline(w,dx,dy): if the cursor is at (x1,y1), draw a line from (x1,y1) to (x1+dx,y1+dy) (and move the cursor) in the rectwindow w",
+-  "plotrmove(w,dx,dy): move cursor to position (dx,dy) relative to the present position in the rectwindow w",
+-  "plotrpoint(w,dx,dy): draw a point (and move cursor) at position dx,dy relative to present position of the cursor in rectwindow w",
+-  "plotscale(w,x1,x2,y1,y2): scale the coordinates in rectwindow w so that x goes from x1 to x2 and y from y1 to y2 (y2<y1 is allowed)",
+-  "plotstring(w,x): draw in rectwindow w the string corresponding to x",
+-  "plotterm(\"termname\"): set terminal to plot in high resolution to. Ignored by some drivers. In gnuplot driver possible terminals are the same as in gnuplot. Positive value means success",
+   "print(a): outputs a (in raw format) ending with newline",
+   "print1(a): outputs a (in raw format) without ending with newline",
+   "printp(a): outputs a (in beautified format) ending with newline",
+   "printp1(a): outputs a (in beautified format) without ending with newline",
+   "printtex(a): outputs a in TeX format",
+-  "psdraw(list): same as draw, except that the output is a postscript program in psfile (pari.ps by default)",
+-  "psploth(X=a,b,expr,{flags=0},{n=0}): same as ploth, except that the output is a postscript program in psfile (pari.ps by default)",
+-  "psplothraw(listx,listy,{flag=0}): same as plothraw, except that the output is a postscript program in psfile (pari.ps by default)",
+   "quit(): quits GP and return to the system",
+   "read({filename}): read from the input file filename. If filename is omitted, reread last input file (be it from readfile or \\r)",
+   "system(a): a being a string, execute the system command a (not valid on every machine)",
+-  "type(x,{t}): if t is not present, output the type of the GEN x. Else make a copy of x with type t. Use with extreme care, usually with t = t_FRACN or t = t_RFRACN). Try \\t for a list of types",
+   "whatnow(fun): if f was present in GP version 1.39.15 or lower, gives the new function name",
+   "write(filename,a): write the string expression a (same output as print) to filename",
+   "write1(filename,a): write the string expression a (same output as print1) to filename",
+--- ./src/language/anal.h-pre-newhash	Fri Sep 11 19:54:36 1998
++++ ./src/language/anal.h	Tue Sep 22 13:57:16 1998
+@@ -51,6 +51,8 @@ extern entree functions_basic[];
+ /* Variables containing the list of specific GP functions */
+ extern char   *helpmessages_gp[];
+ extern entree  functions_gp[];
++extern char   *helpmessages_highlevel[];
++extern entree  functions_highlevel[];
+ extern char    gp_colors[];
+ extern int     disable_color,added_newline;
+ 
+--- ./src/language/highlevel.c-pre-newhash	Tue Sep 22 14:21:02 1998
++++ ./src/language/highlevel.c	Wed Sep 23 13:02:02 1998
+@@ -0,0 +1,207 @@
++/*******************************************************************/
++/*******************************************************************/
++/*                                                                 */
++/*              PROGRAMME D'INITIALISATION DU SYSTEME              */
++/*                    ET TRAITEMENT DES ERREURS                    */
++/*                                                                 */
++/*          (Fichier pour la calculette gp uniquement)             */
++/*                                                                 */
++/*******************************************************************/
++/*******************************************************************/
++/* $Id: $ */
++#include "pari.h"
++#include "../graph/rect.h"
++#include "../language/anal.h"
++
++void  addhelp(entree *ep, char *s);
++void  allocatemem0(unsigned long newsize);
++GEN   default0(char *a, char *b, long flag);
++void  install0(char *name, char *code, char *gpname, char *lib);
++void  kill0(entree *ep);
++long  setprecr(long n);
++GEN   type0(GEN x, char *st);
++
++void
++addhelp(entree *ep, char *s)
++{
++  if (ep->help && ! EpSTATIC(ep)) free(ep->help);
++  ep->help = (char*) gpmalloc(strlen(s) + 1);
++  strcpy(ep->help, s);
++}
++
++#ifdef HAS_DLOPEN
++#include <dlfcn.h>
++void 
++install0(char *name, char *code, char *gpname, char *lib)
++{
++  void *f, *handle;
++
++ /* dlopen(NULL) returns a handle to the running process. 
++  * bug report Y. Uchikawa: does not work for gp-dyn on FreeBSD 2.2.5
++  */
++#ifdef __FreeBSD__
++  if (! *lib) lib = DL_DFLT_NAME;
++#else
++  if (! *lib) lib = NULL;
++#endif
++  if (! *gpname) gpname=name;
++  
++  handle = dlopen(lib,RTLD_LAZY);
++  if (!handle)
++  {
++    const char *s = dlerror(); if (s) fprintferr("%s\n\n",s);
++    if (lib) err(talker,"couldn't open dynamic library '%s'",lib);
++    err(talker,"couldn't open dynamic symbol table of process");
++  }
++  f = dlsym(handle,name);
++  if (!f)
++  {
++    if (lib) err(talker,"can't find symbol '%s' in library '%s'",name,lib);
++    err(talker,"can't find symbol '%s' in dynamic symbol table of process",name);
++  }
++  install(f,gpname,code);
++}
++#else
++void 
++install0(char *name, char *code, char *gpname, char *lib) { err(archer); }
++#endif
++
++static long
++get_type_num(char *st)
++{
++  if (isdigit(*st))
++  {
++    char *s = st;
++    while (*s && isdigit(*s)) s++;
++    if (! *s) return atol(st);
++
++    err(talker,"Unknown type: %s",s);
++  }
++
++  if (!strncmp(st,"t_",2)) st += 2; /* skip initial part */
++
++  switch(strlen(st))
++  {
++    case 3:
++      if (!strcmp(st,"INT")) return t_INT;
++      if (!strcmp(st,"POL")) return t_POL;
++      if (!strcmp(st,"SER")) return t_SER;
++      if (!strcmp(st,"QFR")) return t_QFR;
++      if (!strcmp(st,"QFI")) return t_QFI;
++      if (!strcmp(st,"VEC")) return t_VEC;
++      if (!strcmp(st,"COL")) return t_COL;
++      if (!strcmp(st,"MAT")) return t_MAT;
++      if (!strcmp(st,"STR")) return t_STR;
++      break;
++
++    case 4:
++      if (!strcmp(st,"REAL")) return t_REAL;
++      if (!strcmp(st,"FRAC")) return t_FRAC;
++      if (!strcmp(st,"QUAD")) return t_QUAD;
++      if (!strcmp(st,"LIST")) return t_LIST;
++      break;
++
++    case 5:
++      if (!strcmp(st,"FRACN")) return t_FRACN;
++      if (!strcmp(st,"PADIC")) return t_PADIC;
++      if (!strcmp(st,"RFRAC")) return t_RFRAC;
++      break;
++
++    case 6:
++      if (!strcmp(st,"INTMOD")) return t_INTMOD;
++      if (!strcmp(st,"POLMOD")) return t_POLMOD;
++      if (!strcmp(st,"RFRACN")) return t_RFRACN;
++      break;
++
++    case 7:
++      if (!strcmp(st,"COMPLEX")) return t_COMPLEX;
++      break;
++  }
++  err(talker,"Unknown type: t_%s",st);
++  return 0; /* not reached */
++}
++
++GEN
++type0(GEN x, char *st)
++{
++  if (! *st) 
++  {
++    char *s = type_name(typ(x));
++    return strtoGEN(s,strlen(s));
++  }
++  x = gcopy(x); settyp(x,get_type_num(st));
++  return x;
++}
++
++entree functions_highlevel[]={
++{"addhelp",99,(void*)addhelp,11,"vSs"},
++{"install",99,(void*)install0,11,"vrrD\"\",r,D\"\",r,"},
++{"kill",85,(void*)kill0,11,"vS"},
++{"plot",83,(void*)plot,10,"vV=GGI"},
++{"plotbox",35,(void*)rectbox,10,"vLGG"},
++{"plotcolor",99,(void*)rectcolor,10,"vLL"},
++{"plotcopy",44,(void*)rectcopy,10,"vLLLL"},
++{"plotcursor",11,(void*)rectcursor,10,"L"},
++{"plotdraw",99,(void*)rectdraw,10,"vG"},
++{"ploth",99,(void*)ploth,10,"V=GGIpD0,L,D0,L,"},
++{"plothraw",25,(void*)plothraw,10,"GGD0,L,"},
++{"plothsizes",0,(void*)plothsizes,10,""},
++{"plotinit",34,(void*)initrect,10,"vLLL"},
++{"plotkill",99,(void*)killrect,10,"vL"},
++{"plotlines",99,(void*)rectlines,10,"vLGGD0,L,"},
++{"plotlinetype",19,(void*)rectlinetype,10,"vLL"},
++{"plotmove",35,(void*)rectmove,10,"vLGG"},
++{"plotpoints",35,(void*)rectpoints,10,"vLGG"},
++{"plotpointtype",19,(void*)rectpointtype,10,"vLL"},
++{"plotrbox",35,(void*)rectrbox,10,"vLGG"},
++{"plotrecth",73,(void*)rectploth,10,"LV=GGIpD0,L,D0,L,"},
++{"plotrecthraw",45,(void*)rectplothraw,10,"LGD0,L,"},
++{"plotrline",35,(void*)rectrline,10,"vLGG"},
++{"plotrmove",35,(void*)rectrmove,10,"vLGG"},
++{"plotrpoint",35,(void*)rectrpoint,10,"vLGG"},
++{"plotscale",59,(void*)rectscale,10,"vLGGGG"},
++{"plotstring",57,(void*)rectstring,10,"vLs"},
++{"plotterm",16,(void*)term_set,10,"sl"},
++{"psdraw",99,(void*)postdraw,10,"vG"},
++{"psploth",99,(void*)postploth,10,"V=GGIpD0,L,D0,L,"},
++{"psplothraw",25,(void*)postplothraw,10,"GGD0,L,"},
++{"type",99,(void*)type0,11,"GD\"\",r,"},
++
++{NULL,0,NULL,0,NULL} /* sentinel */
++};
++
++char *helpmessages_highlevel[]={
++  "addhelp(symbol,\"message\"): add/change help message for a symbol",
++  "install(name,code,{gpname},{lib}): load from dynamic library 'lib' the function 'name'. Assign to it the name 'gpname' in this GP session, with argument code 'code'. If 'lib' is omitted use 'libpari.so'. If 'gpname' is omitted, use 'name'",
++  "kill(x):  kills the present value of the variable or function x. Returns new value or 0",
++  "plot(X=a,b,expr): crude plot of expression expr, X goes from a to b",
++  "plotbox(w,x2,y2): if the cursor is at position (x1,y1), draw a box with diagonal (x1,y1) and (x2,y2) in rectwindow w (cursor does not move)",
++  "plotcolor(w,c): in rectwindow w, set default color to c. Possible values for c are 1=black, 2=blue, 3=sienna, 4=red, 5=cornsilk, 6=grey, 7=gainsborough",
++  "plotcopy(sourcew,destw,dx,dy): copy the contents of rectwindow sourcew to rectwindow destw with offset (dx,dy)",
++  "plotcursor(w): current position of cursor in rectwindow w",
++  "plotdraw(list): draw vector of rectwindows list at indicated x,y positions; list is a vector w1,x1,y1,w2,x2,y2,etc. . ",
++  "ploth(X=a,b,expr,{flags=0},{n=0}): plot of expression expr, X goes from a to b in high resolution. Both flags and n are optional. Binary digits of flags mean : 1 parametric plot, 2 recursive plot, 8 omit x-axis, 16 omit y-axis, 32 omit frame, 64 do not join points. n specifies number of reference points on the graph (0=use default value). Returns a vector for the bounding box",
++  "plothraw(listx,listy,{flag=0}): plot in high resolution points whose x (resp. y) coordinates are in listx (resp. listy). If flag is non zero, join points",
++  "plothsizes(): returns array of 6 elements: terminal width and height, sizes for ticks in horizontal and vertical directions (in pixels), width and height of characters",
++  "plotinit(w,x,y): initialize rectwindow w to size x,y",
++  "plotkill(w): erase the rectwindow w",
++  "plotlines(w,listx,listy,{flag=0}): draws an open polygon in rectwindow w where listx and listy contain the x (resp. y) coordinates of the vertices. If listx and listy are both single values (i.e not vectors), draw the corresponding line (and move cursor). If (optional) flag is non-zero, close the polygon",
++  "plotlinetype(w,type): change the type of following lines in rectwindow w. -2 corresponds to frames, -1 to axes, larger values may correspond to something else",
++  "plotmove(w,x,y): move cursor to position x,y in rectwindow w",
++  "plotpoints(w,listx,listy): draws in rectwindow w the points whose x (resp y) coordinates are in listx (resp listy). If listx and listy are both single values (i.e not vectors), draw the corresponding point (and move cursor)",
++  "plotpointtype(w,type): change the type of following points in rectwindow w. -1 corresponds to a dot, larger values may correspond to something else",
++  "plotrbox(w,dx,dy): if the cursor is at (x1,y1), draw a box with diagonal (x1,y1)-(x1+dx,y1+dy) in rectwindow w (cursor does not move)",
++  "plotrecth(w,X=xmin,xmax,expr,{flags=0},{n=0}): plot graph(s) for expr in rectwindow w, where expr is scalar for a single non-parametric plot, and a vector otherwise. If plotting is parametric, its length should be even and pairs of entries give points coordinates. If not, all entries but the first are y-coordinates. Both flags and n are optional. Binary digits of flags mean: 1 parametric plot, 2 recursive plot, 4 do not rescale w, 8 omit x-axis, 16 omit y-axis, 32 omit frame, 64 do not join points. n specifies the number of reference points on the graph (0=use default value). Returns a vector for the bounding box",
++  "plotrecthraw(w,data,{flags=0}): plot graph(s) for data in rectwindow w, where data is a vector of vectors. If plot is parametric, length of data should be even, and pairs of entries give curves to plot. If not, first entry gives x-coordinate, and the other ones y-coordinates. Admits the same optional flags as plotrecth, save that recursive plot is meaningless",
++  "plotrline(w,dx,dy): if the cursor is at (x1,y1), draw a line from (x1,y1) to (x1+dx,y1+dy) (and move the cursor) in the rectwindow w",
++  "plotrmove(w,dx,dy): move cursor to position (dx,dy) relative to the present position in the rectwindow w",
++  "plotrpoint(w,dx,dy): draw a point (and move cursor) at position dx,dy relative to present position of the cursor in rectwindow w",
++  "plotscale(w,x1,x2,y1,y2): scale the coordinates in rectwindow w so that x goes from x1 to x2 and y from y1 to y2 (y2<y1 is allowed)",
++  "plotstring(w,x): draw in rectwindow w the string corresponding to x",
++  "plotterm(\"termname\"): set terminal to plot in high resolution to. Ignored by some drivers. In gnuplot driver possible terminals are the same as in gnuplot. Positive value means success",
++  "psdraw(list): same as draw, except that the output is a postscript program in psfile (pari.ps by default)",
++  "psploth(X=a,b,expr,{flags=0},{n=0}): same as ploth, except that the output is a postscript program in psfile (pari.ps by default)",
++  "psplothraw(listx,listy,{flag=0}): same as plothraw, except that the output is a postscript program in psfile (pari.ps by default)",
++  "type(x,{t}): if t is not present, output the type of the GEN x. Else make a copy of x with type t. Use with extreme care, usually with t = t_FRACN or t = t_RFRACN). Try \\t for a list of types",
++};
++

@@ -16,8 +16,8 @@ T_Pari
 	$var = sv2pari($arg)
 T_PariCol
 	$var = sv2pari($arg);
-	if (typ($var) != 17) croak("Not a vector when vector-column expected");
-	settyp($var, 18)
+	if (typ($var) != T_VEC) croak("Not a vector when vector-column expected");
+	settyp($var, T_COL)
 T_PariMat
 	$var = sv2parimat($arg)
 T_bool

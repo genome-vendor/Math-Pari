@@ -250,7 +250,7 @@ they can be used as barewords in your program.
 For convenience of low-level PARI programmers some low-level functions
 are made available as well (they are not exported):
 
-  typ
+  typ(x) changevalue(name,newvalue)
 
 =item Uncompatible functions
 
@@ -495,7 +495,14 @@ shows.
 
 =item array base
 
-Arrays are 1-based in PARI, are 0-based in Perl.
+Arrays are 1-based in PARI, are 0-based in Perl.  So while array
+access is possible in Perl, you need to use different indices:
+
+  $nf = PARI 'nf';	# number field
+  $a = PARI('nf[7]');
+  $b = $nf->[6];
+
+Now $a nd $b contain the same value.
 
 =item matrices
 
@@ -504,6 +511,13 @@ with specified columns, while PARI's C<[1,2,3;4,5,6]> constructor
 creates a matrix with specified rows.  Use a convenience function
 PARImat_tr() which will transpose a matrix created by PARImat() to use
 the same order of elements as in PARI.
+
+=item builtin perl functions
+
+Some PARI functions, like C<length> and C<eval>, are Perl
+(semi-)reserved words.  To reach these functions, one should either
+import them, or call them with prefix (like C<&length>) or the full
+name (like C<Math::Pari::length>).
 
 =back
 
@@ -522,11 +536,15 @@ No environment variables are used.
 
 =item *
 
-Not all the PARI functions are directly available.
+A few of PARI functions are available indirectly only.
 
-=item F<t/Testout.t>
+=item F<t/failing.t>
 
-This test suite is not completely converted, it gives many false negatives.
+This test suite exposes several bugs.
+
+=item C<forvec>, C<forstep>
+
+cannot take an argument of the form C<sub {...}> now.
 
 =back
 
@@ -537,6 +555,11 @@ Ilya Zakharevich, I<ilya@math.ohio-state.edu>
 =cut
 
 # $Id: Pari.pm,v 1.3 1994/11/25 23:40:52 ilya Exp ilya $
+package Math::Pari::Arr;
+
+#sub TIEARRAY { $_[0] }
+sub STORE { die "Storing into array elements unsupported" }
+
 package Math::Pari;
 
 require Exporter;
@@ -558,6 +581,7 @@ PARI PARIcol PARImat PARIvar PARImat_tr
 @EXPORT_OK = qw(
   sv2pari sv2parimat pari2iv pari2nv pari2num pari2pv pari2bool loadPari _bool
   listPari pari_print pari_pprint pari_texprint O ifact gdivent gdivround
+  changevalue
 );
 
 use subs qw(

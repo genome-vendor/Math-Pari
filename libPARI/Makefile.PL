@@ -82,9 +82,10 @@ sub process_machine {
 @Chips = keys %Versions;
 
 @know_chip{@Chips} = (1) x @Chips;
-$chipre = join '|', @Chips;
-$chipre =~ s/\|port\b//;
-$chipre =~ s/\bi386\b/[xi]\d86/;
+
+#$chipre = join '|', @Chips;
+#$chipre =~ s/\|port\b//;
+#$chipre =~ s/\bi386\b/[xi]\\d86/;
 
 if (not defined $machine and defined $common::machine) {
   $machine = $common::machine;
@@ -123,6 +124,18 @@ $sparc_cvt = $Config{osname} =~ /^(linux|nextstep)$/;
 	     i386	   => ['ix86/level0.h','none/level1.h'],
 	     port	   => ['none/level0.h','none/level1.h'],
 	    );
+
+unless (exists $inlines{$machine}) {
+  warn <<EOW;
+####	Do not know how to build for processor class `$machine'	####
+####	Reversing to assembler-less type `port'.		####
+####						 		####
+####	If you think your processor's assembler is supported	####
+####	by PARI, edit libPARI/Makefile.PL and report.		####
+EOW
+  $machine = 'port';
+}
+
 $inlines = $inlines{$machine} or die "Unknown inlines for '$machine'";
 @inlines = map "$main_paridir/src/kernel/$_", @$inlines;
 
@@ -332,10 +345,10 @@ sub MY::top_targets {
   my $converted = '';
   $converted = <<EOC if $kernel1c eq 'kernel1.s' or $level0c eq 'level0.s';
 level0.s: $level0 $level0h
-	\$(CPP) -I. \$(INC) -I$level0path \$(DEFINE) \$(CPPMINUS) < $level0 | perl -ne "s/%\s+/%/g; print unless /^\s*#/" > \$@
+	\$(CPP) -I. \$(INC) -I$level0path \$(DEFINE) \$(CPPMINUS) < $level0 | perl -ne "s/%\\s+/%/g; print unless /^\\s*#/" > \$@
 
 kernel1.s: $kernel1
-	\$(CPP) -I. \$(INC) -I$level0path \$(DEFINE) \$(CPPMINUS) < $kernel1 | perl -ne "s/%\s+/%/g; print unless /^\s*#/" > \$@
+	\$(CPP) -I. \$(INC) -I$level0path \$(DEFINE) \$(CPPMINUS) < $kernel1 | perl -ne "s/%\\s+/%/g; print unless /^\\s*#/" > \$@
 
 EOC
   '

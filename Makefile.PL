@@ -104,12 +104,13 @@ $define .= " -DLSB_in_U32=$offset";
 	       'VERSION_FROM' => 'Pari.pm',
 	       'DEFINE' => $define,
 	       'dist' => {COMPRESS=>'gzip -9f', SUFFIX=>'gz'},
+	       'clean'      => { FILES => 'pari.ps' },
 	      );
 
 
 sub MY::postamble {
   '
-$(MYEXTLIB): libPARI/Makefile
+$(MYEXTLIB): libPARI/Makefile FORCE
 	cd libPARI && $(MAKE) $(PASTHRU)
 ';
 }

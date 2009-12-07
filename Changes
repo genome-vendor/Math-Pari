@@ -75,4 +75,6 @@ after 0.91:
 after 0.92:
 	Fix the failure on Solaris via aliasing shifts() to pari_shifts()
 	(was dynalinking with libnls instead).
+after 0.93:
+	Updated for newer Term::Gnuplot.
 

@@ -142,7 +142,7 @@ term_set(char *s)
 	reset();
   }
   strcpy(pari_plot.name,s);
-  if (termset( s ) <= 0) err(talker,"unknown terminal name");
+  if (!termset( s )) err(talker,"unknown terminal name");
   init();				/* Init terminal. */
 
   w_width = termprop(xmax);

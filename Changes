@@ -659,3 +659,7 @@ os2$(OBJ_EXT): $(PARI_DIR)/src/systems/os2/os2.c pariinl.h paricfg.h
 	More verbose hints on "Should I auto-download?".
 	LWP download code would not binmode()...
 	Test OLD subdirectory of GP/PARI ftp directory too.
+
+2.010708:
+	Accidentally, a version which would not use Net::FTP was released.
+	Print manual download instructions of failure of autofetching too.

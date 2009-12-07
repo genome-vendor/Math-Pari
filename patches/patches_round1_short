@@ -1,0 +1,11 @@
+--- ./src/language/anal.h~	Mon Sep 28 17:27:58 1998
++++ ./src/language/anal.h	Mon Sep 28 17:38:13 1998
+@@ -38,7 +38,7 @@ extern int  (*whatnow_fun)(char *, int);
+ extern void *foreignHandler;
+ extern GEN  (*foreignExprHandler)(char*);
+ extern char foreignExprSwitch;
+-extern long (*foreignAutoload)(char*, long);
++extern entree * (*foreignAutoload)(char*, long);
+ extern void (*foreignFuncFree)(entree *);
+ 
+ /* Variables containing the list of PARI functions */

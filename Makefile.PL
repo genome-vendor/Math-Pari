@@ -243,9 +243,14 @@ EOP
     $file = $ {"latest_${best}_file"};
     $version = $ {"latest_$best"};
     print qq(Picking $best version $version, file $file\n);
-    print qq(Downloading...\n);
-    $ftp->get($file) or die "Cannot get: $!";
-    print qq(Downloaded...\nExtracting...\n);
+    if (-f $file) {
+      print qq(Well, I already have it, using the disk copy...\n);      
+    } else {
+      print qq(Downloading...\n);
+      $ftp->get($file) or die "Cannot get: $!";
+      print qq(Downloaded...\n);
+    }
+    print qq(Extracting...\n);
     print  "zcat $file | tar -xvf -\n";
     system "zcat $file | tar -xvf -"
       and die "Cannot extract: $!, exitcode=$?.\n";
@@ -257,9 +262,12 @@ EOP
     print "Configuration of PARI successful.\n";
     if ($version eq '2.0.11') {	# Probably not needed for later versions
       print "Patching...\n";
-      foreach $patch (qw(patch_pari_round0
+
+#			 patches_round1
+      foreach $patch (qw(
 			 diff_pari_gnuplot_aa
-			 patches_round1
+			 patch_pari_round0
+			 patches_round1_short
 			 diff_pari_fixed_interfaces_011
 			 diff_pari_highlevel_hash_011a
 			 diff_pari_ret_proto_2011)) {

@@ -42,7 +42,7 @@ $machine = 'port' if $asmarch eq 'none';
 
 my $asscmd;
 if ($machine =~ /sparc|alpha|hppa/) {
-  $asscmd = '$(AS) $(ASFLAGS)';	#  $(CCCDLFLAGS)?
+  $asscmd = '$(AS) $(ASFLAGS)';	#  $(CCCDLFLAGS)?  sparc is non-relocatable...
 } else {
   $asscmd = '$(CCCMD) $(CCCDLFLAGS)';
 }

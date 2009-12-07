@@ -1,6 +1,6 @@
 package Math::PariBuild;
 
-$VERSION = '2.010803';
+$VERSION = '2.010805';
 
 require Exporter;
 @ISA = 'Exporter';
@@ -175,6 +175,13 @@ directory of the current directory.
 EOP
 }
 
+sub debug_no_response ($) {
+  return '' unless $ENV{AUTOMATED_TESTING};
+  (my $c = shift()->content || '<<FALSE>>' ) =~ s/\s+\Z/\n/;
+  my $b = '=====================';
+  return "\n\n$b  To debug AUTOMATED_TESTING\n$c$b\n\n";
+}
+
 sub download_pari {
   my ($srcfile, $force) = (shift, shift);
   my $host = 'megrez.math.u-bordeaux.fr';
@@ -207,8 +214,9 @@ sub download_pari {
   } else {
     if ($force) {
       print "Forced autofetching...\n\n"
-    } elsif (not $ENV{AUTOMATED_TESTING} and -t STDIN and (-t STDOUT or -p STDOUT)) { # Interactive
-      $| = 1;
+    } elsif (not $ENV{AUTOMATED_TESTING} and not $ENV{PERL_MM_USE_DEFAULT}
+	     and -t STDIN and (-t STDOUT or -p STDOUT)) { # Interactive
+      $| = 1;	# Usually, we run under MakeMaker, so test PERL_MM_USE_DEFAULT
       my $mess = <<EOP;
 
 Do you want to me to fetch GP/PARI automatically?
@@ -225,9 +233,16 @@ EOP
       print "$mess ";
       my $ans = <STDIN>;
       if ($ans !~ /y/i) {
-        print <<EOP;
+	my ($eA, $eM, $tI, $tO, $tE, $pO, $pE)
+	  = (@ENV{ qw(AUTOMATED_TESTING PERL_MM_USE_DEFAULT) },
+	     -t STDIN, -t STDOUT, -t STDERR, -p STDERR, -p STDOUT);
+	defined() ? $_ = "'$_'" : $_ = '<undef>' for $eA, $eM;
+        print <<EOP;	# Is AUTOMATED_TESTING ALWAYS defined on smoke???
 
 Well, as you wish...
+
+  [ to debug Smoke Tests: AUTOMATED_TESTING=$eA PERL_MM_USE_DEFAULT=$eM
+        -t STDIN/STDOUT/ERR = $tI/$tO/$tE		-p STDOUT/ERR = $pO/$pE ]
 
 EOP
 	print manual_download_instructions();
@@ -298,7 +313,8 @@ EOP
 	  }
 	}
 	unless ($c) {
-	  die "Did not find any file matching /$match/ via FTP.\n\n"
+	  die debug_no_response($resp)
+	    . "Did not find any file matching /$match/ via FTP.\n\n"
 	    . manual_download_instructions() unless @Extra;
 	  my $dir = shift @Extra;
 	  $base_url .= "$dir/";

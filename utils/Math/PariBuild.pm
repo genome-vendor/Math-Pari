@@ -177,12 +177,17 @@ EOP
 
 sub debug_no_response ($) {
   return '' unless $ENV{AUTOMATED_TESTING};
-  (my $c = shift()->content || '<<FALSE>>' ) =~ s/\s+\Z/\n/;
+  my $r = shift;
+  my $c = $r->content;
+  my $t = $r->content_type;
+  $c = '<<undef>>' unless defined $c;
+  $c =~ s/\s+\Z/\n/;
   my $b = '=====================';
-  return "\n\n$b  To debug AUTOMATED_TESTING\n$c$b\n\n";
+  return "\n$b Response content (type=$t)\n$c\n$b\n\n";
 }
 
-sub ll_ftp () {	# All Perl downloads failures I saw are on Linux and BSD; this should work there
+sub ll_ftp () {	# All Perl download failures I saw are on Linux and BSD.
+  # this (not very portable) solution should work there?
   open OF, '> ftp-cmd' or die "Can't open `ftp-cmd' for write: $!";
   print OF <<'EOF';		# XXXX Hardwired version!
 user anonymous auto-download-Math-Pari@cpan.org
@@ -205,8 +210,22 @@ EOP
 EOP
   return if $rc;
   # XXXX Temporarily disable continuing build (to see smoke testing reports)
-  warn("\$ENV{MATHPARI_USEFTP} not TRUE, ignoring download\n"), return
-    unless $ENV{MATHPARI_USEFTP};
+  warn <<EOW;
+
+==========================================================================
+===
+===   If the output from FTP session above successfully lists
+===   directories, your installs of Net::FTP and, possibly, LWP
+===   is completely broken.  How comes???
+===
+==========================================================================
+
+EOW
+  warn(<<'EOW'), return unless $ENV{MATHPARI_USEFTP};
+FTP session is for debugging only; I'm ignoring the downloaded file.
+  (Set $ENV{MATHPARI_USEFTP} to TRUE to actually use the downloaded file.)
+
+EOW
   return 'pari-2.1.7.tgz';
 }
 

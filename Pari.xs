@@ -1723,9 +1723,11 @@ typedef void (*TSET_FP)(char *s);
 #endif
 
 #ifdef NO_GRAPHICS_PARI
+#  define have_graphics()	0
 #  define set_gnuterm(a,b,c) croak("This build of Math::Pari has no plotting support")
 #  define int_set_term_ftable(a) croak("This build of Math::Pari has no plotting support")
 #else
+#  define have_graphics()	1
 #  if PARI_VERSION_EXP < 2000013
 #    define set_gnuterm(a,b,c) \
 	set_term_funcp((FUNC_PTR)(a),(struct termentry *)(b))
@@ -3709,6 +3711,8 @@ BOOT:
    /* These guys are new in 2.0. */
    init_defaults(1);
 #endif
+					/* Different order of init required */
+#if PARI_VERSION_EXP <  2003000
    if (!(reboot++)) {
 #ifndef NO_HIGHLEVEL_PARI
 #if PARI_VERSION_EXP >= 2002012
@@ -3720,7 +3724,7 @@ BOOT:
        init_graph();
 #endif
    }
-
+#endif  /* PARI_VERSION_EXP < 2003000 */
    primelimit = SvIV(pri);
    parisize = SvIV(mem);
 #if PARI_VERSION_EXP >= 2002012
@@ -3733,6 +3737,20 @@ BOOT:
 			        * memory for the stack, calculate
 			        * primes up to 500000. */
 #endif
+					/* Different order of init required */
+#if PARI_VERSION_EXP >= 2003000
+   if (!(reboot++)) {
+#ifndef NO_HIGHLEVEL_PARI
+#if PARI_VERSION_EXP >= 2002012
+       pari_add_module(functions_highlevel);
+#else	/* !( PARI_VERSION_EXP >= 2002012 ) */
+       pari_addfunctions(&pari_modules,
+			 functions_highlevel, helpmessages_highlevel);
+#endif	/* !( PARI_VERSION_EXP >= 2002012 ) */
+       init_graph();
+#endif
+   }
+#endif  /* PARI_VERSION_EXP >= 2003000 */
    PariStack = (SV *) GENfirstOnStack;
    workErrsv = newSVpv("",0);
    pariErr = &perlErr;
@@ -3952,6 +3970,9 @@ pari_version_exp()
 
 long
 have_highlevel()
+
+long
+have_graphics()
 
 int
 PARI_DEBUG()

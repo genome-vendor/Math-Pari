@@ -66,12 +66,22 @@ Found GP/PARI build directory in $paridir
 EOP
   print <<EOP if $pari_version =~ /^2003/;
 
-  ### Math::Pari support of GP/PARI library version 2.3.* should be
-  ###   considered beta-quality only.  One may need to downgrade to 2.1.7,
-  ###   or run Makefile.PL with option machine=none if the tests fail.
+  ### Math::Pari support of GP/PARI library version 2.3.* is not fully
+  ### finished.  For non-PS plotting functions, one must downgrade to 2.1.7.
 
-  ### For example, the test t/55_intnum.t takes a very long time to complete,
-  ###   and plotting functions are not supported.
+  ### Moreover, the test t/55_intnum.t takes significant time to complete.
+
+EOP
+  print <<EOP if $pari_version =~ /^2001/;
+
+  ### GP/PARI library version 2.1.* has many problems fixed in versions 2.3.*.
+
+  ### Especially important are the problems with symbols `hiremainder' and
+  ### `overflow' - if you build fails and error messages contain these
+  ### words, updating to 2.3.* might allow your use of fast processor-specific
+  ### assembler code.)
+
+  ### However, keep in mind: v.2.3.* supports only plotting to PostScript.
 
 EOP
   $common::pari_version = $pari_version;
@@ -153,7 +163,9 @@ $define .= ' -DHAVE_PARIPRIV' if -f "$paridir/src/headers/paripriv.h";
 #$define .= ' -DNO_GRAPHICS_PARI' unless -f "$paridir/src/graph/plotgnuplot.c";
 
 # XXXX otherwise segfaults trying to install highlevel functions???
-$define .= ' -DNO_HIGHLEVEL_PARI' if $pari_version >= 2003000;
+# XXXX because functions_hash = NULL???
+# $define .= ' -DNO_HIGHLEVEL_PARI' if $pari_version >= 2003000;
+$define .= ' -DNO_GRAPHICS_PARI' if $pari_version >= 2003000;
 
 # This is done in Makefile in GP/PARI, and in paricfg.h without do_configure
 $define .= ' -DDL_DFLT_NAME=NULL' if $common::do_configure;
@@ -164,11 +176,14 @@ my $extra_inc = extra_includes($paridir);
 # the contents of the Makefile being created.
 &WriteMakefile(
 	       LIBS	     =>  $libs,
-	       INC	     => $extra_inc . ' -I$(PARI_DIR)/src/headers -I$(PARI_DIR)/src -I./libPARI',
+	       INC	     => $extra_inc . ' -I $(PARI_DIR)/src/headers -I $(PARI_DIR)/src -I ./libPARI',
 	       NAME	     => 'Math::Pari',
 	       ($common::parilib ? () :
 		 (MYEXTLIB   =>  'libPARI/libPARI$(LIB_EXT)')),
 	       VERSION_FROM  => 'Pari.pm',
+    ($] >= 5.005 ?     ## Add these new keywords supported since 5.005
+      (ABSTRACT_FROM  => 'Pari.pm', # retrieve abstract from module
+       AUTHOR         => 'Ilya Zakharevich <ilyaz@cpan.org>') : ()),
 	       DEFINE	     => $define,
 	       dist	     => {COMPRESS=>'gzip -9f', SUFFIX=>'gz'},
 	       clean	     => { FILES => 'pari.ps test_eng/ex.t- libPARI.dumb.pod libPARI.pod t/55_*.t ftp-cmd' },

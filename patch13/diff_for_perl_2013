@@ -1,0 +1,22 @@
+--- pari-2.0.13.alpha/src/gp/highlvl.c~	Tue Dec 15 10:31:56 1998
++++ pari-2.0.13.alpha/src/gp/highlvl.c	Thu Dec 17 03:20:13 1998
+@@ -159,7 +159,7 @@ entree functions_highlevel[]={
+ {"plot",83,(void*)plot,10,"vV=GGI"},
+ {"plotbox",35,(void*)rectbox,10,"vLGG"},
+ {"plotcolor",99,(void*)rectcolor,10,"vLL"},
+-{"plotcopy",44,(void*)rectcopy,10,"vLLLL"},
++{"plotcopy",99,(void*)rectcopy,10,"vLLLL"},
+ {"plotcursor",11,(void*)rectcursor,10,"L"},
+ {"plotdraw",99,(void*)rectdraw,10,"vG"},
+ {"plotfile",16,(void*)plot_outfile_set,10,"ls"},
+--- pari-2.0.13.alpha/src/language/init.c~	Tue Dec 15 10:30:19 1998
++++ pari-2.0.13.alpha/src/language/init.c	Thu Dec 17 03:12:15 1998
+@@ -1389,7 +1389,7 @@ entree functions_basic[]={
+ {"issquarefree",18,(void*)gissquarefree,4,"G"},
+ {"kronecker",2,(void*)gkronecker,4,"GG"},
+ {"lcm",2,(void*)glcm,4,"GG"},
+-{"length",18,(void*)glength,2,"lG"},
++{"length",10,(void*)glength,2,"lG"},
+ {"lex",20,(void*)lexcmp,2,"lGG"},
+ {"lift",99,(void*)lift0,2,"GDn"},
+ {"lindep",99,(void*)lindep0,8,"GD0,L,p"},

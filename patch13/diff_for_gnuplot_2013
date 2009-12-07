@@ -1,0 +1,47 @@
+--- pari-2.0.13.alpha/src/graph/plotgnuplot.c~	Tue Dec 15 10:30:11 1998
++++ pari-2.0.13.alpha/src/graph/plotgnuplot.c	Thu Dec 17 02:28:56 1998
+@@ -140,7 +140,7 @@ term_set(char *s)
+ 	reset();
+   strcpy(pari_plot.name,s);
+   if (!termset( s ))
+-      err(talker,"error setting terminal \"\%s\"", s);
++      err(talker,"error setting terminal \"%s\"", s);
+   do_init();				/* Init terminal. */
+   setpointsize(pointsize);
+ 
+--- pari-2.0.13.alpha/src/graph/Gnuplot.h~	Wed Dec  9 11:23:02 1998
++++ pari-2.0.13.alpha/src/graph/Gnuplot.h	Thu Dec 17 02:57:31 1998
+@@ -281,11 +281,33 @@ static struct termentry dummy_term_tbl[]
+ };
+ static struct termentry *my_term_tbl = dummy_term_tbl;
+ 
++#  define term_set_output (*term_set_outputp)
++static void
++myterm_set_output(char *s)
++{
++    croak("Change terminal not implemented yet with dynamic gnuplot");
++}
++
++typedef void (*TSET_FP)(char *s);
++TSET_FP term_set_outputp = &myterm_set_output;
++
+ /* This function should be called before any graphic code can be used... */
+ set_term_funcp(FUNC_PTR change_p, struct termentry *term_p)
+ {
+     my_term_tbl = term_p;
+     change_term_p = change_p;
++    /* XXXX Need to set term_set_outputp as well */
++}
++
++/* This function should be called before any graphic code can be used... */
++set_term_funcp3(FUNC_PTR change_p, struct termentry *term_p, TSET_FP tchange)
++{
++    my_term_tbl = term_p;
++    change_term_p = change_p;
++    if (tchange) {
++	term_set_outputp = tchange;
++    }
++    /* XXXX Need to set term_set_outputp as well */
+ }
+ 
+ #else /* !DYNAMIC_PLOTTING */

@@ -38,10 +38,12 @@ unless (defined $paridir) {
 $paridir = get_pari() if !$paridir;  
 
 if ($paridir) {
+  $pari_version = format_pari($paridir);
   print <<EOP;
 Found PARI build directory in $paridir 
-     (formatted @{[format_pari($paridir)]}).
+     (formatted $pari_version).
 EOP
+  $pari_version =~ s/.*pari-0+([0-9]*).*/$1/;
 } else {
   die "Could not find PARI build directory, please edit Makefile.PL.\n";
 }
@@ -52,7 +54,8 @@ if (@ARGV and $ARGV[0] =~ /^machine=(.*)$/i) {
   $common::machine = $1; shift;
 }
 
-$define = "-Dshifts=pari_shifts -DDEBUG_PARI";
+#$define = "-Dshifts=pari_shifts -DDEBUG_PARI";
+$define = "-DPARI_VERSION_EXP=$pari_version -DDEBUG_PARI";
 #$libs = "-L$paridir -lpari -lgnuplot -lm";
 $libs = "-lgnuplot -lm";
 
@@ -239,8 +242,8 @@ EOP
     }
   }
 
-  # Special-case v2.0.12
-  if (!%golden and $latest_beta eq '2.0.11' and $latest_alpha eq '2.0.12') {
+  # Special-case v2.0.13
+  if (!%golden and $latest_beta eq '2.0.11' and $latest_alpha eq '2.0.13') {
     $best = 'alpha';		# It is tested!
   }
   
@@ -273,7 +276,10 @@ EOP
 			 patch11/diff_pari_fixed_interfaces_011
 			 patch11/diff_pari_highlevel_hash_011a
 			 patch11/diff_pari_ret_proto_2011)],
-		   '2.0.12' => ['patch12/diff_for_perl_2012']);
+		   '2.0.12' => ['patch12/diff_for_perl_2012'],
+		   '2.0.13' => ['patch13/diff_for_perl_2013',
+				'patch13/diff_for_gnuplot_2013'],
+		  );
     if ($patches{$version}) {
       print "Patching...\n";
       foreach $patch (@{$patches{$version}}) {

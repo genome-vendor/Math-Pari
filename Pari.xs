@@ -994,7 +994,14 @@ fill_argvect(entree *ep, char *s, long *has_pointer, GEN *argvec,
 }
 
 typedef int (*FUNC_PTR)();
-#define set_gnuterm(a,b) set_term_funcp((FUNC_PTR)(a),(struct termentry *)(b))
+typedef void (*TSET_FP)(char *s);
+#if PARI_VERSION_EXP < 2000013
+#  define set_gnuterm(a,b,c) \
+	set_term_funcp((FUNC_PTR)(a),(struct termentry *)(b))
+#else	/* !( PARI_VERSION_EXP < 2000013 ) */ 
+#  define set_gnuterm(a,b,c) \
+	set_term_funcp3((FUNC_PTR)(a),(struct termentry *)(b), (TSET_FP)(c))
+#endif
 
 MODULE = Math::Pari PACKAGE = Math::Pari PREFIX = Arr_
 
@@ -2794,9 +2801,10 @@ changevalue(name, val)
     GEN val
 
 void
-set_gnuterm(a,b)
+set_gnuterm(a,b,c=0)
     IV a
     IV b
+    IV c
 
 long
 setprecision(digits=0)

@@ -197,7 +197,7 @@ test($x == 56);			# 63
 print "# x = '$x'\n" if $x != 56;
 
 $x = 0;
-$j = PARI 'j';
+$j = PARIvar 'j';
 Math::Pari::fordiv(28, 'j', sub { incr1($j) } ); # Perl code ->Pari expr
 
 test($x == 56);			# 64
@@ -210,11 +210,67 @@ Math::Pari::fordiv(28, $j, sub { incr1($j) } ); # Perl code ->Pari expr
 test($x == 56);			# 65
 print "# x = '$x'\n" if $x != 56;
 
+$x = 0;
+$j = 3.4;
+Math::Pari::fordiv(28, $j, sub { incr1($j) } ); # Perl code ->Pari expr
+
+test($x == 56);			# 66
+print "# x = '$x'\n" if $x != 56;
+
+$x = 0;
+$j = PARI 'x+o(x^7)';
+Math::Pari::fordiv(28, $j, sub { incr1($j) } ); # Perl code ->Pari expr
+
+test($x == 56);			# 67
+print "# x = '$x'\n" if $x != 56;
+
+#use Math::Pari 'pi';
+
+$x = 0;
+$j = PARI 3.14;
+Math::Pari::fordiv(28, $j, sub { incr1($j) } ); # Perl code ->Pari expr
+
+test($x == 56);			# 68
+print "# x = '$x'\n" if $x != 56;
+
 undef $x;
 eval { $x  = pi()/0; } ;	# Needs G_KEEPERR patch!
-print "# '$@'\n" if $@;
+#chomp($@), print "# '$@'\n" if $@;
 print "# x = '$x'\n" if defined $x;
 
-test( $@ =~ /^PARI:\s+\*+\s+division/i ); # 66
+test( $@ =~ /^PARI:\s+\*+\s+division\s+by\s+zero\b/i ); # 69
 
-sub last {66}
+*O=\&Math::Pari::O;
+
+$x = PARI 'x';
+$y = 1+O($x,6);
+test("$y" eq '1+O(x^6)');	# 70
+
+$x = PARI 'x';
+$y = 1+O($x**6);
+test("$y" eq '1+O(x^6)');	# 71
+
+$y = 1+O(5,6);
+test("$y" eq '1+O(5^6)');	# 72
+
+sub counter { $i += shift; }
+$i = 145;
+PARI 'k=5' ;
+Math::Pari::fordiv(28, 'j', 'k=k+counter(j)');
+test(PARI('k') == 984);		# 73
+
+sub get2 ($$) {7}
+test(PARI('get2(3,-19)==7'));	# 74
+
+$res = 9;
+eval { $res = PARI('get2(3)') };
+#print "# res='$res' err=`$@'\n";
+test($res == 9 and $@ =~ /expected\scharacter:\s\',/); # 75
+
+$res = 9;
+eval { $res = PARI('get2(3,1,67)') };
+#print "# res='$res' err=`$@'\n";
+test($res == 9 and $@ =~ /expected\scharacter:\s\'\)/); # 76
+
+
+sub last {76}

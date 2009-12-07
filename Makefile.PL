@@ -5,6 +5,10 @@ use Config '%Config';
 $paridir = "./libPARI";		# Change this line if you have it
 $os = $Config{osname};
 
+if (@ARGV and $ARGV[0] =~ /^machine=(.*)$/i) {
+  $common::machine = $1; shift;
+}
+
 $define = "-DDEBUG_PARI";
 #$libs = "-L$paridir -lpari -lgnuplot -lm";
 $libs = "-lgnuplot -lm";
@@ -19,7 +23,10 @@ if ($os eq "solaris") {
   $libs .= " -L$sc_dirs[-1]/lib -lsunmath -lm";
 } elsif ($os eq "os2") {
   $define = "$define -DNOEXP2 -DMALLOC_PROCS";
+} elsif ($os eq 'linux') {
+  $define .= ' -DNOEXP2';
 }
+
 
 # We want to find the offset of the least significant byte
 # of SV.flags inside an SV.
@@ -27,6 +34,8 @@ if ($os eq "solaris") {
 # (Needed for recognizing Perl code supplied to lisseq and lisexpr.)
 
 $offset = index($Config{byteorder}, "1");
+$offset = 3 if $offset > 3;	# SvFLAGS is actually I32
+
 $define .= " -DLSB_in_U32=$offset";
 
 # See lib/ExtUtils/MakeMaker.pm for details of how to influence
@@ -36,8 +45,9 @@ $define .= " -DLSB_in_U32=$offset";
 	       'INC' => "-I$paridir",
 	       'NAME' => 'Math::Pari',
 	       'MYEXTLIB' => 'libPARI/libPARI$(LIB_EXT)',
-	       'VERSION' => '0.5',
+	       'VERSION' => '0.6',
 	       'DEFINE' => $define,
+	       'dist' => {COMPRESS=>'gzip -9f', SUFFIX=>'gz'},
 	      );
 
 

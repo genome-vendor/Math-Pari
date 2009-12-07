@@ -10,7 +10,7 @@
 
 /* written by Bruno Haible 14.11.1992 */
 
-#if defined(__EMX__) || defined(__DJGCC__) || defined(__GO32__) || defined(linux) || defined(__386BSD__) || defined(__NetBSD__)
+#if defined(__EMX__) || defined(__DJGCC__) || defined(__GO32__) || defined(linux) && !defined(__ELF__) || defined(__386BSD__) || defined(__NetBSD__)
 /* GNU assembler */
 #ifdef __STDC__
 /* ANSI C concatenation */

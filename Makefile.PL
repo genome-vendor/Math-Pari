@@ -45,7 +45,7 @@ $define .= " -DLSB_in_U32=$offset";
 	       'INC' => "-I$paridir",
 	       'NAME' => 'Math::Pari',
 	       'MYEXTLIB' => 'libPARI/libPARI$(LIB_EXT)',
-	       'VERSION' => '0.9',
+	       'VERSION' => '0.91',
 	       'DEFINE' => $define,
 	       'dist' => {COMPRESS=>'gzip -9f', SUFFIX=>'gz'},
 	      );

@@ -2,7 +2,7 @@
 
 =head1 NAME
 
-Functions and Operations available in PARI and GP
+libPARI - Functions and Operations available in PARI and GP
 
 =head1 DESCRIPTION
 
@@ -10,7 +10,7 @@ Functions and Operations available in PARI and GP
 
 The functions and operators available in PARI and in the GP/PARI calculator
 are numerous and everexpanding. Here is a description of the ones available
-in version 1.39.3.1. It should be noted that many of these functions accept
+in version 1.39.3. It should be noted that many of these functions accept
 quite different types as arguments, but others are more restricted. The list
 of acceptable types will be given for each function or class of functions.
 Except when stated otherwise, it is understood that a function or operation
@@ -42,7 +42,7 @@ The library syntax is C<gneg(x)> for C<-x>.
 
 =head2 C<+>, C<->
 
-The expression C<x+y> is the I<sum> and C<x-y> is the I<difference> of
+The expression C<x+y> is the X<sum>sum and C<x-y> is the X<difference>difference of
 C<x> and C<y>.
 Among the prominent impossibilities are addition/subtraction between a scalar
 type and a vector or a matrix, between vector/matrices of incompatible sizes
@@ -55,13 +55,13 @@ for C<x-y>.
 
 =head2 C<*>
 
-The expression C<x*y> is the I<product> of C<x> and C<y>. Among the
+The expression C<x*y> is the X<product>product of C<x> and C<y>. Among the
 prominent impossibilities are multiplication between vector/matrices of
 incompatible sizes, between an integermod and a real number. Note
 that because of vector and matrix operations, C<*> is not necessarily
 commutative. Note also that since multiplication between two column or two
 row
-vectors is not allowed, to obtain the I<scalar product> of two vectors of the
+vectors is not allowed, to obtain the X<scalar product>scalar product of two vectors of the
 same
 length, you must multiply a line vector by a column vector, if necessary by
 transposing one of the vectors (using C<~> or C<transC<( )>>, see section 8).
@@ -72,18 +72,18 @@ The library syntax is C<gmul(x,y)> for C<x*y>.
 
 =head2 C</>
 
-The expression C<x/y> is the I<quotient> of C<x> and C<y>. In addition to the
+The expression C<x/y> is the X<quotient>quotient of C<x> and C<y>. In addition to the
 impossibilities for multiplication, note that if the divisor is a matrix, it
 must be an invertible square matrix, and in that case the result is C<x*y^{-1}>.
 Furthermore note that the result is as
 exact as possible: in particular, division of two integers always gives a
-rational number (which may be an integer if the quotient is exact) and I<sl> the Euclidean quotient (see C<x\y> for that), and similarly the
+rational number (which may be an integer if the quotient is exact) and I<not> the Euclidean quotient (see C<x\y> for that), and similarly the
 quotient of two polynomials is a rational function in general. To obtain the
 approximate real value of the quotient of two integers, add C<0.> to the
 result; to obtain the approximate C<p>-adic value of the quotient of two
 integers, add C<O(p^k)> to the result; finally,
-to obtain the I<taylor series> expansion of the quotient of two polynomials,
-add C<O(X^{ }k)> to the result or use the C<taylor> function (see section 7).
+to obtain the X<taylor series>taylor series expansion of the quotient of two polynomials,
+add C<O(X^k)> to the result or use the C<taylor> function (see section 7).
 
 The library syntax is C<gdiv(x,y)> for C<x/y>.
 
@@ -91,7 +91,7 @@ The library syntax is C<gdiv(x,y)> for C<x/y>.
 
 =head2 C<\>
 
-The expression C<x\y> is the I<Euclidean quotient> of C<x> and C<y>.
+The expression C<x\y> is the X<Euclidean quotient>Euclidean quotient of C<x> and C<y>.
 The types must be either
 both integer or both polynomials. The result is the Euclidean quotient.
 In the case of integer division, the quotient is such that the corresponding
@@ -116,7 +116,7 @@ The library syntax is C<gdivround(x,y)> for C<x\/y>.
 
 =head2 C<%>
 
-The expression C<x%y> is the I<Euclidean remainder> of C<x> and C<y>. The 
+The expression C<x%y> is the X<Euclidean remainder>Euclidean remainder of C<x> and C<y>. The 
 modulus C<y> must be of type integer or polynomial.
 The result is the remainder, always non-negative
 in the case of integers. Allowed dividend types are scalar exact types when
@@ -127,7 +127,7 @@ The library syntax is C<gmod(x,y)> for C<x%y>.
 
 
 
-=head2 I<divres>C<(x,y)>
+=head2 X<divres>divresC<(x,y)>
 
 creates a column vector with two components,
 the first being the Euclidean quotient, the second the Euclidean remainder,
@@ -142,7 +142,7 @@ The library syntax is C<gdiventres(x,y)>.
 
 =head2 C<^>
 
-The expression C<x^{ }y> is I<powering>. If the exponent is an integer,
+The expression C<x^y> is X<powering>powering. If the exponent is an integer,
 then exact
 operations are performed using binary powering techniques. In particular, in
 this case
@@ -152,7 +152,7 @@ not of type integer, this is treated as a transcendental function (see section 3
 and in particular has the effect of componentwise powering on vector or
 matrices.
 
-The library syntax is C<gpui(x,y,prec)> for C<x^{ }y>
+The library syntax is C<gpui(x,y,prec)> for C<x^y>
 where the precision parameter C<prec> must be given only if C<y> is not
 integral but C<x> is an exact (real or complex) type.
 
@@ -162,7 +162,7 @@ routines:
 
 
 
-=head2 shiftC<(x,n)>
+=head2 X<shift>shiftC<(x,n)>
 
 shift C<x> componentwise left by C<n> bits if C<nE<gt>=0> and 
 right by C<-n> bits if C<n<0>. A left shift by C<n> corresponds to multiplication
@@ -174,7 +174,7 @@ The library syntax is C<gshift(x,n)> where C<n> is a C-long integer.
 
 
 
-=head2 shiftmulC<(x,n)>
+=head2 X<shiftmul>shiftmulC<(x,n)>
 
 multiply C<x> by C<2^n>. The difference with
 C<shift> is that when C<n<0>, the ordinary division takes place, hence for
@@ -186,20 +186,20 @@ The library syntax is C<gmul2n(x,n)> where C<n> is a C-long integer.
 
 
 
-=head2 comparison and I<boolean operators>.
+=head2 comparison and X<boolean operators>boolean operators.
 
-The six standard I<comparison operators>
+The six standard X<comparison operators>comparison operators
 C<<=>, C<<>, C<E<gt>=>, C<E<gt>>, C<==>, C<!=> are available in GP, and in library mode 
-under the names B<I<gle>, I<glt>, I<gge>, I<ggt>, I<geq>,
-I<gne>> respectively. The 
+under the names B<X<gle>gle, X<glt>glt, X<gge>gge, X<ggt>ggt, X<geq>geq,
+X<gne>gne> respectively. The 
 library syntax is C<B<co>(x,y)>, where co is the comparison 
 operator. The result is 1 (as a GEN) if the comparison is true, 0 (as a GEN)
 if it is false.
 
-The standard boolean functions C<| |> (I<inclusive or>) and C<&&> (I<and>) I<or>are
+The standard boolean functions C<| |> (X<inclusive or>inclusive or) and C<&&> (X<and>and) X<or>are
 also available, and the library syntax is C<gor(x,y)> and
 C<gand(x,y)> respectively. Note that to avoid confusion with the
-factorial function, there is no C<!> (I<not>) operator, but this can easily be circumvented.
+factorial function, there is no C<!> (X<not>not) operator, but this can easily be circumvented.
 
 In library mode, it is in fact usually preferable to use the two basic 
 functions which are C<gcmp(x,y)> which gives
@@ -208,26 +208,26 @@ and C<gegal(x,y)> which can be applied to any two PARI objects
 C<x> and C<y> and gives 1 (i.e. true) if they are equal (but not necessarily
 identical), 0 (i.e. false) otherwise. Particular cases of gegal which
 should be used are C<gcmp0(x)> (C<x=0> ?), C<gcmp1(x)>
-(C<x=1> ?), and I<gcmp_1> B<gcmp_1> C<(x)> (C<x=-1> ?).
+(C<x=1> ?), and X<gcmp_1> B<gcmp_1> C<(x)> (C<x=-1> ?).
 
 Note that C<gcmp0(x)> tests whether C<x> is equal to zero, even if
 C<x> is not an exact object. To test whether C<x> is an exact object which
 is equal to zero, one must use C<isexactzero>.
 
 Also note that the C<gcmpx> and C<gegal> functions return a C-integer,
-and I<it> a GEN like C<gle> etc.
+and I<not> a GEN like C<gle> etc.
 
 
 
 GP accepts the following synonyms for some of the above functions:
-since there is no bitwise C<and> or bitwise C<or>, C<|> and C<&> are accepted asI<bitwise and> I<bitwise or>
+since there is no bitwise C<and> or bitwise C<or>, C<|> and C<&> are accepted asX<bitwise and> X<bitwise or>
 synonyms of C<| |> and C<&&> respectively. Also, C<<E<gt>> is accepted as a
-synonym for C<!=>. On the other hand, C<=> is definitely I<sl> a
+synonym for C<!=>. On the other hand, C<=> is definitely I<not> a
 synonym for C<==> since it is the assignment statement.
 
 
 
-=head2 lexC<(x,y)>
+=head2 X<lex>lexC<(x,y)>
 
 gives the result of a lexicographic comparison between C<x> and C<y>.
 This is to be interpreted in quite a wide sense. For example,  the vector C<[1,3]>
@@ -238,16 +238,16 @@ The library syntax is C<lexcmp(x,y)>.
 
 
 
-=head2 signC<(x)>
+=head2 X<sign>signC<(x)>
 
-I<sign> of C<x>, which must be of type
+X<sign>sign of C<x>, which must be of type
 integer, real or fraction. The result (0, 1 or -1) is a C-long integer.
 
 The library syntax is C<gsigne(x)>.
 
 
 
-=head2 I<max>C<(x,y)> and B<I<min>>C<(x,y)>
+=head2 X<max>maxC<(x,y)> and B<X<min>min>C<(x,y)>
 
 create the
 maximum and minimum of C<x> and C<y> when they can be compared.
@@ -261,7 +261,7 @@ The library syntax is C<gmax(x,y)> and C<gmin(x,y)>.
 In all the above library syntaxes, we have
 given only the basic names of the functions. For example C<C<gadd>(x,y
 )>
-assumes that C<x> and C<y> are PARI objects (the GEN type) and I<sl>
+assumes that C<x> and C<y> are PARI objects (the GEN type) and I<creates>
 the result C<x+y> on the PARI stack. From most of these basic names, the names
 and
 effects of other functions can be obtained in the following way. We give
@@ -282,7 +282,7 @@ as gadd, one can replace the B<g> by an B<l> to obtain a B<long>
 result instead
 of a GEN (i.e. pointer to long) result. For instance C<ladd(x,y)> is
 identical with C<(C<(long)gadd>(x,y))>. These macros are written in
-the files listed in C<I<gencom.h>>. Note that C<ldiv> is an
+the files listed in C<X<gencom.h>gencom.h>. Note that C<ldiv> is an
 ANSI C function name which is used to mean C<(long)gdiv> in PARI.
 
 
@@ -299,10 +299,10 @@ be restated for every function.
 
 
 
-=head2 allocatememC<(x)>
+=head2 X<allocatemem>allocatememC<(x)>
 
 this is a very special operation which
-allows the user to change the stack size I<it> initialization.
+allows the user to change the stack size I<after> initialization.
 C<x> must be a non-negative integer. If C<xE<gt>2>, a new stack of size
 C<16*\lceil x/16\rceil> bytes will be allocated, all the PARI data on the
 old stack will be moved to the new one, and the old stack will be freed
@@ -310,7 +310,7 @@ and discarded. If C<x=0>, C<1> or C<2>, the size of the new stack will be
 double that of the old one. Finally, in case C<x=0>, after doubling the stack,
 a warning message will be printed.
 
-Although it is a function, this must be the I<it> instruction in a GP
+Although it is a function, this must be the I<only> instruction in a GP
 line. The technical reason is that this program terminates by a longjmp
 and not by a return.
 
@@ -319,7 +319,7 @@ long, and the return type is void. GP uses a variant which ends by a longjmp.
 
 
 
-=head2 binaryC<(x)>
+=head2 X<binary>binaryC<(x)>
 
 outputs the vector of the binary digits of C<|x|>.
 Here C<x> can be an integer, a real number (in which case the result has two
@@ -330,7 +330,7 @@ The library syntax is C<binaire(x)>.
 
 
 
-=head2 bittestC<(x,n)>
+=head2 X<bittest>bittestC<(x,n)>
 
 outputs the C<n^{th}> bit of C<|x|> starting
 from the right (i.e. the coefficient of C<2^n> in the binary expansion of C<x>.
@@ -341,17 +341,17 @@ are C-long integers.
 
 
 
-=head2 bytesizeC<(x)>
+=head2 X<bytesize>bytesizeC<(x)>
 
 outputs the total number of bytes occupied by the
 tree representing the PARI object C<x>.
 
 The library syntax is C<taille2(x)> which returns a C-long integer. The
-function C<taille> returns the number of I<it> instead.
+function C<taille> returns the number of I<words> instead.
 
 
 
-=head2 I<ceil>C<(x)>
+=head2 X<ceil>ceilC<(x)>
 
 ceiling of C<x>. When C<x> is in C<B<I<R>>>,
 the result is the smallest integer greater than or equal to C<x>.
@@ -360,7 +360,7 @@ The library syntax is C<gceil(x)>.
 
 
 
-=head2 centerliftC<(x)>
+=head2 X<centerlift>centerliftC<(x)>
 
 lifts an element C<x=a  mod  n> of C<B<I<Z>>/nB<I<Z>>> to
 C<a> in C<B<I<Z>>>, and similarly lifts a polymod to a polynomial. This is the same
@@ -376,7 +376,7 @@ The library syntax is C<centerlift(x)>.
 
 
 
-=head2 I<changevar>C<(x,y)>
+=head2 X<changevar>changevarC<(x,y)>
 
 create a copy of the object C<x> where its
 variables are modified according to the permutation specified by the vector C<y>.
@@ -394,13 +394,13 @@ The library syntax is C<changevar(x,y)>.
 
 
 
-=head2 I<components> of a PARI object
+=head2 X<components>components of a PARI object
 
 There are essentially three ways to extract the components from a PARI object.
 
 The first and most general, is the function C<compo(x,n)> which extracts
 the C<n^{th}>-component of C<x>. This is to be understood
-as follows: every PARI type has one or two initial I<code words>. The components
+as follows: every PARI type has one or two initial X<code words>code words. The components
 are counted,
 starting at 1, after these code words. In particular if C<x> is a vector, this
 is indeed
@@ -433,17 +433,17 @@ of degree zero.
 The library syntax is C<truecoeff(x,n)>.
 
 The third method is specific to vectors or matrices under GP. If C<x> is a
-(row or column) vector, then C<I<x[n]>> represents the C<n^{th}>
+(row or column) vector, then C<X<x[n]>x[n]> represents the C<n^{th}>
 component of C<x>, i.e. C<compo(x,n)>. It is more natural and shorter to
-write. If C<x> is a matrix, C<I<x[m,n]>> represents the coefficient of
-row C<m> and column C<n> of the matrix, C<I<x[m,]>> represents
-the C<m^{th}> I<sl> of C<x>, and C<I<x[,n]>> represents
-the C<n^{th}> I<sl> of C<x>.
+write. If C<x> is a matrix, C<X<x[m,n]>x[m,n]> represents the coefficient of
+row C<m> and column C<n> of the matrix, C<X<x[m,]>x[m,]> represents
+the C<m^{th}> I<row> of C<x>, and C<X<x[,n]>x[,n]> represents
+the C<n^{th}> I<column> of C<x>.
 
 Finally note that in library mode, the macro C<coeff(x,m,n)> exists with
 exactly the meaning of C<x[m,n]> under GP when C<x> is a matrix. This macro
 should not be confused with the two-variable macro C<coeff> used primarily
-for polynomials and power series under GP.I<coeff (in library mode)>
+for polynomials and power series under GP.X<coeff (in library mode)>
 
 In addition the library mode macro C<coeff> does not create a copy of the
 coefficient (contrary to all the GP functions) and can be put on the left
@@ -453,7 +453,7 @@ put on the left side of an assignment.
 
 
 
-=head2 conjC<(x)> or C<x_>
+=head2 X<conj>conjC<(x)> or C<x_>
 
 conjugate of C<x>. The meaning of this
 is clear, except that for real quadratic numbers, it means conjugation in the
@@ -465,7 +465,7 @@ The library syntax is C<gconj(x)>.
 
 
 
-=head2 conjvecC<(x)>
+=head2 X<conjvec>conjvecC<(x)>
 
 conjugate vector representation of C<x>. If C<x> is
 a polymod C<mod(a,q)>, this gives a vector of length C<degree(q)>
@@ -482,7 +482,7 @@ integer.
 
 
 
-=head2 cvtoiC<(x)>
+=head2 X<cvtoi>cvtoiC<(x)>
 
 If C<x> is in C<B<I<R>>>, truncates C<x> to an
 integer.
@@ -499,7 +499,7 @@ The library syntax is C<gcvtoi(x,& e)>, where C<e> is a C-long integer.
 
 
 
-=head2 denomC<(x)>
+=head2 X<denom>denomC<(x)>
 
 lowest denominator of C<x>. The meaning of
 this is clear when C<x> is a rational number or function.
@@ -511,7 +511,7 @@ The library syntax is C<denom(x)>.
 
 
 
-=head2 floorC<(x)>
+=head2 X<floor>floorC<(x)>
 
 floor of C<x>. When C<x> is in C<B<I<R>>>,
 the result is the largest integer smaller than or equal to C<x>.
@@ -520,7 +520,7 @@ The library syntax is C<gfloor(x)>.
 
 
 
-=head2 fracC<(x)>
+=head2 X<frac>fracC<(x)>
 
 fractional part of C<x>. Identical to
 C<x-floor(x)>. If C<x> is real, the result is in C<[0,1[>.
@@ -529,7 +529,7 @@ The library syntax is C<gfrac(x)>.
 
 
 
-=head2 getheapC<()>
+=head2 X<getheap>getheapC<()>
 
 returns a two-component row vector giving the
 number of objects on the heap and the amount of memory they occupy in long
@@ -539,7 +539,7 @@ The library syntax is C<getheap()>.
 
 
 
-=head2 getrandC<()>
+=head2 X<getrand>getrandC<()>
 
 returns the current value of the random number 
 seed. Useful mainly for debugging purposes.
@@ -548,7 +548,7 @@ The library syntax is C<getrand()>. The value returned is a GEN.
 
 
 
-=head2 getstackC<()>
+=head2 X<getstack>getstackC<()>
 
 returns the current value of C<topC<->avma>,
 i.e. the number of bytes used up to now on the stack. Useful mainly for
@@ -558,7 +558,7 @@ The library syntax is C<getstack()>. The value returned is a GEN.
 
 
 
-=head2 gettimeC<()>
+=head2 X<gettime>gettimeC<()>
 
 returns the time (in milliseconds) elapsed since 
 either the last call to C<gettime>, or to the beginning of the containing 
@@ -568,7 +568,7 @@ The library syntax is C<gettime()>. The value returned is a GEN.
 
 
 
-=head2 imagC<(x)>
+=head2 X<imag>imagC<(x)>
 
 imaginary part of C<x>. When
 C<x> is a quadratic number, this is the coefficient of C<F<omega>> in
@@ -578,7 +578,7 @@ The library syntax is C<gimag(x)>.
 
 
 
-=head2 lengthC<(x)>
+=head2 X<length>lengthC<(x)>
 
 number of non-code words in C<x> really used
 (i.e. the effective length minus 2 for integers and polynomials). In particular,
@@ -588,7 +588,7 @@ The library syntax is C<glength(x)>.
 
 
 
-=head2 liftC<(x)>
+=head2 X<lift>liftC<(x)>
 
 lifts an element C<x=a  mod  n> of C<B<I<Z>>/nB<I<Z>>> to
 C<a> in C<B<I<Z>>>, and similarly lifts a polymod to a polynomial. If C<x> is
@@ -602,7 +602,7 @@ The library syntax is C<lift(x)>.
 
 
 
-=head2 modC<(x,y)>
+=head2 X<mod>modC<(x,y)>
 
 creates the PARI object C<(x  F<mod>  y)>,
 i.e. an integermod or a polymod. C<y> must be an integer or
@@ -617,7 +617,7 @@ The library syntax is C<gmodulcp(x,y)>.
 
 
 
-=head2 modpC<(x,y)>
+=head2 X<modp>modpC<(x,y)>
 
 same effect as C<mod>, except that the created
 result is put on the heap and not on the stack, and hence becomes a permanent
@@ -629,7 +629,7 @@ The library syntax is C<gmodulo(x,y)>.
 
 
 
-=head2 normC<(x)>
+=head2 X<norm>normC<(x)>
 
 algebraic norm of C<x>, i.e. the product of C<x>
 with its conjugate (no square roots are taken), or conjugates for polymods.
@@ -641,7 +641,7 @@ The library syntax is C<gnorm(x)>.
 
 
 
-=head2 norml2C<(x)>
+=head2 X<norml2>norml2C<(x)>
 
 square of the C<L^2>-norm of C<x>. C<x> must
 be a (row or column) vector.
@@ -650,7 +650,7 @@ The library syntax is C<gnorml2(x)>.
 
 
 
-=head2 numerC<(x)>
+=head2 X<numer>numerC<(x)>
 
 numerator of C<x>. When C<x> is a rational number
 or function, the meaning is clear. When C<x> is an integer or a polynomial, the
@@ -661,7 +661,7 @@ The library syntax is C<numer(x)>.
 
 
 
-=head2 padicprecC<(x,p)>
+=head2 X<padicprec>padicprecC<(x,p)>
 
 absolute C<p>-adic precision of the object C<x>.
 This is the minimum precision of the components of C<x>. The result is
@@ -673,7 +673,7 @@ integer.
 
 
 
-=head2 permutationC<(n,k)>
+=head2 X<permutation>permutationC<(n,k)>
 
 generates the C<k>-th permutation (as a 
 row vector of length C<n>) of the numbers C<1> to C<n>. The number C<k> is taken 
@@ -683,7 +683,7 @@ The library syntax is C<permute(n,k)>, where C<n> is a C-long integer.
 
 
 
-=head2 permutation2numC<(x)>
+=head2 X<permutation2num>permutation2numC<(x)>
 
 given a permutation C<x> on C<n> elements,
 gives the number C<k> such that C<x=>permutationC<(n,k)>, i.e. inverse
@@ -693,7 +693,7 @@ The library syntax is C<permuteInv(x)>.
 
 
 
-=head2 polvarC<(x)>
+=head2 X<polvar>polvarC<(x)>
 
 gives the main variable of the object C<x>, and
 C<p> if C<x> is a C<p>-adic number. Gives an error if C<x> has no variable
@@ -703,12 +703,12 @@ in library mode the function C<gvar> is more useful.
 The library syntax is C<gpolvar(x)>. However, in library mode,
 this function should not be used. Instead, test whether C<x> is a C<p>-adic
 (type 7), in which case C<p> is in C<x[2]>, or call the function 
-C<gvar(x)> which returns the variable I<it> of C<x> if it 
+C<gvar(x)> which returns the variable I<number> of C<x> if it 
 exists, BIGINT otherwise.
 
 
 
-=head2 polyC<(x,v)>
+=head2 X<poly>polyC<(x,v)>
 
 transform the object C<x> into a polynomial with main
 variable C<v>. If C<x> is a scalar, this gives a constant polynomial. If C<x> is
@@ -717,7 +717,7 @@ chops off the C<O(X^k)>. If C<x> is a vector, this function creates the polynomi
 whose coefficients are given in C<x>, with C<x[1]> being the leading coefficient
 (which can be zero).
 
-Warning: this is I<sl> a substitution function. It is intended to be quick and
+Warning: this is I<not> a substitution function. It is intended to be quick and
 dirty. So if you try C<poly(a,y)> on the polynomial C<a=x+y>, you will get
 C<y+y>, which is not a valid PARI/GP object.
 
@@ -725,7 +725,7 @@ The library syntax is C<gtopoly(x,v)>, where C<v> is a variable number.
 
 
 
-=head2 polyrevC<(x,v)>
+=head2 X<polyrev>polyrevC<(x,v)>
 
 transform the object C<x> into a polynomial with main
 variable C<v>. If C<x> is a scalar, this gives a constant polynomial. If C<x> is
@@ -739,7 +739,7 @@ The library syntax is C<gtopolyrev(x,v)>, where C<v> is a variable number.
 
 
 
-=head2 precC<(x,n)>
+=head2 X<prec>precC<(x,n)>
 
 C<x> being a PARI object and C<n> a C-long integer, 
 creates a new object equal to C<x> but with a new precision C<n>.
@@ -748,7 +748,7 @@ This is to be understood as follows:
 For exact types, no change. For C<x> a vector or a matrix, the operation
 is done componentwise.
 
-For real C<x>, C<n> is the number of desired significant I<sl> digits.
+For real C<x>, C<n> is the number of desired significant I<decimal> digits.
 If C<n> is smaller than the precision of C<x>, C<x> is truncated, otherwise
 C<x> is extended with zeros.
 
@@ -764,9 +764,9 @@ The library syntax is C<gprec(x,n)>, where C<n> is a C-long integer.
 
 
 
-=head2 quadgenC<(x)>
+=head2 X<quadgen>quadgenC<(x)>
 
-creates the quadratic number I<omega>
+creates the quadratic number X<omega>
 C<F<omega>=(a+ F<sqrt> x)/2> where C<a=0> if C<x ~ 0 F<mod> 4>, 
 C<a=1> if C<x ~ 1 F<mod> 4>, so that C<(1,F<omega>)> is an integral basis for
 the quadratic order of discriminant C<x>. C<x> must be an integer congruent to 
@@ -776,7 +776,7 @@ The library syntax is C<quadgen(x)>.
 
 
 
-=head2 quadpolyC<(x)>
+=head2 X<quadpoly>quadpolyC<(x)>
 
 creates the ``canonical'' quadratic
 polynomial corresponding to the discriminant C<x>, i.e. the minimal polynomial
@@ -786,7 +786,7 @@ The library syntax is C<quadpoly(x)>.
 
 
 
-=head2 randomC<()>
+=head2 X<random>randomC<()>
 
 gives a random integer between 0 and C<2^{31}-1>
 (in the case of 64-bit machines this can be changed at compilation time to
@@ -797,7 +797,7 @@ The library syntax is C<genrand()> and the result is a C-long integer.
 
 
 
-=head2 realC<(x)>
+=head2 X<real>realC<(x)>
 
 real part of C<x>. In the case where
 C<x> is a quadratic number, this is the coefficient of C<1> in
@@ -807,7 +807,7 @@ The library syntax is C<greal(x)>.
 
 
 
-=head2 rndtoiC<(x)>
+=head2 X<rndtoi>rndtoiC<(x)>
 
 same as C<cvtoi> (see above) except
 that truncation is replaced by rounding (see C<round> below).
@@ -825,7 +825,7 @@ The library syntax is C<grndtoi(x,& e)>, where C<e> is a C-long integer.
 
 
 
-=head2 roundC<(x)>
+=head2 X<round>roundC<(x)>
 
 If C<x> is in C<B<I<R>>>, rounds C<x>
 to the nearest integer. If the exponent of C<x> is too large compared
@@ -845,7 +845,7 @@ The library syntax is C<ground(x)>.
 
 
 
-=head2 rounderrorC<(x)>
+=head2 X<rounderror>rounderrorC<(x)>
 
 maximum error in decimal digits observed when
 rounding C<x>. This functions allows the user to easily check the precision of
@@ -855,7 +855,7 @@ The library syntax is C<rounderror(x)> and the result is a C-long integer.
 
 
 
-=head2 seriesC<(x,v)>
+=head2 X<series>seriesC<(x,v)>
 
 transform the object C<x> into a power series with
 main variable C<v>. If C<x> is a scalar, this gives a constant power series
@@ -873,7 +873,7 @@ The library syntax is C<gtoser(x,v)>, where C<v> is a variable number.
 
 
 
-=head2 setprecisionC<(n)>
+=head2 X<setprecision>setprecisionC<(n)>
 
 sets the current default precision equal to C<n>
 decimal digits if C<nE<gt>0>. In any case, it returns the value of the
@@ -886,7 +886,7 @@ is the returned value.
 
 
 
-=head2 setrandC<(n)>
+=head2 X<setrand>setrandC<(n)>
 
 reseeds the random number generator to the value
 C<n>. The initial seed (in UNIX systems at least) is C<n=1>.
@@ -896,7 +896,7 @@ The value returned is C<n> once again, but as a GEN.
 
 
 
-=head2 setserieslengthC<(n)>
+=head2 X<setserieslength>setserieslengthC<(n)>
 
 sets the current default series length equal
 to C<n> if C<nE<gt>0>. In any case, it returns the value of the default
@@ -909,7 +909,7 @@ is the returned value.
 
 
 
-=head2 settypeC<(x,t)>
+=head2 X<settype>settypeC<(x,t)>
 
 makes a copy of C<x> and sets its type equal to
 type number C<t>. This function must be used with extreme caution, otherwise
@@ -917,18 +917,18 @@ disasters may occur, but one instance where it is extremely useful is
 C<settyp(x,14)> when C<x> is a rational function (type 13). In this case,
 the created object, as well as the objects created from it, will not be
 reduced automatically, making the operations much faster. In fact this function
-is the I<it> way to create reducible rationals (type 5) or rational
+is the I<only> way to create reducible rationals (type 5) or rational
 functions (type 14) in GP.
 
 The library syntax is C<gsettype(x,t)>, where C<t> is a long, but need
 not be used since the internal function C<settyp> is available. Note that
-C<settyp> does I<it> create a copy of C<x>, while C<gsettype> does.
+C<settyp> does I<not> create a copy of C<x>, while C<gsettype> does.
 Note also the different spellings of the internal function C<settyp> and
 of the GP function C<settype>.
 
 
 
-=head2 simplifyC<(x)>
+=head2 X<simplify>simplifyC<(x)>
 
 this function tries to simplify the object C<x> as
 much as it can. The simplifications do not concern rational functions (which
@@ -945,7 +945,7 @@ The library syntax is C<simplify(x)>.
 
 
 
-=head2 sizeC<(x)>
+=head2 X<size>sizeC<(x)>
 
 gives an upper bound for the maximal number of decimal
 digits of the absolute value of the components of C<x>, off by at most 1.
@@ -954,7 +954,7 @@ The library syntax is C<gsize(x)>, and the result is a C-long integer.
 
 
 
-=head2 truncC<(x)>
+=head2 X<trunc>truncC<(x)>
 
 truncation of C<x>. When C<x> is in C<B<I<R>>>,
 this means that the part after the decimal point is chopped away. If the
@@ -972,7 +972,7 @@ The library syntax is C<gtrunc(x)>.
 
 
 
-=head2 typeC<(x)>
+=head2 X<type>typeC<(x)>
 
 internal type number (from 1 to 19) of the PARI object
 C<x>. This is useful only under GP. See also the function C<settype>.
@@ -984,7 +984,7 @@ of the internal function C<typ> and of the GP function C<type>.
 
 
 
-=head2 valuationC<(x,p)>
+=head2 X<valuation>valuationC<(x,p)>
 
 Computes the highest exponent of C<p>
 dividing C<x>. If C<p> is of type integer, C<x> must be an integer,
@@ -1004,7 +1004,7 @@ The library syntax is C<ggval(x)>, and the result is a C-long integer.
 
 
 
-=head2 vecC<(x)>
+=head2 X<vec>vecC<(x)>
 
 transform the object C<x> into a row vector. The vector will
 be with one component only, except when C<x> is a vector/matrix or a quadratic
@@ -1019,7 +1019,7 @@ The library syntax is C<gtovec(x)>.
 
 
 
-=head2 vecmaxC<(x)>
+=head2 X<vecmax>vecmaxC<(x)>
 
 if C<x> is a vector or a matrix, returns the maximum
 of the elements of C<x>, otherwise returns a copy of C<x>. Returns C<-\infty>
@@ -1030,7 +1030,7 @@ The library syntax is C<vecmax(x)>.
 
 
 
-=head2 vecminC<(x)>
+=head2 X<vecmin>vecminC<(x)>
 
 if C<x> is a vector or a matrix, returns the minimum
 of the elements of C<x>, otherwise returns a copy of C<x>. Returns C<+\infty>
@@ -1049,7 +1049,7 @@ transcendental functions operate in the following way:
 
      If the argument is either an integer, a real, a rational, a complex
 or a quadratic number, it is, if necessary, first converted to a real
-(or complex) number using the current I<precision> held in the variable
+(or complex) number using the current X<precision>precision held in the variable
 B<prec>. Note that only exact arguments are converted, while inexact
 arguments such as reals are not.
 
@@ -1115,7 +1115,7 @@ hence are treated differently.)
 
      If the argument is a polynomial, power series or rational function,
 it is, if necessary, first converted to a power series using the current
-precision held in the variable B<I<precdl>>. Under GP this again is
+precision held in the variable B<X<precdl>precdl>. Under GP this again is
 transparent to the user. When programming in library mode, however, the
 global variable C<precdl> must be set before calling the function
 if the argument has an exact type (i.e. not a power series). Here C<precdl> is
@@ -1128,7 +1128,7 @@ and the function being computed.
 
      If the argument is a vector or a matrix, the result is componentwise
 evaluation of the function. In particular, transcendental functions on
-square matrices, which are not implemented in the present version 1.39.3.1{}
+square matrices, which are not implemented in the present version 1.39.3{}
 (see Appendix C however),
 will have a slightly different name if they are implemented some day.
 
@@ -1136,19 +1136,19 @@ will have a slightly different name if they are implemented some day.
 
 =head2 C<^>
 
-If C<y> is not of type integer, C<x^{ }y> has the
+If C<y> is not of type integer, C<x^y> has the
 same effect as C< F<exp> (y* F<ln> (x))>. It can be applied to C<p>-adic numbers as
-well as to the more usual types.I<powering>
+well as to the more usual types.X<powering>
 
 The library syntax is C<gpui(x,y,prec)>.
 
 
 
-=head2 absC<(x)>
+=head2 X<abs>absC<(x)>
 
 absolute value of C<x> (modulus if C<x> is complex).
 Polynomials, power series and rational functions are not allowed. 
-Contrary to most transcendental functions, an integer is I<it>
+Contrary to most transcendental functions, an integer is I<not>
 converted to a real number before applying C<abs>.
 
 The library syntax is C<gabs(x,prec)>, where the second argument
@@ -1156,7 +1156,7 @@ C<prec> is necessary only in the complex or imaginary quadratic case.
 
 
 
-=head2 acosC<(x)>
+=head2 X<acos>acosC<(x)>
 
 principal branch of C<cos^{-1}(x)>,
 i.e. such that C<Re(acos(x))\in [0,F<pi>]>. If
@@ -1166,7 +1166,7 @@ The library syntax is C<gacos(x,prec)>.
 
 
 
-=head2 acoshC<(x)>
+=head2 X<acosh>acoshC<(x)>
 
 principal branch of C<cosh^{-1}(x)>,
 i.e. such that C<Im(acosh(x))\in [0,F<pi>]>. If
@@ -1176,7 +1176,7 @@ The library syntax is C<gach(x,prec)>.
 
 
 
-=head2 agmC<(x,y)>
+=head2 X<agm>agmC<(x,y)>
 
 arithmetic-geometric mean of C<x> and C<y>. In the
 case of complex or negative numbers, the principal square root is always
@@ -1188,7 +1188,7 @@ The library syntax is C<agm(x,y,prec)>.
 
 
 
-=head2 argC<(x)>
+=head2 X<arg>argC<(x)>
 
 argument of the complex number C<x>, such that
 C<-F<pi><arg(x)E<lt>=F<pi>>.
@@ -1197,7 +1197,7 @@ The library syntax is C<garg(x,prec)>.
 
 
 
-=head2 asinC<(x)>
+=head2 X<asin>asinC<(x)>
 
 principal branch of C<sin^{-1}(x)>,
 i.e. such that C<Re(asin(x))\in [-F<pi>/2,F<pi>/2]>. If
@@ -1207,7 +1207,7 @@ The library syntax is C<gasin(x,prec)>.
 
 
 
-=head2 asinhC<(x)>
+=head2 X<asinh>asinhC<(x)>
 
 principal branch of C<sinh^{-1}(x)>,
 i.e. such that C<Im(asinh)(x)\in [-F<pi>/2,F<pi>/2]>.
@@ -1216,7 +1216,7 @@ The library syntax is C<gash(x,prec)>.
 
 
 
-=head2 atanC<(x)>
+=head2 X<atan>atanC<(x)>
 
 principal branch of C<tan^{-1}(x)>,
 i.e. such that C<Re(atan(x))\in ]-F<pi>/2,F<pi>/2[>.
@@ -1225,7 +1225,7 @@ The library syntax is C<gatan(x,prec)>.
 
 
 
-=head2 atanhC<(x)>
+=head2 X<atanh>atanhC<(x)>
 
 principal branch of C<tanh^{-1}(x)>.
 i.e. such that C<Im(atanh(x))\in ]-F<pi>/2,F<pi>/2]>. If
@@ -1235,7 +1235,7 @@ The library syntax is C<gath(x,prec)>.
 
 
 
-=head2 bernrealC<(x)>
+=head2 X<bernreal>bernrealC<(x)>
 
 Bernoulli number C<B_x>, where C<B_0=1>, C<B_1=-1/2>,
 C<B_2=1/6>,..., expressed as a real number with the current precision.
@@ -1245,7 +1245,7 @@ The library syntax is C<bernreal(x,prec)>.
 
 
 
-=head2 bernvecC<(x)>
+=head2 X<bernvec>bernvecC<(x)>
 
 creates a vector containing, as rational numbers, the
 Bernoulli numbers C<B_0>, C<B_2>,..., C<B_{2x}>. These Bernoulli numbers can
@@ -1261,7 +1261,7 @@ The library syntax is C<bernvec(x)>.
 
 
 
-=head2 cosC<(x)>
+=head2 X<cos>cosC<(x)>
 
 cosine of C<x>.
 
@@ -1269,7 +1269,7 @@ The library syntax is C<gcos(x,prec)>.
 
 
 
-=head2 coshC<(x)>
+=head2 X<cosh>coshC<(x)>
 
 hyperbolic cosine of C<x>.
 
@@ -1277,7 +1277,7 @@ The library syntax is C<gch(x,prec)>.
 
 
 
-=head2 dilogC<(x)>
+=head2 X<dilog>dilogC<(x)>
 
 principal branch of the dilogarithm of C<x>, i.e.
 analytic continuation of the power series C< F<log> _2(x)=\sum_{nE<gt>=1}x^n/n^2>.
@@ -1286,7 +1286,7 @@ The library syntax is C<dilog(x,prec)>.
 
 
 
-=head2 eint1C<(x)>
+=head2 X<eint1>eint1C<(x)>
 
 exponential integral 
 C<\int_x^\infty \dfrac{e^{-t}}{t} dt>.
@@ -1295,7 +1295,7 @@ The library syntax is C<eint1(x,prec)>.
 
 
 
-=head2 erfcC<(x)>
+=head2 X<erfc>erfcC<(x)>
 
 complementary error function
 C<(2/ F<sqrt> F<pi>)\int_x^\infty e^{-t^2} dt>.
@@ -1304,7 +1304,7 @@ The library syntax is C<erfc(x,prec)>.
 
 
 
-=head2 etaC<(x)>
+=head2 X<eta>etaC<(x)>
 
 Dedekind's C<F<eta>> function, without the
 C<q^{1/24}>. The meaning is this. If C<x> is a complex number with
@@ -1323,16 +1323,16 @@ Euler's constant C<0.57721...>.
 Note that C<euler> is one of the few special reserved names which cannot
 be used for variables.
 
-The library syntax is C<mpeuler(prec)> where C<prec> I<sl> be
+The library syntax is C<mpeuler(prec)> where C<prec> I<must> be
 given.
 Note that this creates C<F<gamma>> on the PARI stack. If one does not want to
 create it on that stack but be able to use it later under the global
-name B<I<geuler>> (with no parentheses) use instead C<consteuler(prec
+name B<X<geuler>geuler> (with no parentheses) use instead C<consteuler(prec
 )>.
 
 
 
-=head2 expC<(x)>
+=head2 X<exp>expC<(x)>
 
 exponential of C<x>.
 C<p>-adic arguments with positive valuation are accepted.
@@ -1341,7 +1341,7 @@ The library syntax is C<gexp(x,prec)>.
 
 
 
-=head2 gamhC<(x)>
+=head2 X<gamh>gamhC<(x)>
 
 gamma function evaluated at the argument
 C<x+1/2>. When C<x> is an integer, this is much faster than using
@@ -1351,16 +1351,16 @@ The library syntax is C<ggamd(x,prec)>.
 
 
 
-=head2 gammaC<(x)>
+=head2 X<gamma>gammaC<(x)>
 
 gamma function of C<x>. In the present version
-1.39.3.1{} the C<p>-adic gamma function is not implemented.
+1.39.3{} the C<p>-adic gamma function is not implemented.
 
 The library syntax is C<ggamma(x,prec)>.
 
 
 
-=head2 hyperuC<(a,b,x)>
+=head2 X<hyperu>hyperuC<(a,b,x)>
 
 U-confluent hypergeometric function with
 parameters C<a> and C<b>.
@@ -1369,7 +1369,7 @@ The library syntax is C<hyperu(a,b,x,prec)>.
 
 
 
-=head2 incgamC<(x,y)>
+=head2 X<incgam>incgamC<(x,y)>
 
 incomplete gamma function.
 
@@ -1379,11 +1379,11 @@ C<\int_y^\infty e^{-t}t^{x-1} dt>.
 The library syntax is C<incgam(x,y,prec)>.
 
 Note: in addition, there exist also the functions
-C<I<incgam1> and I<incgam2>> which are used for internal purposes.
+C<X<incgam1>incgam1 and X<incgam2>incgam2> which are used for internal purposes.
 
 
 
-=head2 incgam3C<(x,y)>
+=head2 X<incgam3>incgam3C<(x,y)>
 
 complementary incomplete gamma function.
 
@@ -1394,7 +1394,7 @@ The library syntax is C<incgam3(x,y,prec)>.
 
 
 
-=head2 incgam4C<(x,y,z)>
+=head2 X<incgam4>incgam4C<(x,y,z)>
 
 incomplete gamma function with given gamma value.
 This function assumes (of course without checking) that C<z=F<Gamma>(x)>.
@@ -1406,19 +1406,19 @@ The library syntax is C<incgam4(x,y, z,prec)>.
 
 
 
-=head2 jbesselhC<(n,x)>
+=head2 X<jbesselh>jbesselhC<(n,x)>
 
 C<J>-Bessel function of half integral index.
 More precisely, C<jbesselh(n,x)> computes C<J_{n+1/2}(x)> where C<n>
 must be of type integer, and C<x> is any element of C<B<I<C>>>. In the
-present version 1.39.3.1, this function is not very accurate when C<x> is
+present version 1.39.3, this function is not very accurate when C<x> is
 small.
 
 The library syntax is C<jbesselh(n,x,prec)>.
 
 
 
-=head2 jellC<(x)>
+=head2 X<jell>jellC<(x)>
 
 elliptic C<j>-invariant. C<x> must be a complex
 number with positive imaginary part, or convertible into a power series or
@@ -1428,22 +1428,22 @@ The library syntax is C<jell(x,prec)>.
 
 
 
-=head2 kbesselC<(nu,x)>
+=head2 X<kbessel>kbesselC<(nu,x)>
 
 K-Bessel function of index C<nu>
 (which can be complex) and argument C<x>. Only real and positive arguments
-C<x> are allowed in the present version 1.39.3.1.
+C<x> are allowed in the present version 1.39.3.
 
 The library syntax is C<kbessel(nu, x,prec)>.
 
 Note: in addition, another implementation of this function which is often
-faster than kbessel is the function B<I<kbessel2>>.
+faster than kbessel is the function B<X<kbessel2>kbessel2>.
 
 
 
-=head2 lnC<(x)> or B<log>C<(x)>
+=head2 X<ln>lnC<(x)> or B<log>C<(x)>
 
-I<log> principal branch of the
+X<log> principal branch of the
 natural logarithm of C<x>, i.e. such that C<Im(ln(x))\in ]-F<pi>,F<pi>]>.
 The result is complex (with imaginary part equal to C<F<pi>>) if 
 C<x\in B<I<R>>> and C<x<0>.
@@ -1457,18 +1457,18 @@ The library syntax is C<glog(x,prec)>.
 
 
 
-=head2 lngammaC<(x)>
+=head2 X<lngamma>lngammaC<(x)>
 
 principal branch of the logarithm of the gamma
 function of C<x>. Can have much larger arguments than C<gamma> itself.
-In the present version 1.39.3.1{} the C<p>-adic lngamma function is not 
+In the present version 1.39.3{} the C<p>-adic lngamma function is not 
 implemented.
 
 The library syntax is C<glngamma(x,prec)>.
 
 
 
-=head2 logagmC<(x)>
+=head2 X<logagm>logagmC<(x)>
 
 principal branch of the natural logarithm of C<x>,
 computed using an agm formula suggested by Mestre, when C<x> is real, otherwise
@@ -1482,14 +1482,14 @@ The library syntax is C<glogagm(x,prec)>.
 
 the constant pi (C<3.14159...>).
 
-The library syntax is C<mppi(prec)> where C<prec> I<sl> be given.
+The library syntax is C<mppi(prec)> where C<prec> I<must> be given.
 Note that this creates C<F<pi>> on the PARI stack. If one does not want to
 create it on that stack but be able to use it later under the global
-name B<I<gpi>> (with no parentheses) use instead C<constpi(prec)>.
+name B<X<gpi>gpi> (with no parentheses) use instead C<constpi(prec)>.
 
 
 
-=head2 polylogC<(m,x)>
+=head2 X<polylog>polylogC<(m,x)>
 
 C<m^th> polylogarithm of C<x>, i.e. analytic
 continuation of the power series C< F<log> _m(x)=\sum_{nE<gt>=1}x^n/n^m>. The program
@@ -1505,7 +1505,7 @@ The library syntax is C<gpolylog(m,x,prec)>.
 
 
 
-=head2 polylogdC<(m,x)>
+=head2 X<polylogd>polylogdC<(m,x)>
 
 modified C<m^th> polylogarithm of C<x>,
 called C<~ D_m(x)> in Zagier, defined for C<|x|E<lt>=1> by
@@ -1518,7 +1518,7 @@ The library syntax is C<polylogd(m,x,prec)>.
 
 
 
-=head2 polylogdoldC<(m,x)>
+=head2 X<polylogdold>polylogdoldC<(m,x)>
 
 modified C<m^th> polylogarithm of C<x>,
 called C<D_m(x)> in Zagier, defined for C<|x|E<lt>=1> by
@@ -1531,7 +1531,7 @@ The library syntax is C<polylogdold(m,x,prec)>.
 
 
 
-=head2 polylogpC<(m,x)>
+=head2 X<polylogp>polylogpC<(m,x)>
 
 another modified C<m^th> polylogarithm
 of C<x>, called C<P_m(x)> in Zagier, defined for C<|x|E<lt>=1> by
@@ -1544,7 +1544,7 @@ The library syntax is C<polylogp(m,x,prec)>.
 
 
 
-=head2 psiC<(x)>
+=head2 X<psi>psiC<(x)>
 
 the C<F<psi>>-function of C<x>, i.e. the
 logarithmic derivative C<F<Gamma>'(x)/F<Gamma>(x)>.
@@ -1553,7 +1553,7 @@ The library syntax is C<gpsi(x,prec)>.
 
 
 
-=head2 sinC<(x)>
+=head2 X<sin>sinC<(x)>
 
 sine of C<x>.
 
@@ -1561,7 +1561,7 @@ The library syntax is C<gsin(x,prec)>.
 
 
 
-=head2 sinhC<(x)>
+=head2 X<sinh>sinhC<(x)>
 
 hyperbolic sine of C<x>.
 
@@ -1569,18 +1569,18 @@ The library syntax is C<gsh(x,prec)>.
 
 
 
-=head2 sqrC<(x)>
+=head2 X<sqr>sqrC<(x)>
 
 square of C<x>. Not identical to C<x*x> in
 the case of C<2>-adics (see above), and acts componentwise
 on vectors and matrices. In particular, if C<x> is a square matrix, sqr(C<x>)
-is not the square of C<x> (use instead C<x*x> or C<x^{ }2>).
+is not the square of C<x> (use instead C<x*x> or C<x^2>).
 
 The library syntax is C<gsqr(x)>.
 
 
 
-=head2 sqrtC<(x)>
+=head2 X<sqrt>sqrtC<(x)>
 
 principal branch of the square root of C<x>,
 i.e. such that C<Arg(sqrt(x))\in ]-F<pi>/2,F<pi>/2]>, or in other words
@@ -1598,7 +1598,7 @@ The library syntax is C<gsqrt(x,prec)>.
 
 
 
-=head2 tanC<(x)>
+=head2 X<tan>tanC<(x)>
 
 tangent of C<x>.
 
@@ -1606,7 +1606,7 @@ The library syntax is C<gtan(x,prec)>.
 
 
 
-=head2 tanhC<(x)>
+=head2 X<tanh>tanhC<(x)>
 
 hyperbolic tangent of C<x>.
 
@@ -1614,7 +1614,7 @@ The library syntax is C<gth(x,prec)>.
 
 
 
-=head2 teichC<(x)>
+=head2 X<teich>teichC<(x)>
 
 Teichmuller character of the C<p>-adic number
 C<x>.
@@ -1623,7 +1623,7 @@ The library syntax is C<teich(x)>.
 
 
 
-=head2 wfC<(x)>
+=head2 X<wf>wfC<(x)>
 
 Weber's C<f> function, i.e. such that
 C<j(x)=(f^{24}(x)-16)^3/f^{24}(x)>, where C<j> is the elliptic C<j>-invariant
@@ -1633,7 +1633,7 @@ The library syntax is C<wf(x,prec)>.
 
 
 
-=head2 wf2C<(x)>
+=head2 X<wf2>wf2C<(x)>
 
 Weber's C<f_2> function, i.e. such that
 C<j=(f_2^{24}+16)^3/f_2^{24}>.
@@ -1642,7 +1642,7 @@ The library syntax is C<wf2(x,prec)>.
 
 
 
-=head2 zetaC<(s)>
+=head2 X<zeta>zetaC<(s)>
 
 Riemann's zeta function C<F<zeta>(s)=\sum_{nE<gt>=1}n^{-s}>,
 computed using the Euler-Maclaurin summation formula, except when C<s> is of type
@@ -1665,15 +1665,15 @@ The way these functions are used is completely different from
 transcendental functions: in general only the types integer and
 polynomial are accepted as arguments.
 
-In the present version 1.39.3.1{} a primitive but useful version of the I<ECM>
+In the present version 1.39.3{} a primitive but useful version of the X<ECM>ECM
 method has been implemented. Also, numbers found to be pseudo-primes after
-10 successful trials of the I<Rabin-Miller> test are declared primes.
+10 successful trials of the X<Rabin-Miller>Rabin-Miller test are declared primes.
 
 
 
 
 
-=head2 addprimesC<(x)>
+=head2 X<addprimes>addprimesC<(x)>
 
 add additional primes to the
 table computed by C<init>, and return a row vector whose
@@ -1689,7 +1689,7 @@ The entries in C<x> are not checked for primality.
 They should be positive integers not divisible by any
 of the pre-computed primes.
 
-The present PARI version 1.39.3.1{} allows up to 20 user-specified
+The present PARI version 1.39.3{} allows up to 20 user-specified
 primes to be appended to the table.  This limit may be changed
 by altering C<NUMPRTBELT> in file C<init.c>.
 
@@ -1697,7 +1697,7 @@ The library syntax is C<addprimestotable(x)>.
 
 
 
-=head2 bestapprC<(x,k)>
+=head2 X<bestappr>bestapprC<(x,k)>
 
 if C<x\inB<I<R>>>, finds the best rational
 approximation to C<x> with denominator at most equal to C<k> using continued
@@ -1708,7 +1708,7 @@ The library syntax is C<bestappr(x,k)>.
 
 
 
-=head2 bezoutC<(x,y)>
+=head2 X<bezout>bezoutC<(x,y)>
 
 finds C<u> and C<v> minimal in a
 natural sense such that C<x*u+y*v=gcd(x,y)>. The arguments
@@ -1722,7 +1722,7 @@ corresponding created objects.
 
 
 
-=head2 bigomegaC<(x)>
+=head2 X<bigomega>bigomegaC<(x)>
 
 number of prime
 divisors of C<x> counted with multiplicity. C<x> must be an integer,
@@ -1732,19 +1732,19 @@ The library syntax is C<bigomega(x)>.
 
 
 
-=head2 binC<(x,y)>
+=head2 X<bin>binC<(x,y)>
 
-I<binomial coefficient> C<\binom x y>.
+X<binomial coefficient>binomial coefficient C<\binom x y>.
 Here C<y> must be an integer, but C<x> can be any PARI object.
 
 The library syntax is C<binome(x,y)>, where C<y> must be a C-long integer.
 
 
 
-=head2 boundcfC<(x,lmax)>
+=head2 X<boundcf>boundcfC<(x,lmax)>
 
 creates the row vector whose components are
-the partial quotients of the I<continued fraction> expansion of C<x>, the
+the partial quotients of the X<continued fraction>continued fraction expansion of C<x>, the
 number of partial quotients being limited to C<lmax>.
 If C<x> is a real number, the expansion stops at the last significant partial
 quotient or after lmax terms, whichever is smallest. C<x> can also be a rational
@@ -1754,7 +1754,7 @@ The library syntax is C<gboundcf(x,lmax)>, where C<lmax> is a C integer.
 
 
 
-=head2 boundfactC<(x,p)>
+=head2 X<boundfact>boundfactC<(x,p)>
 
 For integer C<x>, finds only the prime factors
 up to C<p> or to the default bound of the prime table created upon 
@@ -1766,14 +1766,14 @@ The library syntax is C<boundfact(x,p)>.
 
 
 
-=head2 buchcertifyC<(bnf)>
+=head2 X<buchcertify>buchcertifyC<(bnf)>
 
 C<bnf> being a big number field as output by
 C<buchinit> or C<buchinitfu>, checks whether the result is correct,
 i.e. whether it is possible to remove the assumption of the Generalized
 Riemann Hypothesis. If it is correct, the answer is 1. If not, the program
 may output some error message, but more probably will loop indefinitely.
-In I<it> occasion can the program give a wrong answer: if the program
+In I<no> occasion can the program give a wrong answer: if the program
 answers 1, barring bugs of course the answer is certified.
 
 The library syntax is C<certifybuchall(bnf)>, and the result is
@@ -1781,7 +1781,7 @@ a C long.
 
 
 
-=head2 buchfuC<(bnf)>
+=head2 X<buchfu>buchfuC<(bnf)>
 
 C<bnf> being a big number field as output by
 C<buchinit> or C<buchinitfu>, outputs a two component row vector giving
@@ -1795,12 +1795,12 @@ The library syntax is C<buchfu(bnf)>.
 
 
 
-=head2 buchimagC<(D,c,c2)>
+=head2 X<buchimag>buchimagC<(D,c,c2)>
 
 McCurley's sub-exponential algorithm for
 computing the class group of an imaginary quadratic field of discriminant C<D>.
 Should be used instead of C<classno> for C<|D|E<gt>10^{25}> or when the 
-I<sl> is wanted. The numbers C<c> and C<c2> are positive real numbers
+I<structure> is wanted. The numbers C<c> and C<c2> are positive real numbers
 which control the execution time and the stack size. To get maximum speed,
 set C<c2=c>. To get a rigorous result (under GRH) you must take C<c2=6>.
 Reasonable values for C<c> are between C<0.1> and C<2>. 
@@ -1821,15 +1821,15 @@ The library syntax is C<buchimag(D,c,c2)>.
 
 
 
-=head2 buchrealC<(D,n,c,c2)>
+=head2 X<buchreal>buchrealC<(D,n,c,c2)>
 
 Buchmann's sub-exponential algorithm for
 computing the class group and the regulator of a real quadratic field of
 discriminant C<D>. Should be used instead of C<classno> and C<regula> for
-C<DE<gt>10^{10}> or when the I<sl> is wanted. If the integer C<n> is equal
+C<DE<gt>10^{10}> or when the I<structure> is wanted. If the integer C<n> is equal
 to 0 the function computes the ordinary (or wide) class group and regulator,
 while if C<n> is non-zero it computes the narrow class group and regulator
-(this case is not yet implemented in version 1.39.3.1).
+(this case is not yet implemented in version 1.39.3).
 The numbers C<c> and C<c2> are positive real numbers which control the execution
 time and the stack size. To get maximum speed,
 set C<c2=c>. To get a rigorous result (under GRH) you must take C<c2=6>.
@@ -1856,10 +1856,10 @@ The library syntax is C<buchreal(D,n,c,c2)>.
 
 
 
-=head2 cfC<(x)>
+=head2 X<cf>cfC<(x)>
 
 creates the row vector whose components are
-the partial quotients of the I<continued fraction> expansion of C<x>.
+the partial quotients of the X<continued fraction>continued fraction expansion of C<x>.
 If C<x> is a real number, the expansion stops at the last significant partial
 quotient. C<x> can also be a rational function.
 
@@ -1867,7 +1867,7 @@ The library syntax is C<gcf(x)>.
 
 
 
-=head2 cf2C<(b,x)>
+=head2 X<cf2>cf2C<(b,x)>
 
 creates the row vector whose components are
 the partial quotients of the continued fraction expansion of C<x>, the
@@ -1882,7 +1882,7 @@ The library syntax is C<gcf2(b,x)>.
 
 
 
-=head2 chineseC<(x,y)>
+=head2 X<chinese>chineseC<(x,y)>
 
 If C<x> and C<y> are both integermods or both
 polymods, creates (with the same type) a C<z> in the same residue class
@@ -1900,10 +1900,10 @@ The library syntax is C<chinois(x,y)>.
 
 
 
-=head2 classnoC<(x)>
+=head2 X<classno>classnoC<(x)>
 
 class number of the quadratic field of discriminant
-C<x>. In the present version 1.39.3.1, a simple algorithm is used for C<xE<gt>0>, so
+C<x>. In the present version 1.39.3, a simple algorithm is used for C<xE<gt>0>, so
 C<x> should not be too large (say C<x<10^7>) for the time to be reasonable. On
 the other hand, for C<x<0> one can reasonably compute classno(C<x>) for 
 C<|x|<10^{25}>, since the method used is Shanks' method which is in
@@ -1912,15 +1912,15 @@ C<buchreal> for C<DE<gt>0>.
 
 The library syntax is C<classno(x)>.
 
-There also exists the function C<I<classno2>>, which computes the class
+There also exists the function C<X<classno2>classno2>, which computes the class
 number using the functional equation. However, it is in C<O(|x|^{1/2})>. 
-Finally, in library mode only there exists the function C<I<classno3>> 
+Finally, in library mode only there exists the function C<X<classno3>classno3> 
 which computes the class number of an imaginary quadratic field by counting 
 reduced forms, a C<O(|x|)> algorithm. See also C<hclassno> below.
 
 
 
-=head2 compimagC<(x,y)>
+=head2 X<compimag>compimagC<(x,y)>
 
 composition of the binary quadratic forms
 C<x> and C<y>. This is of course a special case of C<gmul(x,y)>. See also
@@ -1930,7 +1930,7 @@ The library syntax is C<compimag(x,y)>.
 
 
 
-=head2 comprealrawC<(x,y)>
+=head2 X<comprealraw>comprealrawC<(x,y)>
 
 composition of the binary quadratic
 forms C<x> and C<y> with positive discriminant, without reduction of the
@@ -1941,7 +1941,7 @@ The library syntax is C<comprealraw(x,y)>.
 
 
 
-=head2 contentC<(x)>
+=head2 X<content>contentC<(x)>
 
 computes the gcd of all the coefficients of C<x>,
 when this gcd makes sense. If C<x> is a scalar, this simply gives C<x>. If
@@ -1954,7 +1954,7 @@ The library syntax is C<content(x)>.
 
 
 
-=head2 dirdivC<(x,y)>
+=head2 X<dirdiv>dirdivC<(x,y)>
 
 C<x> and C<y> being vectors of perhaps different lengths
 but with C<y[1]!= 0> considered as Dirichlet series, computes the quotient of C<x>
@@ -1964,7 +1964,7 @@ The library syntax is C<dirdiv(x,y)>.
 
 
 
-=head2 dirmulC<(x,y)>
+=head2 X<dirmul>dirmulC<(x,y)>
 
 C<x> and C<y> being vectors of perhaps different lengths
 considered as Dirichlet series, computes the product of C<x> by C<y>, again as a vector.
@@ -1973,7 +1973,7 @@ The library syntax is C<dirmul(x,y)>.
 
 
 
-=head2 divisorsC<(x)>
+=head2 X<divisors>divisorsC<(x)>
 
 creates a row vector whose components are the
 positive divisors of the integer C<x> in increasing order.
@@ -1982,7 +1982,7 @@ The library syntax is C<divisors(x)>.
 
 
 
-=head2 factC<(x)> or C<x!>
+=head2 X<fact>factC<(x)> or C<x!>
 
 factorial of C<x>. The expression C<x!>
 gives a result which is an integer, while C<fact>C<(x)> gives a real
@@ -1993,14 +1993,14 @@ for C<fact>C<(x)>. C<x> must be a C-long integer and not a PARI integer.
 
 
 
-=head2 factcantorC<(x,p)>
+=head2 X<factcantor>factcantorC<(x,p)>
 
 factorization mod C<p> of the polynomial
 C<x> using distinct degree plus Cantor-Zassenhaus. The coefficients of C<x> 
 must be operation-compatible with
 C<B<I<Z>>/pB<I<Z>>>. The result is a two-column matrix, the first column being
 the irreducible polynomials dividing C<x>, and the second the exponents. 
-If you want only the I<sl> of the irreducible polynomials 
+If you want only the I<degrees> of the irreducible polynomials 
 (for example for computing an C<L>-function), use the function 
 C<simplefactmod>. Note that the C<factmod> algorithm is usually faster
 than C<factcantor>.
@@ -2009,7 +2009,7 @@ The library syntax is C<factcantor(x,p)>.
 
 
 
-=head2 factfqC<(x,p,a)>
+=head2 X<factfq>factfqC<(x,p,a)>
 
 factorization in the field C<B<I<F>>_q> defined by
 the irreducible polynomial C<a> over C<B<I<F>>_p> of the polynomial
@@ -2023,14 +2023,14 @@ The library syntax is C<factmod9(x,p,a)>.
 
 
 
-=head2 factmodC<(x,p)>
+=head2 X<factmod>factmodC<(x,p)>
 
 factorization mod C<p> of the polynomial
 C<x> using Berlekamp. The coefficients of C<x> must
 be operation-compatible with C<B<I<Z>>/pB<I<Z>>>. The result is a two-column 
 matrix, the first column being the irreducible
 polynomials dividing C<x>, and the second the exponents. If you want only the
-I<sl> of the irreducible polynomials (for example, for computing an
+I<degrees> of the irreducible polynomials (for example, for computing an
 C<L>-function), use the function C<simplefactmod>. A different algorithm
 for computing the mod C<p> factorization is C<factcantor> which is 
 sometimes faster.
@@ -2039,7 +2039,7 @@ The library syntax is C<factmod(x,p)>.
 
 
 
-=head2 factorC<(x)>
+=head2 X<factor>factorC<(x)>
 
 general factorization function. If C<x> is
 of type integer, rational, polynomial or rational function,
@@ -2049,15 +2049,15 @@ If C<x> is a vector or a matrix, the factoring is done componentwise (hence
 the result is a vector or matrix of two-column matrices).
 
 The polynomials or rational functions to be factored must have scalar
-coefficients. In particular PARI does I<sl> yet know how to factor
+coefficients. In particular PARI does I<not> yet know how to factor
 multivariate polynomials.
 
-The library syntax is C<factor(x)>. See also C<I<factpol>>,
-C<I<factpol2>> and C<I<factornf>>.
+The library syntax is C<factor(x)>. See also C<X<factpol>factpol>,
+C<X<factpol2>factpol2> and C<X<factornf>factornf>.
 
 
 
-=head2 fiboC<(x)>
+=head2 X<fibo>fiboC<(x)>
 
 C<x^{th}> Fibonacci number.
 
@@ -2066,7 +2066,7 @@ C-long integer and not a PARI integer.
 
 
 
-=head2 gcdC<(x,y)>
+=head2 X<gcd>gcdC<(x,y)>
 
 creates the greatest common divisor of C<x>
 and C<y>. C<x> and C<y> can be of quite general types; for instance both
@@ -2078,18 +2078,18 @@ The library syntax is C<ggcd(x,y)>.
 
 
 
-=head2 hclassnoC<(x)>
+=head2 X<hclassno>hclassnoC<(x)>
 
-I<Hurwitz class number> of C<x>, where C<x> is
+X<Hurwitz class number>Hurwitz class number of C<x>, where C<x> is
 non-negative and congruent to 0 or 3 modulo 4. See also C<classno> above.
 
 The library syntax is C<hclassno(x)>.
 
 
 
-=head2 hilbC<(x,y,p)> or B<hilbp>C<(x,y)>
+=head2 X<hilb>hilbC<(x,y,p)> or B<hilbp>C<(x,y)>
 
-I<Hilbert symbol> of
+X<Hilbert symbol>Hilbert symbol of
 C<x> and C<y>. If C<x> and C<y> are of type integer or fraction, the function
 C<hilb> must be used with an explicit third parameter C<p>, C<p=0> meaning the place
 at infinity. Otherwise, C<p> need not be given, and C<x> and C<y> can be of 
@@ -2100,7 +2100,7 @@ C<hil(x,y)>.
 
 
 
-=head2 isfundC<(x)>
+=head2 X<isfund>isfundC<(x)>
 
 true (1) if C<x> is equal to 1 or to the
 discriminant of a quadratic field, false (0) otherwise. Vector/matrix
@@ -2113,7 +2113,7 @@ should be used if C<x> is known to be of type integer.
 
 
 
-=head2 isprimeC<(x)>
+=head2 X<isprime>isprimeC<(x)>
 
 true (1) if C<x> is a strong pseudo-prime
 for 10 randomly chosen bases, false (0) otherwise. Vector/matrix
@@ -2126,7 +2126,7 @@ should be used if C<x> is known to be of type integer.
 
 
 
-=head2 ispspC<(x)>
+=head2 X<ispsp>ispspC<(x)>
 
 true (1) if C<x> is a strong 
 pseudo-prime for a randomly chosen base, false (0) otherwise. Vector/matrix
@@ -2139,7 +2139,7 @@ should be used if C<x> is known to be of type integer.
 
 
 
-=head2 isqrtC<(x)>
+=head2 X<isqrt>isqrtC<(x)>
 
 integer square root of C<x>, which must be of PARI
 type integer. The result is non-negative and rounded towards zero.
@@ -2150,7 +2150,7 @@ The library syntax is C<racine(x)>.
 
 
 
-=head2 issqfreeC<(x)>
+=head2 X<issqfree>issqfreeC<(x)>
 
 true (1) if C<x> is squarefree, false if not.
 Here C<x> can be an integer or a polynomial. Vector/matrix
@@ -2163,7 +2163,7 @@ should be used if C<x> is known to be of type integer.
 
 
 
-=head2 issquareC<(x)>
+=head2 X<issquare>issquareC<(x)>
 
 true (1) if C<x> is square, false if not. C<x>
 can be of any type. For vector/matrix arguments the function is applied to
@@ -2177,9 +2177,9 @@ the integer square root in C<r>.
 
 
 
-=head2 kroC<(x,y)>
+=head2 X<kro>kroC<(x,y)>
 
-Kronecker I<Legendre symbol>
+Kronecker X<Legendre symbol>
 (i.e. generalized Legendre) symbol C<(\dfrac{x}{y})>. C<x> and C<y>
 must be of type integer and the result (C<0> or C<F<+-> 1>) is a C-long integer.
 
@@ -2187,7 +2187,7 @@ The library syntax is C<kronecker(x,y)>.
 
 
 
-=head2 lcmC<(x,y)>
+=head2 X<lcm>lcmC<(x,y)>
 
 least common multiple of C<x> and C<y>, i.e.
 such that C<lcm(x,y)*gcd(x,y)=abs(x*y)>.
@@ -2196,7 +2196,7 @@ The library syntax is C<glcm(x,y)>.
 
 
 
-=head2 muC<(x)>
+=head2 X<mu>muC<(x)>
 
 M\"obius C<F<mu>>-function of C<x>. C<x> must be of
 type integer and the result (C<0> or C<F<+-> 1>) is a C-long integer.
@@ -2205,7 +2205,7 @@ The library syntax is C<mu(x)>.
 
 
 
-=head2 nextprimeC<(x)>
+=head2 X<nextprime>nextprimeC<(x)>
 
 finds the smallest prime greater than or
 equal to C<x>. C<x> must be of type integer.
@@ -2214,7 +2214,7 @@ The library syntax is C<bigprem(x)>.
 
 
 
-=head2 nucompC<(x,y,l)>
+=head2 X<nucomp>nucompC<(x,y,l)>
 
 composition of the primitive positive definite
 binary quadratic forms C<x> and C<y> using the NUCOMP and NUDUPL algorithms
@@ -2227,7 +2227,7 @@ C<nudupl(x,l)> should be used instead for speed when C<x=y>.
 
 
 
-=head2 numdivC<(x)>
+=head2 X<numdiv>numdivC<(x)>
 
 number of divisors of C<x>. C<x> must be of type
 integer, and the result is a C-long integer.
@@ -2236,7 +2236,7 @@ The library syntax is C<numbdiv(x)>.
 
 
 
-=head2 nupowC<(x,n)>
+=head2 X<nupow>nupowC<(x,n)>
 
 C<n>-th power of the primitive positive definite
 binary quadratic form C<x> using the NUCOMP and NUDUPL algorithms (see
@@ -2246,7 +2246,7 @@ The library syntax is C<nupow(x,n)>.
 
 
 
-=head2 omegaC<(x)>
+=head2 X<omega>omegaC<(x)>
 
 number of distinct prime
 divisors of C<x>. C<x> must be of type integer, and the result is a C-long 
@@ -2256,7 +2256,7 @@ The library syntax is C<omega(x)>.
 
 
 
-=head2 orderC<(x)>
+=head2 X<order>orderC<(x)>
 
 C<x> must be an integer mod C<n>, and the result
 is the order of C<x> in the multiplicative group C<(B<I<Z>>/nB<I<Z>>)^*>. Error if
@@ -2266,7 +2266,7 @@ The library syntax is C<order(x)>.
 
 
 
-=head2 pfC<(x,p)>
+=head2 X<pf>pfC<(x,p)>
 
 prime binary quadratic form of discriminant C<x>
 whose first coefficient is the prime number C<p>. Error if C<x> is not a
@@ -2278,7 +2278,7 @@ variable C<prec> is a C-long integer, but is necessary only when C<xE<gt>0>.
 
 
 
-=head2 phiC<(x)>
+=head2 X<phi>phiC<(x)>
 
 Euler's C<F<phi>>-function of C<x>. C<x> must be of
 type integer.
@@ -2287,7 +2287,7 @@ The library syntax is C<phi(x)>.
 
 
 
-=head2 pnqnC<(x)>
+=head2 X<pnqn>pnqnC<(x)>
 
 When C<x> is a vector or a one-row matrix, C<x> is 
 considered as the list of partial quotients C<[a_0,a_1,...,a_n]> of a rational
@@ -2303,7 +2303,7 @@ The library syntax is C<pnqn(x)>.
 
 
 
-=head2 powrealrawC<(x,n)>
+=head2 X<powrealraw>powrealrawC<(x,n)>
 
 C<n>-th power of the binary quadratic
 form C<x> of positive discriminant, computed without doing any
@@ -2314,7 +2314,7 @@ The library syntax is C<powrealraw(x,n)> where C<n> must be a C-long integer.
 
 
 
-=head2 primeC<(x)>
+=head2 X<prime>primeC<(x)>
 
 the C<x^{th}> prime number. 
 
@@ -2322,7 +2322,7 @@ The library syntax is C<prime(x)>. C<x> must be a C-long integer.
 
 
 
-=head2 primesC<(x)>
+=head2 X<primes>primesC<(x)>
 
 creates a row vector whose components
 are the first C<x> prime numbers. 
@@ -2331,7 +2331,7 @@ The library syntax is C<primes(x)>. C<x> must be a C-long integer.
 
 
 
-=head2 primrootC<(x)>
+=head2 X<primroot>primrootC<(x)>
 
 returns a primitive root of C<x>, where C<x>
 is a prime power.
@@ -2340,17 +2340,17 @@ The library syntax is C<gener(x)>.
 
 
 
-=head2 qfiC<(a,b,c)>
+=head2 X<qfi>qfiC<(a,b,c)>
 
 creates the binary quadratic form C<ax^2+bxy+cy^2>
 with C<b^2-4ac<0>.
 
 The library syntax is C<qfi(a,b,c)>.
-I<Binary quadratic form>
+X<Binary quadratic form>
 
 
 
-=head2 qfrC<(a,b,c,d)>
+=head2 X<qfr>qfrC<(a,b,c,d)>
 
 creates the binary quadratic form C<ax^2+bxy+cy^2>
 with C<b^2-4acE<gt>0> and distance function C<d>.
@@ -2359,7 +2359,7 @@ The library syntax is C<qfr(a,b,c,d)>.
 
 
 
-=head2 quaddiscC<(x)>
+=head2 X<quaddisc>quaddiscC<(x)>
 
 discriminant of the quadratic field 
 C<B<I<Q>>( F<sqrt> x)>, where C<x\inB<I<Q>>>. Up to trivial 2-factors, this function
@@ -2369,7 +2369,7 @@ The library syntax is C<quaddisc(x)>.
 
 
 
-=head2 redimagC<(x)>
+=head2 X<redimag>redimagC<(x)>
 
 reduce the binary quadratic form C<x> with negative
 discriminant.
@@ -2378,7 +2378,7 @@ The library syntax is C<redimag(x)>.
 
 
 
-=head2 redrealC<(x)>
+=head2 X<redreal>redrealC<(x)>
 
 reduce the binary quadratic form C<x> with positive
 discriminant.
@@ -2387,7 +2387,7 @@ The library syntax is C<redreal(x)>.
 
 
 
-=head2 redrealnodC<(x,sq)>
+=head2 X<redrealnod>redrealnodC<(x,sq)>
 
 reduce the binary quadratic form C<x> with
 positive discriminant C<D> without computing the distance function, where
@@ -2397,7 +2397,7 @@ The library syntax is C<redrealnod(x,sq)>.
 
 
 
-=head2 regulaC<(x)>
+=head2 X<regula>regulaC<(x)>
 
 regulator of the quadratic field of positive 
 discriminant C<x>. Error if C<x> is not a discriminant (fundamental or not) or
@@ -2407,7 +2407,7 @@ The library syntax is C<regula(x,prec)>.
 
 
 
-=head2 rhorealC<(x)>
+=head2 X<rhoreal>rhorealC<(x)>
 
 perform one reduction step on the binary quadratic
 form C<x> with positive discriminant.
@@ -2416,7 +2416,7 @@ The library syntax is C<rhoreal(x)>.
 
 
 
-=head2 rhorealnodC<(x,sq)>
+=head2 X<rhorealnod>rhorealnodC<(x,sq)>
 
 perform one reduction step on the binary
 quadratic form C<x> with positive discriminant C<D> without computing the
@@ -2427,7 +2427,7 @@ The library syntax is C<rhorealnod(x,sq)>.
 
 
 
-=head2 sigmaC<(x)>
+=head2 X<sigma>sigmaC<(x)>
 
 sum of the positive divisors of C<x>. C<x> must
 be of type integer.
@@ -2436,7 +2436,7 @@ The library syntax is C<sumdiv(x)>.
 
 
 
-=head2 sigmakC<(k,x)>
+=head2 X<sigmak>sigmakC<(k,x)>
 
 sum of the C<k^{th}> powers of the
 positive divisors of C<x>. C<x> must be of type integer, but (in library mode)
@@ -2446,7 +2446,7 @@ The library syntax is C<sumdivk(k,x)>.
 
 
 
-=head2 simplefactmodC<(x,p)>
+=head2 X<simplefactmod>simplefactmodC<(x,p)>
 
 factorization mod C<p> of the polynomial
 C<x>. The coefficients of C<x> must be operation-compatible with C<B<I<Z>>/pB<I<Z>>>. The result is a two-column matrix, the first column being the degrees of
@@ -2458,7 +2458,7 @@ The library syntax is C<simplefactmod(x,p)>.
 
 
 
-=head2 smallfactC<(x)>
+=head2 X<smallfact>smallfactC<(x)>
 
 For integer C<x>, finds only the prime factors
 up to the default table created when GP was started (usually C<500000>). The 
@@ -2470,9 +2470,9 @@ The library syntax is C<smallfact(x)>.
 
 
 
-=head2 unitC<(x)>
+=head2 X<unit>unitC<(x)>
 
-I<fundamental unit> of the real quadratic field
+X<fundamental unit>fundamental unit of the real quadratic field
 C<B<I<Q>>( F<sqrt>  x)> where  C<x> is the positive discriminant of the field.
 If C<x> is not a fundamental discriminant, this
 probably gives the fundamental unit of the corresponding order.
@@ -2482,7 +2482,7 @@ The library syntax is C<fundunit(x)>.
 
 
 
-=head2 znstarC<(n)>
+=head2 X<znstar>znstarC<(n)>
 
 gives the structure of the multiplicative group 
 C<(B<I<Z>>/nB<I<Z>>)^*> as a 3-component row vector C<v>, where C<v[1]=F<phi>(n)> is the
@@ -2531,7 +2531,7 @@ of the group law, represented by the one-component vector C<[0]>.
 
 
 
-=head2 addellC<(e,z1,z2)>
+=head2 X<addell>addellC<(e,z1,z2)>
 
 sum of the points C<z1> and C<z2> on the
 elliptic curve corresponding to the vector C<e>.
@@ -2540,7 +2540,7 @@ The library syntax is C<addell(e,z1,z2)>.
 
 
 
-=head2 akellC<(e,n)>
+=head2 X<akell>akellC<(e,n)>
 
 compute the coefficient C<a_n> of the C<L>-function
 of the elliptic curve C<e>, i.e. in principle coefficients of
@@ -2554,7 +2554,7 @@ The library syntax is C<akell(e,n)>.
 
 
 
-=head2 anellC<(e,n)>
+=head2 X<anell>anellC<(e,n)>
 
 compute the vector of the first C<n> C<a_k>
 corresponding to the elliptic curve C<e>, i.e. in principle coefficients of
@@ -2568,7 +2568,7 @@ The library syntax is C<anell(e,n)>, where C<n> is a C integer.
 
 
 
-=head2 apellC<(e,p)>
+=head2 X<apell>apellC<(e,p)>
 
 compute the C<a_p> corresponding to the
 elliptic curve C<e> and the prime number C<p>, using the baby-step giant-step
@@ -2581,7 +2581,7 @@ The library syntax is C<apell(e,p)>.
 
 
 
-=head2 apell2C<(e,p)>
+=head2 X<apell2>apell2C<(e,p)>
 
 compute the C<a_p> corresponding to the
 elliptic curve C<e> and the prime number C<p> as a sum of Legendre symbols.
@@ -2593,7 +2593,7 @@ The library syntax is C<apell2(e,p)>.
 
 
 
-=head2 bilhellC<(e,z1,z2)>
+=head2 X<bilhell>bilhellC<(e,z1,z2)>
 
 If C<z1> and C<z2> are points on the elliptic
 curve C<e>, this function computes the value of the canonical bilinear form
@@ -2605,7 +2605,7 @@ The library syntax is C<bilhell(e,z1,z2,prec)>.
 
 
 
-=head2 chellC<(e,v)>
+=head2 X<chell>chellC<(e,v)>
 
 change the data for the elliptic curve C<e>
 by changing the coordinates using the vector C<v=[u,r,s,t]>, i.e.
@@ -2617,7 +2617,7 @@ The library syntax is C<coordch(e,v)>.
 
 
 
-=head2 chptellC<(x,v)>
+=head2 X<chptell>chptellC<(x,v)>
 
 change the coordinates of the point or vector of
 points C<x> using the vector C<v=[u,r,s,t]>, i.e.
@@ -2628,7 +2628,7 @@ The library syntax is C<pointch(x,v)>.
 
 
 
-=head2 globalredC<(e)>
+=head2 X<globalred>globalredC<(e)>
 
 calculate the arithmetic conductor, the global
 minimal model of C<e> and the global Tamagawa number C<c>. Here C<e> is an 
@@ -2648,9 +2648,9 @@ The library syntax is  C<globalreduction(e)>.
 
 
 
-=head2 hellC<(e,z)>
+=head2 X<hell>hellC<(e,z)>
 
-global I<N\'eron-Tate height> of the
+global X<N\'eron-Tate height>N\'eron-Tate height of the
 point C<z> on the elliptic curve C<e>. The vector C<e> must be a long vector
 of the type given by C<initell>. This computation is done using sigma and 
 theta-functions and a trick due to J. Silverman.
@@ -2660,7 +2660,7 @@ alone is given by the library function C<hell(e,z,prec)>.
 
 
 
-=head2 hell2C<(e,z)>
+=head2 X<hell2>hell2C<(e,z)>
 
 same as C<hell>, except that the algorithm used
 is Tate's C<4^n> algorithm, and is much slower. 
@@ -2669,7 +2669,7 @@ The library syntax is C<ghell2(e,z,prec)>.
 
 
 
-=head2 initellC<(e)>
+=head2 X<initell>initellC<(e)>
 
 compute some fixed data concerning the elliptic
 curve given by the five component vector C<e>, which will be essential for
@@ -2733,7 +2733,7 @@ The library syntax is C<initell(e,prec)>.
 
 
 
-=head2 isoncurveC<(e,z)>
+=head2 X<isoncurve>isoncurveC<(e,z)>
 
 gives 1 (i.e. true) if the point C<z> is on the
 elliptic curve C<e>, 0 otherwise. Here C<e> can be a five-component vector or
@@ -2744,7 +2744,7 @@ C-long integer.
 
 
 
-=head2 localredC<(e,p)>
+=head2 X<localred>localredC<(e,p)>
 
 calculate the Kodaira type of the local
 fiber of the elliptic curve C<e> at the prime C<p>. C<e> must be given by a
@@ -2766,7 +2766,7 @@ The library syntax is C<localreduction(e,p)>.
 
 
 
-=head2 lseriesellC<(e,s,N,A)>
+=head2 X<lseriesell>lseriesellC<(e,s,N,A)>
 
 C<e> being a medium or long vector given by
 C<smallinitell> or C<initell>, this computes the value of the L-series
@@ -2778,7 +2778,7 @@ being independent of C<A>, this function can be used to compute the sign
 of the functional equation, and even C<N> if one wants, although it is always
 much faster to apply the function C<globalred>. 
 
-Note that in the present version 1.39.3.1, this function is accessible externally
+Note that in the present version 1.39.3, this function is accessible externally
 in GP, but in future versions it may only be accessible in library mode
 since it will be superseded.
 
@@ -2791,7 +2791,7 @@ C-long integer.
 
 
 
-=head2 mathellC<(e,x)>
+=head2 X<mathell>mathellC<(e,x)>
 
 C<x> being a vector of points, this
 function outputs the Gram matrix of C<x> with respect to the N\'eron-Tate
@@ -2806,7 +2806,7 @@ The library syntax is C<mathell(e,x,prec)>.
 
 
 
-=head2 ordellC<(e,x)>
+=head2 X<ordell>ordellC<(e,x)>
 
 gives a 0, 1 or 2-component vector containing
 the C<y>-coordinates of the points of the curve C<e> having C<x> as 
@@ -2816,18 +2816,18 @@ The library syntax is C<ordell(e,x)>.
 
 
 
-=head2 orderellC<(e,z)>
+=head2 X<orderell>orderellC<(e,z)>
 
 gives the order of the point C<z> on the elliptic
 curve C<e> if it is a torsion point, zero otherwise. In the present 
-version 1.39.3.1{}, this is implemented only for elliptic curves defined over
+version 1.39.3{}, this is implemented only for elliptic curves defined over
 C<B<I<Q>>>.
 
 The library syntax is C<orderell(e,z)>, and the result is a GEN.
 
 
 
-=head2 pointellC<(e,z)>
+=head2 X<pointell>pointellC<(e,z)>
 
 C<e> being a long vector, computes the coordinates
 C<[x,y]> on the curve C<e> corresponding to the complex number C<z>. Hence this is
@@ -2840,7 +2840,7 @@ The library syntax is C<pointell(e,z,prec)>.
 
 
 
-=head2 powellC<(e,z,n)>
+=head2 X<powell>powellC<(e,z,n)>
 
 computes C<n> times the point C<z> for the
 group law on the elliptic curve C<e>. Here C<n> is in C<B<I<Z>>>.
@@ -2849,7 +2849,7 @@ The library syntax is C<powell(e,z,n)>.
 
 
 
-=head2 smallinitellC<(e)>
+=head2 X<smallinitell>smallinitellC<(e)>
 
 compute some fixed data concerning the elliptic
 curve given by the five component vector C<e>, which may be useful for
@@ -2866,7 +2866,7 @@ The library syntax is C<smallinitell(e)>.
 
 
 
-=head2 subellC<(e,z1,z2)>
+=head2 X<subell>subellC<(e,z1,z2)>
 
 difference of the points C<z1> and C<z2> on the
 elliptic curve corresponding to the vector C<e>.
@@ -2875,7 +2875,7 @@ The library syntax is C<subell(e,z1,z2)>.
 
 
 
-=head2 taniyamaC<(e)>
+=head2 X<taniyama>taniyamaC<(e)>
 
 computes the modular parametrization of the elliptic
 curve C<e> (where C<e> is given in the format output by C<initell> or
@@ -2886,7 +2886,7 @@ satisfies the equation of the elliptic curve. Second, the differential
 C<du/(2v+a_1u+a_3)> is equal to C<f(z)dz>, a differential form on C<H/F<Gamma>_0(N)>
 where C<N> is the conductor of the curve. The variable used in the power series
 for C<u> and C<v> is C<x>, which is implicitly understood to be equal to
-C< F<exp> (2iF<pi> z)>. It is assumed that the curve is a I<it> Weil curve,
+C< F<exp> (2iF<pi> z)>. It is assumed that the curve is a I<strong> Weil curve,
 and the Manin constant is equal to 1. The equation of the curve C<e> must be 
 minimal (use C<globalred> to get a minimal equation).
 
@@ -2895,7 +2895,7 @@ is determined by the global variable C<precdl>.
 
 
 
-=head2 torsellC<(e)>
+=head2 X<torsell>torsellC<(e)>
 
 If C<e> is an elliptic curve defined over C<B<I<Q>>>,
 this outputs the torsion subgroup of C<e> as a 3-component vector 
@@ -2910,7 +2910,7 @@ The library syntax is C<torsell(e)>.
 
 
 
-=head2 zellC<(e,z)>
+=head2 X<zell>zellC<(e,z)>
 
 If C<e> is an elliptic curve with coefficients in
 C<B<I<R>>>, this computes a complex number C<t> (modulo the lattice defining C<e>)
@@ -2939,12 +2939,12 @@ number fields can be found in section 3.4 above.
 
 In this section, C<nf> will always denote a number field, i.e. a 9-component
 vector in the format output by C<initalg> or C<initalgred>. An
-I<it> (usually C<x> or C<y>) will mean the following:
+I<ideal> (usually C<x> or C<y>) will mean the following:
 
 C<x> can be a C<B<I<Z>>>-basis, in Hermite Normal Form (HNF) or not. In this case
 C<x> is a square matrix.
 
-C<x> can be an I<it>, i.e. a 2-component vector, the first being an
+C<x> can be an I<idele>, i.e. a 2-component vector, the first being an
 ideal given as a C<B<I<Z>>>-basis, the second being a C<r_1+r_2>-component row vector
 giving the complex logarithmic archimedean information.
 
@@ -2967,7 +2967,7 @@ B<Warnings.>
 
 1) An element in C<nf> can be expressed either as a
 polymod or as a vector of components on the integral basis C<nf[7]>. It
-is absolutely essential that all such vectors be I<it> vectors.
+is absolutely essential that all such vectors be I<column> vectors.
 
 2) When giving an ideal by a C<B<I<Z>>_K> generating system to a function 
 expecting an ideal, it must be ensured that the function understands 
@@ -2977,12 +2977,12 @@ field, there is no ambiguity and the program assumes that one is
 giving a C<B<I<Z>>_K>-generating set. When the number of generators is greater
 than or equal to the degree of the field, however, the program assumes
 on the contrary that you are giving a C<B<I<Z>>>-generating set. If this is
-not the case, you I<it> absolutely change it into a C<B<I<Z>>>-generating
+not the case, you I<must> absolutely change it into a C<B<I<Z>>>-generating
 set, the simplest manner being to use C<idealmul(nf,x,idmat(N))>
 where C<N> is the degree of the field.
 
 B<Remark.> Starting with version 1.38.9, we include a number of 
-programs for working in I<it> extensions of number fields. To
+programs for working in I<relative> extensions of number fields. To
 our knowlege, this is the first existing implementation of such 
 functions, and is being written up for publication. This has two 
 consequences. First, the functions are provided for help in research,
@@ -2993,28 +2993,28 @@ about it. Of course, when our paper(s) are published the above will
 become irrelevant.
 
 Concerning relative extensions, some definitions are necessary. 
-A I<it> will be a matrix whose entries are elements
+A I<relative matrix> will be a matrix whose entries are elements
 of a (given) number field C<nf>, always expressed as column vectors on
 the integral basis C<nf[7]>. Hence it is a matrix of vectors.
 
-An I<it> will be a row vector of (fractional) ideals of the
+An I<ideal list> will be a row vector of (fractional) ideals of the
 number field C<nf>.
 
-A I<it> will be a pair C<(A,I)> where C<A> is a relative
+A I<pseudo-matrix> will be a pair C<(A,I)> where C<A> is a relative
 matrix and C<I> an ideal list whose length is the same as the number of
 columns of C<A>. This pair will be represented by a 2-component row vector.
 
-The I<it> generated by a pseudo-matrix C<(A,I)> is the sum
+The I<module> generated by a pseudo-matrix C<(A,I)> is the sum
 C<\sum_i\a_jA_j> where the C<\a_j> are the ideals of C<I> and C<A_j> is the
 C<j>-th column of C<A>.
 
-A pseudo-matrix C<(A,I)> is a I<it> of the module it
+A pseudo-matrix C<(A,I)> is a I<pseudo-basis> of the module it
 generates if C<A> is a square matrix with non-zero determinant and all
 the ideals of C<I> are non-zero. We say that it is in Hermite Normal
 Form (HNF) if it is upper triangular and all the elements of the
 diagonal are equal to 1.
 
-The I<it> of a pseudo-basis C<(A,I)> is the ideal
+The I<determinant> of a pseudo-basis C<(A,I)> is the ideal
 equal to the product of the determinant of C<A> by all the ideals of C<I>.
 The determinant of a pseudo-matrix is the determinant of any pseudo-basis
 of the module it generates.
@@ -3033,7 +3033,7 @@ in the descriptions of the functions below, it is permissible, if the
 function expects a number field, to use a big number field instead.
 The program will make the effort of converting to what it needs. On the
 other hand, if the program requires a big number field, the program
-will I<it> launch C<buchinit> for you, which can be a costly
+will I<not> launch C<buchinit> for you, which can be a costly
 operation, but give you a specific error message telling you that
 you should use C<buchinit>.
 
@@ -3041,7 +3041,7 @@ you should use C<buchinit>.
 
 
 
-=head2 algtobasisC<(nf,x)>
+=head2 X<algtobasis>algtobasisC<(nf,x)>
 
 this is the inverse function of
 C<basistoalg>. Given an object C<x> whose entries are expressed
@@ -3052,9 +3052,9 @@ The library syntax is C<algtobasis(nf,x)>.
 
 
 
-=head2 basisC<(x)>
+=head2 X<basis>basisC<(x)>
 
-I<integral basis> of the number field defined by
+X<integral basis>integral basis of the number field defined by
 the monic irreducible polynomial C<x>, using the round 4 algorithm.
 For small degrees and coefficient size, C<basis2> is sometimes
 a little faster. For larger degrees, C<basis> is much faster.
@@ -3064,11 +3064,11 @@ by David Ford in Maple. If only a local integral basis is desired, use
 C<factoredbasis>.
 
 The library syntax is C<base(x,&d)>, where C<d> will receive the
-discriminant of the number field (I<sl> of the polynomial C<x>).
+discriminant of the number field (I<not> of the polynomial C<x>).
 
 
 
-=head2 basis2C<(x)>
+=head2 X<basis2>basis2C<(x)>
 
 integral basis of the number field defined by
 the monic irreducible polynomial C<x>, using the round 2 algorithm.
@@ -3076,11 +3076,11 @@ This program is the translation in C of a program written
 by David Ford in Algeb. 
 
 The library syntax is C<base2(x,&d)>, where C<d> will receive the
-discriminant of the number field (I<sl> of the polynomial C<x>).
+discriminant of the number field (I<not> of the polynomial C<x>).
 
 
 
-=head2 basistoalgC<(nf,x)>
+=head2 X<basistoalg>basistoalgC<(nf,x)>
 
 this is the inverse function of 
 C<algtobasis>. Given an object C<x> whose entries
@@ -3145,13 +3145,13 @@ be much higher than C<prec>.
 B<Remark.>
 
 Under GP, apart from the polynomial C<P>, only part of the parameters can be
-given. However, they I<it> be given in the requested order. For example,
+given. However, they I<must> be given in the requested order. For example,
 if you want to specify a given value of C<nrel>, you must give some values
 for C<c> and C<c2>. 
 
 
 
-=head2 buchgenC<(P,...)>
+=head2 X<buchgen>buchgenC<(P,...)>
 
 identical to C<buchgenfu> (see below)
 except that the fundamental units and roots of unity are not computed.
@@ -3163,7 +3163,7 @@ C<buchall(P,c,c2,nrel,borne,nbpid,minsfb,0,prec)> (see above).
 
 
 
-=head2 buchgenforcefuC<(P,...)>
+=head2 X<buchgenforcefu>buchgenforcefuC<(P,...)>
 
 identical to C<buchgenfu> (see
 below), except that when the precision is insufficient for obtaining
@@ -3180,7 +3180,7 @@ C<buchall(P,c,c2,nrel,borne,nbpid,minsfb,3,prec)> (see above).
 
 
 
-=head2 buchgenfuC<(P,...)>
+=head2 X<buchgenfu>buchgenfuC<(P,...)>
 
 Buchmann's sub-exponential algorithm for
 computing the class group, the regulator and a system of fundamental units of
@@ -3227,7 +3227,7 @@ C<buchall(P,c,c2,nrel,borne,nbpid,minsfb,2,prec)> (see above).
 
 
 
-=head2 buchinitC<(P,...)>
+=head2 X<buchinit>buchinitC<(P,...)>
 
 essentially identical to C<buchgen> 
 except that the output is much longer, and should not be printed out explicitly
@@ -3236,7 +3236,8 @@ C<isprincipal>, C<isprincipalgen>, C<isunit> or C<buchnarrow>.
 The result is an 8-component vector C<v>, 
 whose first 6 components are technical and in principle are not used by the
 casual user. However, for the sake of completeness, their description is as
-follows. We use the notations explained in the book by H. Cohen, I<it>, Graduate Texts in Maths
+follows. We use the notations explained in the book by H. Cohen, I<A  
+Course in Computational Algebraic Number Theory>, Graduate Texts in Maths
 B<138>, Springer-Verlag, 1993, Section 6.5, and pages 354 and 355 in 
 particular.
 
@@ -3270,7 +3271,7 @@ C<buchall(P,c,c2,nrel,borne,nbpid,minsfb,-1,prec)> (see above).
 
 
 
-=head2 buchinitforcefuC<(P,...)>
+=head2 X<buchinitforcefu>buchinitforcefuC<(P,...)>
 
 identical to C<buchinitfu> (see
 below), except that when the precision is insufficient for obtaining
@@ -3284,7 +3285,7 @@ C<buchall(P,c,c2,nrel,borne,nbpid,minsfb,-3,prec)> (see above).
 
 
 
-=head2 buchinitfuC<(P,...)>
+=head2 X<buchinitfu>buchinitfuC<(P,...)>
 
 same as C<buchinit> except that the
 8-th component contains the last 6 components of C<buchgenfu[,1]>, i.e. also
@@ -3295,7 +3296,7 @@ C<buchall(P,c,c2,nrel,borne,nbpid,minsfb,-2,prec)> (see above).
 
 
 
-=head2 buchnarrowC<(bnf)>
+=head2 X<buchnarrow>buchnarrowC<(bnf)>
 
 C<bnf> being a big number field as output by
 C<buchinit> or C<buchinitfu>, computes the narrow class group of C<bnf>.
@@ -3310,7 +3311,7 @@ The library syntax is C<buchnarrow(bnf)>.
 
 
 
-=head2 buchrayC<(bnf,I)>
+=head2 X<buchray>buchrayC<(bnf,I)>
 
 C<bnf> being a big number field as output
 by C<buchinitfu> (or C<buchinitforcefu>, but the units are mandatory
@@ -3325,7 +3326,7 @@ The library syntax is C<buchray(bnf,I)>.
 
 
 
-=head2 buchrayinitC<(bnf,I)>
+=head2 X<buchrayinit>buchrayinitC<(bnf,I)>
 
 same as C<buchray> except that the
 output is different. It is a 5-component vector C<w>. C<w[1]> is C<bnf>.
@@ -3338,7 +3339,7 @@ The library syntax is C<buchrayinit(bnf,I)>.
 
 
 
-=head2 compositumC<(x,y)>
+=head2 X<compositum>compositumC<(x,y)>
 
 if C<x> and C<y> are irredicible, this gives
 a defining polynomial of a compositum of one of the number fields defined by
@@ -3351,7 +3352,7 @@ The library syntax is C<compositum(x,y)>.
 
 
 
-=head2 dirzetakC<(nf,b)>
+=head2 X<dirzetak>dirzetakC<(nf,b)>
 
 gives as a vector the first C<b> coefficients
 of the Dedekind zeta function of the number field C<nf> considered as a 
@@ -3361,21 +3362,21 @@ The library syntax is C<dirzetak(nf,b)>.
 
 
 
-=head2 discfC<(x)>
+=head2 X<discf>discfC<(x)>
 
-I<field discriminant> of the number field defined
+X<field discriminant>field discriminant of the number field defined
 by the monic irreducible polynomial C<x>.
 
 The library syntax is C<discf(x)>. See also C<basis> above.
 
 
 
-=head2 factoredbasisC<(x,f)>
+=head2 X<factoredbasis>factoredbasisC<(x,f)>
 
-I<integral basis> of the number field 
+X<integral basis>integral basis of the number field 
 defined by the monic irreducible polynomial C<x>, using the round 2 algorithm,
 where C<f> is the two-column matrix of the factorization of the discriminant 
-of the polynomial C<x>. Note that C<f> does I<it> need to be a complete
+of the polynomial C<x>. Note that C<f> does I<not> need to be a complete
 factorization of the discriminant. This is especially useful if only a local 
 integral basis at a prime or primes is desired: only factors with exponents
 greater or equal to 2 will be considered.
@@ -3385,9 +3386,9 @@ receive the discriminant of the number field.
 
 
 
-=head2 factoreddiscfC<(x,p)>
+=head2 X<factoreddiscf>factoreddiscfC<(x,p)>
 
-I<field discriminant> of the number field defined by
+X<field discriminant>field discriminant of the number field defined by
 the monic irreducible polynomial C<x>, using the round 2 algorithm, where C<p> is
 the two-column matrix of the factorization of the discriminant of the polynomial C<x>.
 
@@ -3395,7 +3396,7 @@ The library syntax is C<factoreddiscf(x,p)>.
 
 
 
-=head2 factoredpolredC<(x,p)>
+=head2 X<factoredpolred>factoredpolredC<(x,p)>
 
 same as C<polred> (see below) except that
 C<p> is the two-column matrix of the factorization of the discriminant of
@@ -3405,7 +3406,7 @@ The library syntax is C<factoredpolred(x,p,prec)>.
 
 
 
-=head2 factoredpolred2C<(x,p)>
+=head2 X<factoredpolred2>factoredpolred2C<(x,p)>
 
 same as C<polred2> (see below) except that
 C<p> is the two-column matrix of the factorization of the discriminant of the polynomial C<x>.
@@ -3414,7 +3415,7 @@ The library syntax is C<factoredpolred2(x,p,prec)>.
 
 
 
-=head2 factornfC<(x,t)>
+=head2 X<factornf>factornfC<(x,t)>
 
 factorization of the univariate
 polynomial C<x> over the number field defined by the (univariate)
@@ -3422,7 +3423,7 @@ polynomial C<t>. C<x> may have coefficients in C<B<I<Q>>> or in the number
 field. The main variable of C<t> must be of lower priority than that of C<x>
 (in other words the variable number of C<t> must be greater than that of C<x>).
 However if the coefficients of the number field occur explicitly (as polymods)
-as coefficients of C<x>, the variable of these polymods I<it> be the same
+as coefficients of C<x>, the variable of these polymods I<must> be the same
 as the main variable of C<t>. For example 
 C<factornf(x^2+mod(y,y^2+1),y^2+1)> and
 C<factornf(x^2+1,y^2+1)> are legal but
@@ -3432,10 +3433,10 @@ The library syntax is C<polfnf(x,t)>.
 
 
 
-=head2 galoisC<(x)>
+=head2 X<galois>galoisC<(x)>
 
 Galois group of the non-constant polynomial
-C<x\inB<I<Q>>[X]>. In the present version 1.39.3.1, C<x> must be irreducible and the
+C<x\inB<I<Q>>[X]>. In the present version 1.39.3, C<x> must be irreducible and the
 degree of C<x> must be less than or equal to 7 (for degrees 8,9,10, and 11
 we have specific PARI programs available upon request).
 
@@ -3489,7 +3490,7 @@ The library syntax is C<galois(x,prec)>.
 
 
 
-=head2 galoisapplyC<(nf,aut,x)>
+=head2 X<galoisapply>galoisapplyC<(nf,aut,x)>
 
 C<nf> being a number field as output
 by C<initalg> or C<initalgred>, and C<aut> being a Galois automorphism
@@ -3506,7 +3507,7 @@ The library syntax is C<galoisapply(nf,aut,x)>.
 
 
 
-=head2 galoisconjC<(nf)>
+=head2 X<galoisconj>galoisconjC<(nf)>
 
 C<nf> being a number field as output by 
 C<initalg> or C<initalgred>, computes the conjugates of a root C<r> of
@@ -3522,7 +3523,7 @@ The library syntax is C<galoisconj(nf,prec)>.
 
 
 
-=head2 galoisconj1C<(nf)>
+=head2 X<galoisconj1>galoisconj1C<(nf)>
 
 C<nf> being a number field as output by 
 C<initalg> or C<initalgred>, computes the conjugates of a root C<r> of
@@ -3537,7 +3538,7 @@ not accessible under GP, where C<x> is now the polynomial itself.
 
 
 
-=head2 galoisconjforceC<(nf)>
+=head2 X<galoisconjforce>galoisconjforceC<(nf)>
 
 C<nf> being a number field as output by 
 C<initalg> or C<initalgred>, computes the conjugates of a root C<r> of
@@ -3551,7 +3552,7 @@ The library syntax is C<galoisconjforce(nf,prec)>.
 
 
 
-=head2 idealaddC<(nf,x,y)>
+=head2 X<idealadd>idealaddC<(nf,x,y)>
 
 sum of the two ideals C<x> and C<y> in the 
 number field C<nf>. When C<x> and C<y> are given by C<B<I<Z>>>-bases, this does
@@ -3562,7 +3563,7 @@ The library syntax is C<idealadd(nf,x,y)>.
 
 
 
-=head2 idealaddoneC<(nf,x,y)>
+=head2 X<idealaddone>idealaddoneC<(nf,x,y)>
 
 C<x> and C<y> being two co-prime integral
 ideals (given in any form), this gives a two-component row vector C<[a,b]>
@@ -3572,7 +3573,7 @@ The library syntax is C<idealaddone(nf,x,y)>.
 
 
 
-=head2 idealaddmultoneC<(nf,v)>
+=head2 X<idealaddmultone>idealaddmultoneC<(nf,v)>
 
 C<v> being a C<k>-component vector of 
 ideals (given in any form) which sum to C<B<I<Z>>_K>, gives a C<k>-component 
@@ -3583,7 +3584,7 @@ The library syntax is C<idealaddmultone(nf,v)>.
 
 
 
-=head2 idealapprC<(nf,x)>
+=head2 X<idealappr>idealapprC<(nf,x)>
 
 If C<x> is a fractional ideal (given in any
 form), gives an element C<F<alpha>> in C<nf> such that for all prime ideals 
@@ -3595,7 +3596,7 @@ The library syntax is C<idealappr(nf,x)>.
 
 
 
-=head2 idealapprfactC<(nf,x)>
+=head2 X<idealapprfact>idealapprfactC<(nf,x)>
 
 Given a prime ideal factorization as
 given by C<idealfactor>, but possibly with zero or negative exponents
@@ -3611,7 +3612,7 @@ The library syntax is C<idealapprfact(nf,x)>.
 
 
 
-=head2 idealcoprimeC<(nf,x,y)>
+=head2 X<idealcoprime>idealcoprimeC<(nf,x,y)>
 
 given two integral ideals C<x> and C<y>
 in the number field C<nf>, finds a C<F<beta>> in the field, expressed on the
@@ -3622,7 +3623,7 @@ The library syntax is C<idealcoprime(nf,x)>.
 
 
 
-=head2 idealdivC<(nf,x,y)>
+=head2 X<idealdiv>idealdivC<(nf,x,y)>
 
 quotient C<x .  y^{-1}> of the two ideals 
 C<x> and C<y> in the number field C<nf>. The result is given in HNF.
@@ -3631,7 +3632,7 @@ The library syntax is C<idealdiv(nf,x,y)>.
 
 
 
-=head2 idealdivexactC<(nf, x, y)>
+=head2 X<idealdivexact>idealdivexactC<(nf, x, y)>
 
 Same as C<idealdiv>,
 except that the quotient C<x  .  y^{-1}> is assumed to
@@ -3643,7 +3644,7 @@ The library syntax is C<idealdivexact(nf,x,y)>.
 
 
 
-=head2 idealfactorC<(nf,x)>
+=head2 X<idealfactor>idealfactorC<(nf,x)>
 
 factors into prime ideal powers the ideal
 C<x> in the number field C<nf>. The output format is similar to the
@@ -3654,7 +3655,7 @@ The library syntax is C<idealfactor(nf,x)>.
 
 
 
-=head2 idealhermiteC<(nf,x)>
+=head2 X<idealhermite>idealhermiteC<(nf,x)>
 
 gives the Hermite normal form matrix
 of the ideal C<x>. The ideal can be given in any form whatsoever
@@ -3666,7 +3667,7 @@ The library syntax is C<idealhermite(nf,x)>.
 
 
 
-=head2 idealhermite2C<(nf,a,b)>
+=head2 X<idealhermite2>idealhermite2C<(nf,a,b)>
 
 gives the Hermite normal form matrix
 of the ideal C<x=aB<I<Z>>_K+bB<I<Z>>_K>, where C<a> and C<b> are elements of C<K> given
@@ -3676,7 +3677,7 @@ The library syntax is C<idealhermite(nf,x)>.
 
 
 
-=head2 idealintersectC<(nf,x,y)>
+=head2 X<idealintersect>idealintersectC<(nf,x,y)>
 
 intersection of the two ideals C<x>
 and C<y> in the number field C<nf>. When C<x> and C<y> are given by 
@@ -3687,7 +3688,7 @@ The library syntax is C<idealintersect(nf,x,y)>.
 
 
 
-=head2 idealinvC<(nf,x)>
+=head2 X<idealinv>idealinvC<(nf,x)>
 
 inverse of the ideal C<x> in the number 
 field C<nf>. The result is the Hermite normal form of the inverse of the 
@@ -3698,7 +3699,7 @@ The library syntax is C<idealinv(nf,x)>.
 
 
 
-=head2 idealinv2C<(nf,x)>
+=head2 X<idealinv2>idealinv2C<(nf,x)>
 
 inverse of the ideal C<x> in the number 
 field C<nf>. The result is the Hermite normal form of the inverse of the 
@@ -3710,7 +3711,7 @@ The library syntax is C<oldidealinv(nf,x)>.
 
 
 
-=head2 ideallllredC<(nf,x,vdir)>
+=head2 X<ideallllred>ideallllredC<(nf,x,vdir)>
 
 LLL reduction of the ideal C<x>
 in the number field C<nf>, along the direction C<vdir>. Here C<vdir> must be
@@ -3718,7 +3719,7 @@ either an C<r1+r2>-component vector (C<r1> and C<r2> number of real and complex
 places of C<nf> as usual), or the PARI zero, in which case C<vdir> is assumed
 to be equal to the vector having only components equal to 1. The notion
 of reduction along a direction is technical and cannot be explained here.
-Note that this is I<it> the same as the LLL
+Note that this is I<not> the same as the LLL
 reduction of the lattice C<x> since ideal operations are involved. The
 result is the Hermite normal form of the LLL-reduced ideal, which is usually,
 but not always, a reduced ideal. C<x> may also be a 2-component vector,
@@ -3729,7 +3730,7 @@ The library syntax is C<ideallllred(nf,x,vdir,prec)>.
 
 
 
-=head2 idealmulC<(nf,x,y)>
+=head2 X<idealmul>idealmulC<(nf,x,y)>
 
 ideal multiplication of the ideals C<x> and
 C<y> in the number field C<nf>. The result is a generating set for 
@@ -3741,7 +3742,7 @@ The library syntax is C<idealmul(nf,x,y)>.
 
 
 
-=head2 idealmulredC<(nf,x,y)>
+=head2 X<idealmulred>idealmulredC<(nf,x,y)>
 
 same as C<idealmul>, except that the
 result is reduced using C<ideallllred>.
@@ -3751,7 +3752,7 @@ C-long integer representing the precision.
 
 
 
-=head2 idealnormC<(nf, x)>
+=head2 X<idealnorm>idealnormC<(nf, x)>
 
 computes the norm of the ideal C<x>
 in the number field C<nf>.
@@ -3760,7 +3761,7 @@ The library syntax is C<idealnorm(nf, x)>.
 
 
 
-=head2 idealpowC<(nf,x,k)>
+=head2 X<idealpow>idealpowC<(nf,x,k)>
 
 computes the C<k>-th power of the ideal
 C<x> in the number field C<nf>.
@@ -3773,7 +3774,7 @@ C<idealpows(nf,x,k)> is available, where C<k> is now a C-long integer.
 
 
 
-=head2 idealpowredC<(nf,x,k)>
+=head2 X<idealpowred>idealpowredC<(nf,x,k)>
 
 computes a reduced C<k>-th power of the
 ideal C<x> in the number field C<nf>.
@@ -3787,7 +3788,7 @@ C-long integer.
 
 
 
-=head2 idealtwoeltC<(nf,x)>
+=head2 X<idealtwoelt>idealtwoeltC<(nf,x)>
 
 computes a two-element representation of
 the ideal C<x> in the number field C<nf>, using a straightforward
@@ -3803,7 +3804,7 @@ The library syntax is C<ideal_two_elt(nf,x)>.
 
 
 
-=head2 idealtwoelt2C<(nf,x,a)>
+=head2 X<idealtwoelt2>idealtwoelt2C<(nf,x,a)>
 
 if C<x> is an integral ideal (given in
 any form) and C<a> a non-zero element of C<x>, this computes a C<b\in x> 
@@ -3815,7 +3816,7 @@ The library syntax is C<ideal_two_elt2(nf,x,a)>.
 
 
 
-=head2 idealvalC<(nf,x,vp)>
+=head2 X<idealval>idealvalC<(nf,x,vp)>
 
 gives the valuation of the ideal C<x>
 at the prime ideal C<vp> in the number field C<nf>, where C<vp> must be a
@@ -3825,7 +3826,7 @@ The library syntax is C<idealval(nf,x,vp)> and the result is a C-long integer.
 
 
 
-=head2 initalgC<(x)>
+=head2 X<initalg>initalgC<(x)>
 
 C<x> being a non-constant irreducible polynomial in 
 C<B<I<Q>>[X]>, computes a 9-component vector C<v> useful in working in the number
@@ -3865,7 +3866,7 @@ The library syntax is C<initalg(x,prec)>.
 
 
 
-=head2 initalgredC<(x)>
+=head2 X<initalgred>initalgredC<(x)>
 
 same as C<initalg> except that the
 polynomial C<x> is changed into a polynomial defining C<K> which is
@@ -3878,7 +3879,7 @@ The library syntax is C<initalgred(x,prec)>.
 
 
 
-=head2 initalgred2C<(P)>
+=head2 X<initalgred2>initalgred2C<(P)>
 
 this is a complement to C<initalgred>. With
 the same conditions, it produces a two-element vector C<[nf,mod(a,pol)]>. C<nf>
@@ -3889,7 +3890,7 @@ The library syntax is C<initalgred2(x,prec)>.
 
 
 
-=head2 initzetaC<(x)>
+=head2 X<initzeta>initzetaC<(x)>
 
 compute a number of initilization data
 concerning the number field defined by the polynomial C<x> so as to be
@@ -3906,7 +3907,7 @@ The library syntax is C<initzeta(x)>.
 
 
 
-=head2 isidealC<(nf,x)>
+=head2 X<isideal>isidealC<(nf,x)>
 
 returns 1 if C<x> is an ideal in the number field
 C<nf>, 0 otherwise.
@@ -3915,7 +3916,7 @@ The library syntax is C<isideal(x)>.
 
 
 
-=head2 isinclC<(x,y)>
+=head2 X<isincl>isinclC<(x,y)>
 
 tests whether the number field C<K> defined by the
 polynomial C<x> is conjugate to a subfield of the field C<L> defined by C<y> 
@@ -3928,7 +3929,7 @@ The library syntax is C<nfincl(x,y)>.
 
 
 
-=head2 isinclfastC<(x,y)>
+=head2 X<isinclfast>isinclfastC<(x,y)>
 
 tests whether the number field C<K> defined by
 the polynomial C<x> is conjugate to a subfield of the field C<L> defined by C<y> 
@@ -3940,7 +3941,7 @@ The library syntax is C<isinclfast(x,y)>.
 
 
 
-=head2 isisomC<(x,y)>
+=head2 X<isisom>isisomC<(x,y)>
 
 tests whether the two number fields defined by the
 polynomials C<x> and C<y> (which must be in C<B<I<Q>>[X]>) are isomorphic. If they
@@ -3952,7 +3953,7 @@ The library syntax is C<nfiso(x,y)>.
 
 
 
-=head2 isisomfastC<(x,y)>
+=head2 X<isisomfast>isisomfastC<(x,y)>
 
 tests whether the two number fields defined by 
 the polynomials C<x> and C<y> (which must be in C<B<I<Q>>[X]>) are isomorphic. If 
@@ -3968,7 +3969,7 @@ The library syntax is C<isisomfast(x,y)>.
 
 
 
-=head2 isprincipalC<(bnf,x)>
+=head2 X<isprincipal>isprincipalC<(bnf,x)>
 
 C<bnf> being the number field data output
 by C<buchinit> or C<buchinitfu>, and C<x> being either a C<B<I<Z>>>-basis of an
@@ -3988,7 +3989,7 @@ The library syntax is C<isprincipal(bnf,x)>.
 
 
 
-=head2 isprincipalgenC<(bnf,x)>
+=head2 X<isprincipalgen>isprincipalgenC<(bnf,x)>
 
 C<bnf> being the number field data output
 by C<buchinit>, and C<x> being either a C<B<I<Z>>>-basis of an ideal in the
@@ -4017,7 +4018,7 @@ The library syntax is C<isprincipalgen(bnf,x)>.
 
 
 
-=head2 isprincipalrayC<(bnfray,x)>
+=head2 X<isprincipalray>isprincipalrayC<(bnfray,x)>
 
 C<bnfray> being the number field data
 output by C<buchrayinit> and C<x> being an ideal in any form, outputs
@@ -4028,7 +4029,7 @@ The library syntax is C<isprincipalray(bnfray,x)>.
 
 
 
-=head2 isprincipalraygenC<(bnfray,x)>
+=head2 X<isprincipalraygen>isprincipalraygenC<(bnfray,x)>
 
 C<bnfray> being the number field data
 output by the function C<buchrayinit> and C<x> being an ideal in any form, outputs
@@ -4045,7 +4046,7 @@ The library syntax is C<isprincipalraygen(bnfray,x)>.
 
 
 
-=head2 isunitC<(bnf,x)>
+=head2 X<isunit>isunitC<(bnf,x)>
 
 C<bnf> being the number field data output by
 C<buchinit> and C<x> being an algebraic number (type integer, rational or
@@ -4062,7 +4063,7 @@ The library syntax is C<isunit(bnf,x)>.
 
 
 
-=head2 lambdakC<(nfz,x)>
+=head2 X<lambdak>lambdakC<(nfz,x)>
 
 C<nfz> being a number field initialized by
 C<initzeta> (not by C<initalg>), computes the value of the
@@ -4076,7 +4077,7 @@ The library syntax is C<glambdak(nfz,x,prec)>.
 
 
 
-=head2 modreverseC<(a)>
+=head2 X<modreverse>modreverseC<(a)>
 
 C<a> being a polymod C<A(X)> modulo C<T(X)>,
 finds the ``reverse polymod'' C<B(X)> modulo C<Q(X)>, where C<Q> is the minimal
@@ -4091,7 +4092,7 @@ The library syntax is C<polymodrecip(x)>.
 
 
 
-=head2 newtonpolyC<(x,p)>
+=head2 X<newtonpoly>newtonpolyC<(x,p)>
 
 gives the vector of the slopes of the
 Newton polygon of the polynomial C<x> with respect to the prime number C<p>.
@@ -4104,7 +4105,7 @@ The library syntax is C<newtonpoly(x,p)>.
 
 
 
-=head2 nfdetintC<(nf,x)>
+=head2 X<nfdetint>nfdetintC<(nf,x)>
 
 given a pseudo-matrix C<x>, computes a 
 non-zero ideal contained in (i.e. multiple of) the determinant of C<x>.
@@ -4114,7 +4115,7 @@ The library syntax is C<nfdetint(nf,x)>.
 
 
 
-=head2 nfdivC<(nf,x,y)>
+=head2 X<nfdiv>nfdivC<(nf,x,y)>
 
 given two elements C<x> and C<y> as column
 vectors on the integral basis C<nf[7]>, computes their quotient C<x/y>
@@ -4124,7 +4125,7 @@ The library syntax is C<element_div(nf,x,y)>.
 
 
 
-=head2 nfdiveucC<(nf,x,y)>
+=head2 X<nfdiveuc>nfdiveucC<(nf,x,y)>
 
 given two elements C<x> and C<y> as column
 vectors on the integral basis C<nf[7]>, computes an algebraic integer
@@ -4136,7 +4137,7 @@ The library syntax is C<nfdiveuc(nf,x,y)>.
 
 
 
-=head2 nfdivresC<(nf,x,y)>
+=head2 X<nfdivres>nfdivresC<(nf,x,y)>
 
 given two elements C<x> and C<y> as column
 vectors on the integral basis C<nf[7]>, gives a two-element row vector
@@ -4147,7 +4148,7 @@ The library syntax is C<nfdivres(nf,x,y)>.
 
 
 
-=head2 nfhermiteC<(nf,x)>
+=head2 X<nfhermite>nfhermiteC<(nf,x)>
 
 given a pseudo-matrix C<(A,I)>, finds a
 pseudo-basis in Hermite Normal Form of the module it generates.
@@ -4156,7 +4157,7 @@ The library syntax is C<nfhermite(nf,x)>.
 
 
 
-=head2 nfhermitemodC<(nf,x,detx)>
+=head2 X<nfhermitemod>nfhermitemodC<(nf,x,detx)>
 
 given a pseudo-matrix C<(A,I)> and
 an ideal C<detx> which is contained in (read integral multiple of) the
@@ -4168,7 +4169,7 @@ The library syntax is C<nfhermitemod(nf,x,detx)>.
 
 
 
-=head2 nfmodC<(nf,x,y)>
+=head2 X<nfmod>nfmodC<(nf,x,y)>
 
 given two elements C<x> and C<y> as column
 vectors on the integral basis C<nf[7]>, computes an element C<r> of C<nf>
@@ -4180,7 +4181,7 @@ The library syntax is C<nfmod(nf,x,y)>.
 
 
 
-=head2 nfmulC<(nf,x,y)>
+=head2 X<nfmul>nfmulC<(nf,x,y)>
 
 given two elements C<x> and C<y> as column
 vectors on the integral basis C<nf[7]>, computes their product C<x*y>
@@ -4190,7 +4191,7 @@ The library syntax is C<element_mul(nf,x,y)>.
 
 
 
-=head2 nfpowC<(nf,x,k)>
+=head2 X<nfpow>nfpowC<(nf,x,k)>
 
 given an element C<x> as a column
 vector on the integral basis C<nf[7]> and a positive or negative integer C<k>,
@@ -4200,7 +4201,7 @@ The library syntax is C<element_pow(nf,x,k)>.
 
 
 
-=head2 nfreduceC<(nf,x,ideal)>
+=head2 X<nfreduce>nfreduceC<(nf,x,ideal)>
 
 Given an ideal in Hermite Normal Form
 and an element x of the number field C<nf>, finds an element C<r> in C<nf>
@@ -4210,7 +4211,7 @@ The library syntax is C<element_reduce(nf,x,ideal)>.
 
 
 
-=head2 nfsmithC<(nf,x)>
+=head2 X<nfsmith>nfsmithC<(nf,x)>
 
 given a torsion module C<x> as a 3-component
 row vector C<[A,I,J]> where C<A> is a square invertible C<n\times n> matrix,
@@ -4230,7 +4231,7 @@ The library syntax is C<nfsmith(nf,x)>.
 
 
 
-=head2 nfvalC<(nf,x,pr)>
+=head2 X<nfval>nfvalC<(nf,x,pr)>
 
 given an elements C<x> as a column
 vectors on the integral basis C<nf[7]>, and a prime ideal C<pr> in the
@@ -4244,7 +4245,7 @@ is a C long.
 
 
 
-=head2 ordredC<(x)>
+=head2 X<ordred>ordredC<(x)>
 
 finds polynomials with reasonably small
 coefficients and of the same degree as that of C<x> defining suborders
@@ -4256,7 +4257,7 @@ The library syntax is C<ordred(x)>.
 
 
 
-=head2 polredC<(x)>
+=head2 X<polred>polredC<(x)>
 
 finds polynomials with reasonably small
 coefficients defining subfields of the number field defined by C<x>. 
@@ -4268,7 +4269,7 @@ The library syntax is C<polred(x,prec)>.
 
 
 
-=head2 polred2C<(x)>
+=head2 X<polred2>polred2C<(x)>
 
 finds polynomials with reasonably small
 coefficients defining subfields of the number field defined by C<x>. 
@@ -4283,7 +4284,7 @@ The library syntax is C<polred2(x,prec)>.
 
 
 
-=head2 polredabsC<(x)>
+=head2 X<polredabs>polredabsC<(x)>
 
 finds one of the polynomial defining the same
 number field as the one defined by C<x>, and such that the sum of the
@@ -4293,7 +4294,7 @@ The library syntax is C<polredabs(x,prec)>.
 
 
 
-=head2 primedecC<(nf,p)>
+=head2 X<primedec>primedecC<(nf,p)>
 
 computes the prime ideal decomposition of 
 the prime number C<p> in the number field C<nf>. C<p> must be a (positive)
@@ -4314,7 +4315,7 @@ The library syntax is C<primedec(nf,p)>.
 
 
 
-=head2 principalidealC<(nf,x)>
+=head2 X<principalideal>principalidealC<(nf,x)>
 
 creates the principal ideal generated
 by the algebraic number C<x> (which must be of type integer, rational or 
@@ -4324,7 +4325,7 @@ The library syntax is C<principalideal(nf,x)>.
 
 
 
-=head2 principalideleC<(nf,x)>
+=head2 X<principalidele>principalideleC<(nf,x)>
 
 creates the principal idele generated
 by the algebraic number C<x> (which must be of type integer, rational or
@@ -4337,7 +4338,7 @@ The library syntax is C<principalidele(nf,x)>.
 
 
 
-=head2 rnfbasisC<(bnf,x)>
+=head2 X<rnfbasis>rnfbasisC<(bnf,x)>
 
 given a big number field C<bnf> as 
 output by C<buchinit> or C<buchinitfu>, and either a polyomial C<x>
@@ -4350,7 +4351,7 @@ The library syntax is C<rnfbasis(bnf,x)>.
 
 
 
-=head2 rnfdiscfC<(nf,x)>
+=head2 X<rnfdiscf>rnfdiscfC<(nf,x)>
 
 given a number field C<nf> as output by
 C<initalg> or C<initalgred> and a polyomial C<x>
@@ -4365,7 +4366,7 @@ The library syntax is C<rnfdiscf(bnf,x)>.
 
 
 
-=head2 rnfhermitebasisC<(bnf,x)>
+=head2 X<rnfhermitebasis>rnfhermitebasisC<(bnf,x)>
 
 given a big number field C<bnf> as 
 output by C<buchinit> or C<buchinitfu>, and either a polyomial C<x>
@@ -4378,7 +4379,7 @@ The library syntax is C<rnfhermitebasis(bnf,x)>.
 
 
 
-=head2 rnfisfreeC<(bnf,x)>
+=head2 X<rnfisfree>rnfisfreeC<(bnf,x)>
 
 given a big number field C<bnf> as 
 output by C<buchinit> or C<buchinitfu>, and either a polyomial C<x>
@@ -4391,7 +4392,7 @@ C-long integer.
 
 
 
-=head2 rnfpseudobasisC<(nf,x)>
+=head2 X<rnfpseudobasis>rnfpseudobasisC<(nf,x)>
 
 given a number field C<nf> as output by
 C<initalg> or C<initalgred> and a polyomial C<x>
@@ -4407,7 +4408,7 @@ The library syntax is C<rnfpseudobasis(nf,x)>.
 
 
 
-=head2 rnfsteinitzC<(nf,x)>
+=head2 X<rnfsteinitz>rnfsteinitzC<(nf,x)>
 
 given a number field C<nf> as output
 by C<initalg> or C<initalgred> and either a polyomial C<x>
@@ -4417,7 +4418,7 @@ C<rnfpseudobasis>, computes another pseudo-basis C<(A,I)> (not in HNF in
 general) such that all the ideals of C<I> except perhaps the last one
 are equal to the ring of integers of C<nf>. The name of this functions
 comes from the fact that the ideal class of the last ideal of C<I>
-(which is well defined) is called the I<it> of the
+(which is well defined) is called the I<steinitz class> of the
 module C<B<I<Z>>_L>.
 
 Note: C<nf> can be a C<bnf> as output by C<buchinit>.
@@ -4426,7 +4427,7 @@ The library syntax is C<rnfsteinitz(nf,x)>.
 
 
 
-=head2 rootsof1C<(nf)>
+=head2 X<rootsof1>rootsof1C<(nf)>
 
 computes the number of roots of unity C<w> and
 a primitive C<w>-th root of unity (expressed on the integral basis) 
@@ -4438,7 +4439,7 @@ The library syntax is C<rootsof1(nf)>.
 
 
 
-=head2 signunitC<(bnf)>
+=head2 X<signunit>signunitC<(bnf)>
 
 C<bnf> being a the number field data output by
 C<buchinit> and similar programs, this computes an C<r_1\times(r_1+r_2-1)>
@@ -4449,21 +4450,21 @@ The library syntax is C<signunits(bnf)>.
 
 
 
-=head2 smallbasisC<(x)>
+=head2 X<smallbasis>smallbasisC<(x)>
 
-I<integral basis> of the number field defined by
+X<integral basis>integral basis of the number field defined by
 the monic irreducible polynomial C<x>, using the round 2 algorithm, where one does
 not take into account squares of primes which are not precomputed.
 
 The library syntax is C<smallbase(x,&y)>, where C<y> will receive the
-discriminant of the number field (I<sl> of the polynomial C<x>).
+discriminant of the number field (I<not> of the polynomial C<x>).
 This program is the translation in C of a program written by David Ford.
 
 
 
-=head2 smalldiscfC<(x)>
+=head2 X<smalldiscf>smalldiscfC<(x)>
 
-I<field discriminant> of the number field defined
+X<field discriminant>field discriminant of the number field defined
 by the monic irreducible polynomial C<x>, where one does not take into account
 squares of primes which are not precomputed.
 
@@ -4471,7 +4472,7 @@ The library syntax is C<smalldiscf(x)>. See also C<smallbasis> above.
 
 
 
-=head2 smallpolredC<(x)>
+=head2 X<smallpolred>smallpolredC<(x)>
 
 same as C<polred> above except that
 only a suborder of the maximal order may be used.
@@ -4480,7 +4481,7 @@ The library syntax is C<smallpolred(x,prec)>.
 
 
 
-=head2 smallpolred2C<(x)>
+=head2 X<smallpolred2>smallpolred2C<(x)>
 
 same as C<polred2> above except that
 only a suborder of the maximal order may be used.
@@ -4489,7 +4490,7 @@ The library syntax is C<smallpolred2(x,prec)>.
 
 
 
-=head2 threetotwoC<(nf,a,b,c)>
+=head2 X<threetotwo>threetotwoC<(nf,a,b,c)>
 
 Given a number field C<nf> and
 three algebraic integers C<a>, C<b>, C<c> in C<nf> given as column vectors
@@ -4503,7 +4504,7 @@ The library syntax is C<threetotwo(nf,a,b,c)>.
 
 
 
-=head2 tschirnhausC<(x)>
+=head2 X<tschirnhaus>tschirnhausC<(x)>
 
 apply a random Tschirnhausen transformation
 to the non-constant separable polynomial C<x> so as to obtain a new equation
@@ -4515,7 +4516,7 @@ The library syntax is C<tschirnhaus(x)>.
 
 
 
-=head2 twototwoC<(nf,a,b)>
+=head2 X<twototwo>twototwoC<(nf,a,b)>
 
 Given a number field C<nf> and
 two algebraic integers C<a> and C<b> in C<nf> given as column vectors
@@ -4530,7 +4531,7 @@ The library syntax is C<twototwo(nf,a,b)>.
 
 
 
-=head2 zetakC<(nfz,x)>
+=head2 X<zetak>zetakC<(nfz,x)>
 
 C<nfz> being a number field initialized by
 C<initzeta> (not by C<initalg>), computes the value of the
@@ -4543,7 +4544,7 @@ The library syntax is C<gzetak(nfz,x,prec)>.
 
 
 
-=head2 zideallogC<(nf,x,bid)>
+=head2 X<zideallog>zideallogC<(nf,x,bid)>
 
 C<nf> being a number field, C<bid> being
 a ``big ideal'' as output by C<zidealstarinit> and C<x> being a 
@@ -4559,7 +4560,7 @@ The library syntax is C<zideallog(nf,x,bid)>.
 
 
 
-=head2 zidealstarC<(nf,I)>
+=head2 X<zidealstar>zidealstarC<(nf,I)>
 
 C<nf> being a number field, and C<I> either
 and ideal in any form, or a row vector whose first component is an ideal
@@ -4575,7 +4576,7 @@ The library syntax is C<zidealstar(nf,I)>.
 
 
 
-=head2 zidealstarinitC<(nf,I)>
+=head2 X<zidealstarinit>zidealstarinitC<(nf,I)>
 
 C<nf> being a number field, and C<I> either
 and ideal in any form, or a row vector whose first component is an ideal
@@ -4601,7 +4602,7 @@ can be applied to other types.
 
 
 
-=head2 apprpadicC<(x,a)>
+=head2 X<apprpadic>apprpadicC<(x,a)>
 
 vector of C<p>-adic roots of the polynomial C<x>
 congruent to the C<p>-adic number C<a> modulo C<p> (or modulo 4 if C<p=2>), and
@@ -4617,9 +4618,9 @@ a C<p>-adic number (type 7), the syntax C<apprgen(x,a)> can be used.
 
 
 
-=head2 convolC<(x,y)>
+=head2 X<convol>convolC<(x,y)>
 
-convolution (or I<Hadamard product>) of the
+convolution (or X<Hadamard product>Hadamard product) of the
 two power series C<x> and C<y>; in other words if C<x=\sum a_k*X^k> and
 C<y=\sum b_k*X^k> then C<convol>C<(x,y)=\sum a_k*b_k*X^k>.
 
@@ -4627,7 +4628,7 @@ The library syntax is C<convol(x,y)>.
 
 
 
-=head2 cycloC<(n)>
+=head2 X<cyclo>cycloC<(n)>
 
 C<n>-th cyclotomic polynomial, where C<n> must be
 positive.
@@ -4636,7 +4637,7 @@ The library syntax is C<cyclo(n)>, where C<n> is a C-long integer.
 
 
 
-=head2 derivC<(x,y)>
+=head2 X<deriv>derivC<(x,y)>
 
 derivative of C<x> with respect to the simple
 variable C<y>. C<x> can be any type except polymod. The derivative of a scalar
@@ -4648,16 +4649,16 @@ variable C<y>.
 
 
 
-=head2 discC<(x)>
+=head2 X<disc>discC<(x)>
 
 discriminant of C<x>. C<x> must be a polynomial.
-The algorithm used is the I<subresultant algorithm>.
+The algorithm used is the X<subresultant algorithm>subresultant algorithm.
 
 The library syntax is C<discsr(x)>.
 
 
 
-=head2 evalC<(x)>
+=head2 X<eval>evalC<(x)>
 
 replace in C<x> the formal variables by the
 values that have been assigned to them after the creation of C<x>.
@@ -4668,7 +4669,7 @@ The library syntax is C<geval(x)>.
 
 
 
-=head2 factorpadicC<(x,p,r)>
+=head2 X<factorpadic>factorpadicC<(x,p,r)>
 
 C<p>-adic factorization of the polynomial C<x>
 to precision C<r>, the result being a two-column matrix as in C<factor>.
@@ -4682,7 +4683,7 @@ The library syntax is C<factorpadic4(x,p,r)>, where C<r> is a C-long integer.
 
 
 
-=head2 factpolC<(x,l,hint)>
+=head2 X<factpol>factpolC<(x,l,hint)>
 
 C<x> must be a polynomial with 
 coefficients in C<B<I<Z>>>. If C<l=0>, find the complete factorization of 
@@ -4699,9 +4700,9 @@ C<factpol2(x,l)> (no C<hint> included in that case).
 
 
 
-=head2 integC<(x,y)>
+=head2 X<integ>integC<(x,y)>
 
-I<formal integration> of C<x> with respect to
+X<formal integration>formal integration of C<x> with respect to
 the simple variable C<y>. No logarithmic terms
 must occur in the result. C<x> can be of any type. When C<x> is a rational
 function, it is assumed that the base ring is an integral domain of
@@ -4711,17 +4712,17 @@ The library syntax is C<integ(x)>.
 
 
 
-=head2 isirreducibleC<(x)>
+=head2 X<isirreducible>isirreducibleC<(x)>
 
 C<x> being a polynomial (univarariate
-in the present version 1.39.3.1), returns 1 if C<x> is non-constant and 
+in the present version 1.39.3), returns 1 if C<x> is non-constant and 
 irreducible, 0 otherwise.
 
 The library syntax is C<gisirreducible(x)>.
 
 
 
-=head2 karamulC<(x,y,k)>
+=head2 X<karamul>karamulC<(x,y,k)>
 
 Karatsuba multiplication of the polynomials
 C<x> and C<y>, recursively called C<k> times. This is a very primitive and
@@ -4732,7 +4733,7 @@ The library syntax is C<karatsuba(x,y,k)>.
 
 
 
-=head2 laplaceC<(x)>
+=head2 X<laplace>laplaceC<(x)>
 
 C<x> must be a power series with only
 non-negative exponents. If C<x=\sum (a_k/k!)*X^k> then the result is
@@ -4742,19 +4743,19 @@ The library syntax is C<laplace(x)>.
 
 
 
-=head2 legendreC<(x)>
+=head2 X<legendre>legendreC<(x)>
 
-creates the C<x^{th}> I<Legendre polynomial>.
+creates the C<x^{th}> X<Legendre polynomial>Legendre polynomial.
 
 The library syntax is C<legendre(x)>, where C<x> is a C-long integer.
 
 
 
-=head2 polintC<(xa,ya,x)>
+=head2 X<polint>polintC<(xa,ya,x)>
 
 given the data vectors C<xa> and C<ya>
 of the same length C<n> (C<xa> containing the C<x>-coordinates, and C<ya> the
-corresponding C<y>-coordinates), this function finds the I<interpolating polynomial>
+corresponding C<y>-coordinates), this function finds the X<interpolating polynomial>interpolating polynomial
 passing through these points and evaluates it at the value C<x>.
 
 The library syntax is C<polint(xa,ya,x,&er)>, where C<er> will contain an
@@ -4762,16 +4763,16 @@ error estimate on the returned value.
 
 
 
-=head2 polsymC<(x,n)>
+=head2 X<polsym>polsymC<(x,n)>
 
-creates the vector of the I<symmetric powers>
+creates the vector of the X<symmetric powers>symmetric powers
 of the roots of the polynomial C<x> up to power C<n>.
 
 The library syntax is C<polsym(x)>.
 
 
 
-=head2 recipC<(x)>
+=head2 X<recip>recipC<(x)>
 
 reciprocal polynomial of C<x>, i.e. the
 coefficients are in reverse order. C<x> must be a polynomial.
@@ -4780,7 +4781,7 @@ The library syntax is C<polrecip(x)>.
 
 
 
-=head2 resultantC<(x,y)>
+=head2 X<resultant>resultantC<(x,y)>
 
 resultant of the two polynomials
 C<x> and C<y> with exact entries. The algorithm used is the subresultant algorithm.
@@ -4789,7 +4790,7 @@ The library syntax is C<subres(x,y)>.
 
 
 
-=head2 resultant2C<(x,y)>
+=head2 X<resultant2>resultant2C<(x,y)>
 
 resultant of the two polynomials
 C<x> and C<y>. The algorithm used is the determinant of Sylvester's matrix.
@@ -4798,7 +4799,7 @@ The library syntax is C<resultant2(x,y)>.
 
 
 
-=head2 reverseC<(x)>
+=head2 X<reverse>reverseC<(x)>
 
 reverse power series (i.e. C<x^{-1}>, not
 C<1/x>) of C<x>. C<x> must be a power series whose valuation is exactly equal
@@ -4808,18 +4809,18 @@ The library syntax is C<recip(x)>.
 
 
 
-=head2 rootmodC<(x,p)>
+=head2 X<rootmod>rootmodC<(x,p)>
 
 row vector of roots modulo C<p> of the polynomial 
 C<x>. Slightly slower than C<rootmod2> below for C<p<100>, but much faster 
 for larger values. The particular non-prime value C<p=4> is accepted, mainly 
-for C<2>-adic computations. Multiple roots are I<sl> repeated.
+for C<2>-adic computations. Multiple roots are I<not> repeated.
 
 The library syntax is C<rootmod(x,p)>.
 
 
 
-=head2 rootmod2C<(x,p)>
+=head2 X<rootmod2>rootmod2C<(x,p)>
 
 row vector of roots modulo C<p> of the polynomial
 C<x>. To be used only when C<p> is small. Multiple roots are repeated with their
@@ -4829,17 +4830,17 @@ The library syntax is C<rootmod2(x,p)>.
 
 
 
-=head2 rootpadicC<(x,p,r)>
+=head2 X<rootpadic>rootpadicC<(x,p,r)>
 
 row vector of C<p>-adic roots of the polynomial
-C<x> with C<p>-adic precision equal to C<r>. Multiple roots are I<sl> 
+C<x> with C<p>-adic precision equal to C<r>. Multiple roots are I<not> 
 repeated.
 
 The library syntax is C<rootpadic(x,p,r)>, where C<r> is a C-long integer.
 
 
 
-=head2 rootsC<(x)>
+=head2 X<roots>rootsC<(x)>
 
 complex roots of the polynomial C<x>, given
 as a column vector where each root is repeated according to its
@@ -4858,7 +4859,7 @@ The library syntax is C<roots(x,prec)>.
 
 
 
-=head2 rootslongC<(x)>
+=head2 X<rootslong>rootslongC<(x)>
 
 same as C<roots> except that the program is
 a little more robust and slower.
@@ -4867,7 +4868,7 @@ The library syntax is C<rootslong(x,prec)>.
 
 
 
-=head2 sturmC<(x)>
+=head2 X<sturm>sturmC<(x)>
 
 number of real roots of the real polynomial C<x>,
 using Sturm's algorithm.
@@ -4876,7 +4877,7 @@ The library syntax is C<sturm(x)>. The result is a C-long integer.
 
 
 
-=head2 sturmpartC<(x,a,b)>
+=head2 X<sturmpart>sturmpartC<(x,a,b)>
 
 number of real roots of the real polynomial C<x> in
 the interval C<]a,b]>, using Sturm's algorithm.
@@ -4885,7 +4886,7 @@ The library syntax is C<sturmpart(x)>. The result is a C-long integer.
 
 
 
-=head2 substC<(x,y,z)>
+=head2 X<subst>substC<(x,y,z)>
 
 replace the simple variable C<y> by the argument C<z> in expression C<x>. 
 Every non-scalar type is allowed for C<x>. If C<x> is a
@@ -4897,7 +4898,7 @@ the variable C<y>.
 
 
 
-=head2 sylvestermatrixC<(x,y)>
+=head2 X<sylvestermatrix>sylvestermatrixC<(x,y)>
 
 forms the Sylvester matrix corresponding
 to the two polynomials C<x> and C<y>, where the coefficients of the polynomials
@@ -4910,7 +4911,7 @@ The library syntax is C<sylvestermatrix(x,y)>.
 
 
 
-=head2 taylorC<(x,y)>
+=head2 X<taylor>taylorC<(x,y)>
 
 Taylor expansion around C<0> of C<x> with
 respect to the simple variable C<y>. C<x> 
@@ -4923,7 +4924,7 @@ is the desired number of terms in the expansion.
 
 
 
-=head2 tchebiC<(x)>
+=head2 X<tchebi>tchebiC<(x)>
 
 creates the C<x^{th}> Tchebicheff
 polynomial.
@@ -4938,9 +4939,9 @@ The library syntax is C<tchebi(x)>, where C<x> is a C-long integer.
 
 
 
-=head2 adjC<(x)>
+=head2 X<adj>adjC<(x)>
 
-I<adjoint matrix> of C<x>, i.e. the matrix C<y>
+X<adjoint matrix>adjoint matrix of C<x>, i.e. the matrix C<y>
 of cofactors of C<x> such that C<x*y=det(x)*Id>. C<x> must be
 a (non-necessarily invertible) square matrix.
 
@@ -4948,9 +4949,9 @@ The library syntax is C<adj(x)>.
 
 
 
-=head2 algdepC<(x, k)>
+=head2 X<algdep>algdepC<(x, k)>
 
-I<algebraic dependence> C<x> being real or complex, finds a
+X<algebraic dependence> C<x> being real or complex, finds a
 polynomial of degree at most C<k> having C<x> as approximate root.
 The algorithm used is a variant of the LLL algorithm due to Hastad,
 Lagarias and Schnorr (STACS 1986). Note that the polynomial which is
@@ -4962,9 +4963,9 @@ The library syntax is C<algdep(x,k,prec)>, where C<k> is a C-long integer.
 
 
 
-=head2 algdep2C<(x, k, dec)>
+=head2 X<algdep2>algdep2C<(x, k, dec)>
 
-I<algebraic dependence> C<x> being real or complex, finds a
+X<algebraic dependence> C<x> being real or complex, finds a
 polynomial of degree at most C<k> having C<x> as approximate root.
 C<dec> is a number which should be between half the number of decimal
 digits of precision and that number. The algorithm used is the LLL
@@ -4978,9 +4979,9 @@ C-long integers.
 
 
 
-=head2 charC<(x,y)>
+=head2 X<char>charC<(x,y)>
 
-I<characteristic polynomial> of C<x> with respect
+X<characteristic polynomial>characteristic polynomial of C<x> with respect
 to the variable C<y>, i.e. determinant of C<y*I-x> if C<x> is a square
 matrix, determinant of the map multiplication by C<x> if C<x> is a polymod,
 error if C<x> is of any other type.
@@ -4995,9 +4996,9 @@ address of the adjoint matrix of C<x>, so both can be obtained at once.
 
 
 
-=head2 char1C<(x,y)>
+=head2 X<char1>char1C<(x,y)>
 
-I<characteristic polynomial> of C<x> with respect
+X<characteristic polynomial>characteristic polynomial of C<x> with respect
 to the variable C<y>, i.e. determinant of C<y*I-x> if C<x> is a square
 matrix, determinant of the map multiplication by C<x> if C<x> is a polymod,
 error if C<x> is of any other type.
@@ -5009,7 +5010,7 @@ number.
 
 
 
-=head2 char2C<(x,y)>
+=head2 X<char2>char2C<(x,y)>
 
 characteristic polynomial of the square matrix
 C<x> with respect to the variable C<y> using the Hessenberg form. This is
@@ -5021,7 +5022,7 @@ The library syntax is C<carhess(x,v)>, where C<v> is the variable number.
 
 
 
-=head2 concatC<(x,y)>
+=head2 X<concat>concatC<(x,y)>
 
 concatenation of C<x> and C<y>. If
 C<x> or C<y> is not a vector or matrix, it is considered as a 
@@ -5038,10 +5039,10 @@ The library syntax is C<concat(x,y)>.
 
 
 
-=head2 detC<(x)>
+=head2 X<det>detC<(x)>
 
 determinant of C<x>. C<x> must be a
-square matrix. Another program called B<I<det2>>C<(x)> is better
+square matrix. Another program called B<X<det2>det2>C<(x)> is better
 when the entries of the matrix are reals or integers for example,
 but can be much worse for more complicated entries like multivariate
 polynomials.
@@ -5050,7 +5051,7 @@ The library syntax is C<det(x)> and C<det2(x)>.
 
 
 
-=head2 detintC<(x)>
+=head2 X<detint>detintC<(x)>
 
 C<x> being an C<m\times n> matrix with integer
 coefficients, this function computes a multiple of the determinant of the 
@@ -5065,7 +5066,7 @@ The library syntax is C<detint(x)>.
 
 
 
-=head2 eigenC<(x)>
+=head2 X<eigen>eigenC<(x)>
 
 gives the eigenvectors of C<x> as columns of
 a matrix.
@@ -5074,12 +5075,12 @@ The library syntax is C<eigen(x)>.
 
 
 
-=head2 extractC<(x,y)>
+=head2 X<extract>extractC<(x,y)>
 
 extraction of components of the
 vector or matrix C<x> according to C<y>. C<x> must be a vector or
 a matrix. In the case of a matrix, the components are as usual the
-I<sl> of C<x>. The parameter C<y> must be either a number of type
+I<columns> of C<x>. The parameter C<y> must be either a number of type
 integer or a vector. If C<y> is an integer, it is considered as a mask:
 The binary bits of C<y> are read from right to left, but correspond to 
 taking the components from left to right. For example, if C<y=13=(1101)_2>
@@ -5096,7 +5097,7 @@ The library syntax is C<extract(x,y)>.
 
 
 
-=head2 gaussC<(x,y)>
+=head2 X<gauss>gaussC<(x,y)>
 
 C<x> being a square matrix and
 C<y> a column vector, finds the solution C<u> of C<x*u=y>, using
@@ -5107,10 +5108,10 @@ The library syntax is C<gauss(x,y)>.
 
 
 
-=head2 hermiteC<(x)>
+=head2 X<hermite>hermiteC<(x)>
 
 if C<x> is a (not necessarily square) matrix of
-maximal rank, finds the I<sl> Hermite Normal Form of C<x>
+maximal rank, finds the I<upper triangular> Hermite Normal Form of C<x>
 If the rank of C<x> is equal to its number of rows, the result is a square
 matrix. In general, the columns of the result form a basis of the lattice
 spanned by the columns of C<x>.
@@ -5119,12 +5120,12 @@ The library syntax is C<hnf(x)>.
 
 
 
-=head2 hermitemodC<(x,d)>
+=head2 X<hermitemod>hermitemodC<(x,d)>
 
 if C<x> is a (not necessarily square) 
 matrix of maximal rank with integer entries, and C<d> is a multiple of the
 (non-zero) determinant of the lattice spanned by the columns of C<x>,
-finds the I<sl> Hermite Normal Form of C<x>.
+finds the I<upper triangular> Hermite Normal Form of C<x>.
 
 If the rank of C<x> is equal to its number of rows, the result is a square
 matrix. In general, the columns of the result form a basis of the lattice
@@ -5135,7 +5136,7 @@ The library syntax is C<hnfmod(x,d)>.
 
 
 
-=head2 hessC<(x)>
+=head2 X<hess>hessC<(x)>
 
 Hessenberg form of the square matrix C<x>.
 
@@ -5143,17 +5144,17 @@ The library syntax is C<hess(x)>.
 
 
 
-=head2 hilbertC<(x)>
+=head2 X<hilbert>hilbertC<(x)>
 
 C<x> being a C-long integer,
-creates the I<Hilbert matrix> of order C<x>, i.e. the matrix whose
+creates the X<Hilbert matrix>Hilbert matrix of order C<x>, i.e. the matrix whose
 coefficient (C<i>,C<j>) is C<1\over {i+j-1}>.
 
 The library syntax is C<hilbert(x)>.
 
 
 
-=head2 idmatC<(n)>
+=head2 X<idmat>idmatC<(n)>
 
 creates the C<n\times n> identity matrix.
 
@@ -5166,7 +5167,7 @@ and C<gscalsmat(x,n)> which is the same when C<x> is a C-long integer.
 
 
 
-=head2 imageC<(x)>
+=head2 X<image>imageC<(x)>
 
 gives a basis for the image of the matrix
 C<x> as columns of a matrix. A priori the matrix can have entries of any type.
@@ -5175,7 +5176,7 @@ The library syntax is C<image(x)>.
 
 
 
-=head2 imagecomplC<(x)>
+=head2 X<imagecompl>imagecomplC<(x)>
 
 gives the vector of the column indices which are 
 not extracted by the function C<image>. Hence the number of components
@@ -5186,7 +5187,7 @@ The library syntax is C<imagecompl(x)>.
 
 
 
-=head2 imagerC<(x)>
+=head2 X<imager>imagerC<(x)>
 
 gives a basis for the image of the matrix C<x> as
 columns of a matrix, where C<x> has elements which can be non-exact real or
@@ -5198,7 +5199,7 @@ The library syntax is C<imagereel(x)>.
 
 
 
-=head2 indexrankC<(x)>
+=head2 X<indexrank>indexrankC<(x)>
 
 C<x> being a matrix of rank C<r>, gives two vectors
 of length C<r> giving a list of rows and columns respectively (starting from 1)
@@ -5209,7 +5210,7 @@ The library syntax is C<indexrank(x)>.
 
 
 
-=head2 indsortC<(x)>
+=head2 X<indsort>indsortC<(x)>
 
 indirect sorting of the vector C<x>, i.e. if C<x>
 is an C<n>-component vector, creates a permutation of C<[1,2,...,n]>
@@ -5219,20 +5220,20 @@ The library syntax is C<indexsort(x)>.
 
 
 
-=head2 intersectC<(x,y)>
+=head2 X<intersect>intersectC<(x,y)>
 
 C<x> and C<y> being two matrices with the
 same number of rows each of whose columns are independent, finds a basis
 of the C<B<I<Q>>>-vector space equal to the intersection of the spaces 
 spanned by the columns of C<x> and C<y> respectively. See also the function
 C<idealintersect> above, which does the same for free C<B<I<Z>>>-modules.
-I<idealintersect>
+X<idealintersect>
 
 The library syntax is C<intersect(x,y)>.
 
 
 
-=head2 inverseimageC<(x,y)>
+=head2 X<inverseimage>inverseimageC<(x,y)>
 
 gives a column vector belonging to the 
 inverse image of the column vector C<y> by the matrix C<x> if one exists,
@@ -5244,7 +5245,7 @@ The library syntax is C<inverseimage(x,y)>.
 
 
 
-=head2 issetC<(x)>
+=head2 X<isset>issetC<(x)>
 
 returns true (1) if C<x> is a set, false (0) if not.
 In PARI, a set is simply a row vector whose entries are strictly increasing.
@@ -5255,7 +5256,7 @@ The library syntax is C<isset(x)>, and this returns a C-long integer.
 
 
 
-=head2 jacobiC<(x)>
+=head2 X<jacobi>jacobiC<(x)>
 
 C<x> being a real symmetric matrix, this gives a
  vector having two components: the first one is the vector of eigenvalues of
@@ -5266,7 +5267,7 @@ The library syntax is C<jacobi(x)>.
 
 
 
-=head2 kerC<(x)>
+=head2 X<ker>kerC<(x)>
 
 gives a basis for the kernel of the matrix
 C<x> as columns of a matrix. A priori the matrix can have entries of any type.
@@ -5276,7 +5277,7 @@ The library syntax is C<ker(x)>.
 
 
 
-=head2 keriC<(x)>
+=head2 X<keri>keriC<(x)>
 
 same as C<ker>, except that it assumes that the 
 matrix has entries of type integer. In that case it is much faster.
@@ -5285,7 +5286,7 @@ The library syntax is C<keri(x)>.
 
 
 
-=head2 kerintC<(x)>
+=head2 X<kerint>kerintC<(x)>
 
 gives an LLL-reduced C<B<I<Z>>>-basis for the lattice
 equal to the kernel of the matrix C<x> as columns of the matrix C<x> with
@@ -5296,7 +5297,7 @@ The library syntax is C<kerint(x)>.
 
 
 
-=head2 kerint1C<(x)>
+=head2 X<kerint1>kerint1C<(x)>
 
 like C<kerint>, but using C<matrixqz3>,
 gives an LLL-reduced C<B<I<Z>>>-basis for the lattice
@@ -5308,19 +5309,19 @@ The library syntax is C<kerint1(x)>.
 
 
 
-=head2 kerint2C<(x)>
+=head2 X<kerint2>kerint2C<(x)>
 
 like C<kerint>, but using another modified LLL
 algorithm, gives an LLL-reduced C<B<I<Z>>>-basis for the lattice
 equal to the kernel of the matrix C<x> as columns of the matrix C<x> with
 integer entries (rational entries are not permitted). In the present version
-1.39.3.1, only independent rows are allowed. 
+1.39.3, only independent rows are allowed. 
 
 The library syntax is C<kerint2(x)>.
 
 
 
-=head2 kerrC<(x)>
+=head2 X<kerr>kerrC<(x)>
 
 gives a basis for the kernel of the matrix C<x> as
 columns of a matrix, where C<x> has elements which can be non-exact real or
@@ -5332,7 +5333,7 @@ The library syntax is C<kerreel(x)>.
 
 
 
-=head2 lexsortC<(x)>
+=head2 X<lexsort>lexsortC<(x)>
 
 sort the elements of the vector C<x> by 
 ascending lexicographic order (see C<lex> above).
@@ -5341,9 +5342,9 @@ The library syntax is C<lexsort(x)>.
 
 
 
-=head2 lindepC<(x)>
+=head2 X<lindep>lindepC<(x)>
 
-I<linear dependence>C<x> being a vector with real
+X<linear dependence>C<x> being a vector with real
 or complex coefficients, finds a small integral linear combination
 among these coefficients using a variant of the LLL algorithm due to
 Hastad, Lagarias and Schnorr (STACS 1986).
@@ -5352,9 +5353,9 @@ The library syntax is C<lindep(x,prec)>.
 
 
 
-=head2 lindep2C<(x,dec)>
+=head2 X<lindep2>lindep2C<(x,dec)>
 
-I<linear dependence>C<x> being a vector with real
+X<linear dependence>C<x> being a vector with real
 or complex coefficients, finds a small integral linear combination
 among these coefficients using the LLL algorithm. C<dec> is a parameter which
 should be between one half the number of decimal digits of precision
@@ -5364,7 +5365,7 @@ The library syntax is C<lindep2(x,dec,prec)> where C<dec> is a C-long integer.
 
 
 
-=head2 lllC<(x)>
+=head2 X<lll>lllC<(x)>
 
 LLL algorithm applied to the B<columns>
 of the (not necessarily square) matrix C<x>. The columns of C<x> must
@@ -5373,28 +5374,28 @@ use C<lllint>. The result is a square
 transformation matrix C<T> such that C<x .  T> is an LLL-reduced
 basis of the lattice generated by the column vectors of C<x>. The
 computations are done with real numbers (i.e. not with rational numbers) hence
-are fast but as presently programmed (version 1.39.3.1) are numerically unstable.
+are fast but as presently programmed (version 1.39.3) are numerically unstable.
 An older version of this program is C<lll1>.
 
 The library syntax is C<lll(x,prec)>.
 
 
 
-=head2 lllgramC<(x)>
+=head2 X<lllgram>lllgramC<(x)>
 
 same as LLL except that the matrix C<x>
 which is now square is the Gram matrix of the lattice vectors, and
 not the coordinates of the vectors themselves. The result is again
 the transformation matrix C<T> which gives (as columns) the coefficients 
 with respect to the initial basis vectors. Same remarks as for LLL about
-numerical instability in the present version 1.39.3.1. An older version of
+numerical instability in the present version 1.39.3. An older version of
 this program is C<lllgram1>.
 
 The library syntax is C<lllgram(x,prec)>.
 
 
 
-=head2 lllgramintC<(x)>
+=head2 X<lllgramint>lllgramintC<(x)>
 
 The matrix C<x> being the Gram matrix of a
 basis of some lattice, is assumed to have integral entries. The result is
@@ -5406,7 +5407,7 @@ The library syntax is C<lllgramint(x)>.
 
 
 
-=head2 lllgramkerimC<(x)>
+=head2 X<lllgramkerim>lllgramkerimC<(x)>
 
 LLL algorithm applied to the Gram matrix of
 some lattice, which is assumed to have integral entries.
@@ -5420,7 +5421,7 @@ The library syntax is C<lllgramkerim(x)>.
 
 
 
-=head2 lllintC<(x)>
+=head2 X<lllint>lllintC<(x)>
 
 LLL algorithm applied to the B<columns> of the
 (not necessarily square) matrix C<x>. It is assumed that the corresponding
@@ -5436,14 +5437,14 @@ The library syntax is C<lllint(x)>.
 
 
 
-=head2 lllintpartialC<(x)>
+=head2 X<lllintpartial>lllintpartialC<(x)>
 
 similar to C<lllint>, except C<x>
 should be an integer matrix whose columns are linearly independent.
 The output is a square transformation matrix C<T>
 such that C<x  .  T> is a partially reduced basis of the
 lattice generated by the column vectors of C<x>.
-A basis is said to be I<sl> if
+A basis is said to be I<partially reduced> if
 C<| v_i F<+-> v_j | E<gt>= |v_i|> for any two distinct
 basis vectors C<v_i,   v_j>.
 
@@ -5457,7 +5458,7 @@ The library syntax is C<lllintpartial(x)>.
 
 
 
-=head2 lllkerimC<(x)>
+=head2 X<lllkerim>lllkerimC<(x)>
 
 LLL algorithm applied to the columns of the (not
 necessarily square) matrix C<x> which is assumed to have integral entries.
@@ -5471,7 +5472,7 @@ The library syntax is C<lllkerim(x)>.
 
 
 
-=head2 lllratC<(x)>
+=head2 X<lllrat>lllratC<(x)>
 
 same as LLL except that the computations
 are all done in rational numbers. Hence no risk of numerical instability,
@@ -5482,7 +5483,7 @@ The library syntax is C<lllrat(x)>.
 
 
 
-=head2 matC<(x)>
+=head2 X<mat>matC<(x)>
 
 transform the object C<x> into a matrix.
 If C<x> is not a vector or a matrix, this creates a C<1\times 1> matrix.
@@ -5496,7 +5497,7 @@ The library syntax is C<gtomat(x)>.
 
 
 
-=head2 matextractC<(x,y,z)>
+=head2 X<matextract>matextractC<(x,y,z)>
 
 extraction of a matrix
 from the matrix C<x>, the line mask or vector C<y> and the column mask 
@@ -5510,11 +5511,11 @@ The library syntax is C<matextract(x,y,z)>.
 
 
 
-=head2 matinvrC<(x)>
+=head2 X<matinvr>matinvrC<(x)>
 
 computes the inverse matrix of C<x> assumed to
 have real entries. This may be more efficient than using C<ginv>
-I<ginv> (or C<x^{-1}> under GP).
+X<ginv> (or C<x^{-1}> under GP).
 
 The library syntax is C<invmatreel(x)>. A related function is
 C<invmulmatreel(x,y)> which directly computes C<x^{-1}*y> for matrices
@@ -5522,7 +5523,7 @@ C<x> and C<y>.
 
 
 
-=head2 matsizeC<(x)>
+=head2 X<matsize>matsizeC<(x)>
 
 C<x> being a vector or matrix, returns a row vector
  with two components, the first being the number of rows (1 for a row vector),
@@ -5532,7 +5533,7 @@ The library syntax is C<matsize(x)>.
 
 
 
-=head2 matrixqzC<(x,p)>
+=head2 X<matrixqz>matrixqzC<(x,p)>
 
 C<x> being an C<m\times n> matrix with C<mE<gt>= n> with
 rational or integer entries and of maximal rank, this function returns a matrix
@@ -5548,7 +5549,7 @@ The library syntax is C<matrixqz(x,p)>.
 
 
 
-=head2 matrixqz2C<(x)>
+=head2 X<matrixqz2>matrixqz2C<(x)>
 
 C<x> being an C<m\times n> matrix with rational
 or integer entries, this function returns a matrix whose columns form a
@@ -5559,7 +5560,7 @@ The library syntax is C<matrixqz2(x)>.
 
 
 
-=head2 matrixqz3C<(x)>
+=head2 X<matrixqz3>matrixqz3C<(x)>
 
 C<x> being an C<m\times n> matrix with rational
 or integer entries, this function returns a matrix whose columns form a
@@ -5570,7 +5571,7 @@ The library syntax is C<matrixqz3(x)>.
 
 
 
-=head2 minimC<(x,b,m)>
+=head2 X<minim>minimC<(x,b,m)>
 
 C<x> being a square and symmetric
 matrix with integer entries representing a positive definite quadratic form,
@@ -5587,7 +5588,7 @@ The library syntax is C<minim(x,b,m)>
 
 
 
-=head2 perfC<(x)>
+=head2 X<perf>perfC<(x)>
 
 C<x> being a square and symmetric matrix with
 integer entries representing a positive definite quadratic form,
@@ -5599,17 +5600,17 @@ The library syntax is C<perf(x)>
 
 
 
-=head2 pascalC<(x)>
+=head2 X<pascal>pascalC<(x)>
 
 creates
-as a matrix the lower triangular I<pascal triangle> of order C<x+1>
+as a matrix the lower triangular X<pascal triangle>pascal triangle of order C<x+1>
 (i.e. with binomial coefficients up to C<x>).
 
 The library syntax is C<pascal(x)>, where C<x> is a C-long integer.
 
 
 
-=head2 rankC<(x)>
+=head2 X<rank>rankC<(x)>
 
 rank of the matrix C<x>.
 
@@ -5617,7 +5618,7 @@ The library syntax is C<rank(x)>, and the result is a C-long integer.
 
 
 
-=head2 setC<(x)>
+=head2 X<set>setC<(x)>
 
 convert C<x> into a set, i.e. into a row vector with
 strictly increasing entries. C<x> can be of several types, but is most useful
@@ -5627,7 +5628,7 @@ The library syntax is C<gtoset(x)>.
 
 
 
-=head2 setintersectC<(x,y)>
+=head2 X<setintersect>setintersectC<(x,y)>
 
 intersection of the two sets C<x> and C<y>.
 
@@ -5635,7 +5636,7 @@ The library syntax is C<intersect(x,y)>.
 
 
 
-=head2 setminusC<(x,y)>
+=head2 X<setminus>setminusC<(x,y)>
 
 difference of the two sets C<x> and C<y>, i.e.
 set of elements of C<x> which do not belong to C<y>.
@@ -5644,7 +5645,7 @@ The library syntax is C<setminus(x,y)>.
 
 
 
-=head2 setsearchC<(x,y)>
+=head2 X<setsearch>setsearchC<(x,y)>
 
 searches if C<y> belongs to the set C<x>. If it
 does, returns the index C<j> such that C<x[j]==y>, otherwise returns 0.
@@ -5653,7 +5654,7 @@ The library syntax is C<setsearch(x,y)> which returns a C-long integer.
 
 
 
-=head2 setunionC<(x,y)>
+=head2 X<setunion>setunionC<(x,y)>
 
 union of the two sets C<x> and C<y>.
 
@@ -5661,7 +5662,7 @@ The library syntax is C<union(x,y)>.
 
 
 
-=head2 signatC<(x)>
+=head2 X<signat>signatC<(x)>
 
 signature of the quadratic form
 represented by the symmetric matrix C<x>. The result is a two-component vector.
@@ -5670,7 +5671,7 @@ The library syntax is C<signat(x)>
 
 
 
-=head2 smithC<(x)>
+=head2 X<smith>smithC<(x)>
 
 if C<x> is a (singular or non-singular) square matrix
 with integer coefficients, outputs the vector of elementary divisors of C<x>
@@ -5680,7 +5681,7 @@ The library syntax is C<smith(x)>.
 
 
 
-=head2 smithpolC<(x)>
+=head2 X<smithpol>smithpolC<(x)>
 
 if C<x> is a (singular or non-singular) square 
 matrix with polynomial coefficients, outputs the vector of elementary divisors
@@ -5690,7 +5691,7 @@ The library syntax is C<gsmith(x)>.
 
 
 
-=head2 smith2C<(x)>
+=head2 X<smith2>smith2C<(x)>
 
 if C<x> is a (singular or non-singular) square matrix,
 outputs a 2-component vector C<[u,v]> where C<u> and C<v> are two unimodular
@@ -5701,7 +5702,7 @@ The library syntax is C<smith2(x)>.
 
 
 
-=head2 sortC<(x)>
+=head2 X<sort>sortC<(x)>
 
 sort the vector C<x> in ascending order, using the
 heapsort method. C<x> must be a vector, and its components integers, reals, or
@@ -5713,9 +5714,9 @@ The library syntax is C<sort(x)>.
 
 
 
-=head2 sqredC<(x)>
+=head2 X<sqred>sqredC<(x)>
 
-I<decomposition into squares> of the quadratic form
+X<decomposition into squares>decomposition into squares of the quadratic form
 represented by the symmetric matrix C<x>. The result is a matrix whose diagonal
 entries are the coefficients of the squares, and the non-diagonal entries
 represent the bilinear forms.
@@ -5724,7 +5725,7 @@ The library syntax is C<sqred(x)>.
 
 
 
-=head2 supplementC<(x)>
+=head2 X<supplement>supplementC<(x)>
 
 assuming that the columns of the matrix C<x> are
 linearly independent (if they are not, an error message is issued), find a
@@ -5735,7 +5736,7 @@ The library syntax is C<suppl(x)>.
 
 
 
-=head2 traceC<(x)>
+=head2 X<trace>traceC<(x)>
 
 This applies to quite general C<x>.
 If C<x> is not a matrix, it is equal to the sum of C<x> and its conjugate,
@@ -5748,7 +5749,7 @@ The library syntax is C<trace(x)>.
 
 
 
-=head2 transC<(x)> or C<x~{ }>
+=head2 X<trans>transC<(x)> or C<x~{ }>
 
 transpose of C<x>.
 This has an effect only on vectors and matrices.
@@ -5757,7 +5758,7 @@ The library syntax is C<gtrans(x)>.
 
 
 
-=head2 vecsortC<(x,k)>
+=head2 X<vecsort>vecsortC<(x,k)>
 
 sort the vector of vectors or matrix C<x> in
 ascending order of the C<k>-th component, using the heapsort method. The 
@@ -5798,30 +5799,30 @@ formal parameter used in the function.
 
 
 
-=head2 divsumC<(n,X,expr)>
+=head2 X<divsum>divsumC<(n,X,expr)>
 
 sum of expression C<expr> over
 the positive divisors of C<n>.
 
-In the present version 1.39.3.1, C<n> is restricted to being less than C<2^{31}>.
+In the present version 1.39.3, C<n> is restricted to being less than C<2^{31}>.
 
-The library syntax is I<divsomme>{(entree *ep, GEN num, char *ch)}.
+The library syntax is X<divsomme>divsommeC<(entree *ep, GEN num, char *ch)>.
 
 
 
-=head2 hvectorC<(n,X,expr)>
+=head2 X<hvector>hvectorC<(n,X,expr)>
 
 creates a row vector with C<n> components
 whose components are the expression C<expr> evaluated at the integral points
 between 1 and C<n>.
 
-The library syntax is I<vecteur>{(entree *ep, GEN nmax, char *ch)}.
+The library syntax is X<vecteur>vecteurC<(entree *ep, GEN nmax, char *ch)>.
 
 
 
 =head2 (numerical) integration
 
-I<numerical integration>
+X<numerical integration>
 A number of Romberg-like integration methods are implemented. The user should
 not require too much accuracy: 18 or 28 decimal digits is OK, but not much 
 more. In addition, analytical cleanup of the integral must have been done: 
@@ -5832,7 +5833,7 @@ integration are plus or minus infinity, the function must decrease
 sufficiently rapidly at infinity. This can often be accomplished
 through integration by parts.
 
-Note that I<infinity> can be represented with essentially no loss of 
+Note that X<infinity>infinity can be represented with essentially no loss of 
 accuracy by 1e4000. However beware of real underflow when dealing with rapidly
 decreasing functions. For example, if one wants to compute the
 C<\int_0^\infty e^{-x^2} dx> to 28 decimal digits, then one should set 
@@ -5843,53 +5844,53 @@ numbers; in particular, it can be complex-valued or vector-valued.
 
 
 
-=head2 intgenC<(X=a, b, expr)>
+=head2 X<intgen>intgenC<(X=a, b, expr)>
 
 general driver routine for doing 
 numerical integration from C<a> to C<b> of the expression C<expr>, with respect to
 the formal variable C<X>.
 
-The library syntax is I<rombint>{(entree *ep, GEN a, GEN b, char *ch, long int prec)}.
+The library syntax is X<rombint>rombintC<(entree *ep, GEN a, GEN b, char *ch, long int prec)>.
 
 
 
-=head2 intinfC<(X=a, b, expr)>
+=head2 X<intinf>intinfC<(X=a, b, expr)>
 
 numerical integration from C<a> to C<b>,
-tailored for being used when C<a> or C<b> are infinite. One I<sl> have 
+tailored for being used when C<a> or C<b> are infinite. One I<must> have 
 C<abE<gt>0>, and in fact if for example C<b=\infty>, then it is preferable to have 
 C<a> as large as possible, at least C<aE<gt>=1>.
 
-The library syntax is I<qromi>{(entree *ep, GEN a, GEN b, char *ch, long int prec)}.
+The library syntax is X<qromi>qromiC<(entree *ep, GEN a, GEN b, char *ch, long int prec)>.
 
 
 
-=head2 intnumC<(X=a,b,expr)>
+=head2 X<intnum>intnumC<(X=a,b,expr)>
 
 simple numerical integration from C<a> to C<b>.
 This is the fastest method, and should be used when C<a> and C<b> are not too
 large, the function is smooth, and can be evaluated exactly everywhere on the
 interval C<[a,b]>.
 
-The library syntax is I<qromb>{(entree *ep, GEN a, GEN b, char *ch, long int prec)}.
+The library syntax is X<qromb>qrombC<(entree *ep, GEN a, GEN b, char *ch, long int prec)>.
 
 
 
-=head2 intopenC<(X=a,b,expr)>
+=head2 X<intopen>intopenC<(X=a,b,expr)>
 
 numerical integration from C<a> to C<b>. This
 method should be used, again when C<a> and C<b> are not too large, but when the 
 function is now allowed to be undefined (but continuous) at C<a> or C<b>, for
 example the function C< F<sin> (x)/x> at C<x=0>.
 
-The library syntax is I<qromo>{(entree *ep, GEN a, GEN b, char *ch, long int prec)}.
+The library syntax is X<qromo>qromoC<(entree *ep, GEN a, GEN b, char *ch, long int prec)>.
 
 Two summation methods are also implemented, for alternating series, and for
 series with terms of the same sign (see C<sumalt> and C<sumpos> below).
 
 
 
-=head2 matrixC<(m,n,X,Y,expr)>
+=head2 X<matrix>matrixC<(m,n,X,Y,expr)>
 
 creation of the C<m\times n> matrix
 whose coefficients are given by the expression C<expr>. There are two formal
@@ -5897,11 +5898,11 @@ parameters in C<expr>, the first one (C<X>) corresponding to the rows, the
 second (C<Y>) to the columns, and C<X> goes from 1 to C<m>, C<Y> goes from 1 to
 C<n>.
 
-The library syntax is I<matrice>{(entree *ep1, entree *ep2, GEN nlig, GEN ncol, char *ch)}.
+The library syntax is X<matrice>matriceC<(entree *ep1, entree *ep2, GEN nlig, GEN ncol, char *ch)>.
 
 
 
-=head2 prodC<(x,X=a,b,expr)>
+=head2 X<prod>prodC<(x,X=a,b,expr)>
 
 product of expression C<expr>, initialized
 at C<x>, the formal parameter C<X> going from C<a> to C<b>. As for C<sum>, the
@@ -5914,56 +5915,56 @@ precision. If it is put equal to the power series C<1+O(X^k)> for a certain
 C<k>, they will be done using power series of precision at most C<k>. These
 are the three most common initializations.
 
-As an extreme example, compare C<prod(1,j=1,100,(1-X^{ }j))>
-with  C<prod(1+O(X^{ }101),j=1, 100, (1-X^{ }j) ).>
+As an extreme example, compare C<prod(1,j=1,100,(1-X^j))>
+with  C<prod(1+O(X^101),j=1, 100, (1-X^j) ).>
 
-The library syntax is I<produit>{(entree *ep, GEN x, GEN a, GEN b, char *ch)}.
+The library syntax is X<produit>produitC<(entree *ep, GEN x, GEN a, GEN b, char *ch)>.
 
 
 
-=head2 prodeulerC<(X=a,b,expr)>
+=head2 X<prodeuler>prodeulerC<(X=a,b,expr)>
 
 product of expression C<expr>,
 initialized at 1., the formal parameter C<X> ranging over the prime numbers
-between C<a> and C<b>.I<Euler product>
+between C<a> and C<b>.X<Euler product>
 
-The library syntax is I<prodeuler>{(entree *ep, GEN a, GEN b, char *ch, long int prec)}.
+The library syntax is X<prodeuler>prodeulerC<(entree *ep, GEN a, GEN b, char *ch, long int prec)>.
 
 
 
-=head2 prodinfC<(X=a,expr)>
+=head2 X<prodinf>prodinfC<(X=a,expr)>
 
-I<infinite product> of expression C<expr>, 
+X<infinite product>infinite product of expression C<expr>, 
 the formal parameter C<X> starting at C<a>. The evaluation stops when the 
 relative error of the expression minus 1 is less than the default precision. 
 The expressions must always evaluate to an element of C<B<I<C>>>.
 
-The library syntax is I<prodinf>{(entree *ep, GEN a, char *ch, long int prec)}.
+The library syntax is X<prodinf>prodinfC<(entree *ep, GEN a, char *ch, long int prec)>.
 
 
 
-=head2 prodinf1C<(X=a,expr)>
+=head2 X<prodinf1>prodinf1C<(X=a,expr)>
 
 infinite product of expression C<1+expr>, the
 formal parameter C<X> starting at C<a>. The evaluation stops when the relative 
 error of the expression is less than the default precision. The expressions
 must always evaluate to an element of C<B<I<C>>>.
 
-The library syntax is I<prodinf1>{(entree *ep, GEN a, char *ch, long int prec)}.
+The library syntax is X<prodinf1>prodinf1C<(entree *ep, GEN a, char *ch, long int prec)>.
 
 
 
-=head2 solveC<(X=a,b,expr)>
+=head2 X<solve>solveC<(X=a,b,expr)>
 
 real root of expression C<expr> between C<a> and
 C<b>, under the condition C<expr(X=a)*expr(X=b)E<lt>=0>. The method used is 
 Brent's method.
 
-The library syntax is I<zbrent>{(entree *ep, GEN a, GEN b, char *ch, long int prec)}.
+The library syntax is X<zbrent>zbrentC<(entree *ep, GEN a, GEN b, char *ch, long int prec)>.
 
 
 
-=head2 sumC<(x,X=a,b,expr)>
+=head2 X<sum>sumC<(x,X=a,b,expr)>
 
 sum of expression C<expr>, initialized at
 C<x>, the formal parameter going from C<a> to C<b>. As for C<prod>, the
@@ -5979,14 +5980,14 @@ initializations.
 As an extreme example, compare C<sum(0,j=1, 1000, 1/j)>
 with  C<sum(0.,j=1, 1000, 1/j ).>
 
-The library syntax is I<somme>{(entree *ep, GEN x, GEN a, GEN b, char *ch)}.
+The library syntax is X<somme>sommeC<(entree *ep, GEN x, GEN a, GEN b, char *ch)>.
 
 
 
-=head2 sumaltC<(X=a, expr)>
+=head2 X<sumalt>sumaltC<(X=a, expr)>
 
 numerical summation of the series C<expr>,
-which should be an I<alternating series>, the formal variable C<X> 
+which should be an X<alternating series>alternating series, the formal variable C<X> 
 starting at C<a>. The algorithm used is an algorithm of F. Villegas as modified by
 D. Zagier, and is much better than sumalt2() below which was used formerly.
 Beware that the stopping criterion is that the term gets small enough, hence
@@ -5995,14 +5996,14 @@ terms which are equal to 0 will create problems and should be removed.
 Divergent alternating series can sometimes be summed by this method, as well as
 series which are not exactly alternating (see for example section 11).
 
-The library syntax is I<sumalt>{(entree *ep, GEN a, char *ch, long int prec)}.
+The library syntax is X<sumalt>sumaltC<(entree *ep, GEN a, char *ch, long int prec)>.
 
 
 
-=head2 sumalt2C<(X=a, expr)>
+=head2 X<sumalt2>sumalt2C<(X=a, expr)>
 
 numerical summation of the series C<expr>,
-which should be an I<alternating series>, the formal variable C<X> 
+which should be an X<alternating series>alternating series, the formal variable C<X> 
 starting at C<a>. The algorithm used is Euler's method of finite differences
 combined with a trick due to van Wijngaarden.
 Beware that the stopping criterion is that the term gets small enough, hence
@@ -6011,22 +6012,22 @@ terms which are equal to 0 will create problems and should be removed.
 Divergent alternating series can sometimes be summed by this method, as well as
 series which are not exactly alternating (see for example section 11).
 
-The library syntax is I<sumalt2>{(entree *ep, GEN a, char *ch, long int prec)}.
+The library syntax is X<sumalt2>sumalt2C<(entree *ep, GEN a, char *ch, long int prec)>.
 
 
 
-=head2 suminfC<(X=a,expr)>
+=head2 X<suminf>suminfC<(X=a,expr)>
 
-I<infinite sum> of expression C<expr>, the 
+X<infinite sum>infinite sum of expression C<expr>, the 
 formal parameter C<X> starting at C<a>. The evaluation stops when the relative
 error of the expression is less than the default precision. The expressions
 must always evaluate to an element of C<B<I<C>>>.
 
-The library syntax is I<suminf>{(entree *ep, GEN a, char *ch, long int prec)}.
+The library syntax is X<suminf>suminfC<(entree *ep, GEN a, char *ch, long int prec)>.
 
 
 
-=head2 sumposC<(X=a,expr)>
+=head2 X<sumpos>sumposC<(X=a,expr)>
 
 numerical summation of the series C<expr>,
 which must be a series of terms having the same sign, the formal variable C<X>
@@ -6035,27 +6036,27 @@ trick for converting such a series into an alternating one, and is quite slow.
 Beware that the stopping criterion is that the term gets small enough, hence
 terms which are equal to 0 will create problems and should be removed.
 
-The library syntax is I<sumpos>{(entree *ep, GEN a, char *ch, long int prec)}.
+The library syntax is X<sumpos>sumposC<(entree *ep, GEN a, char *ch, long int prec)>.
 
 
 
-=head2 vectorC<(n,X,expr)>
+=head2 X<vector>vectorC<(n,X,expr)>
 
 creates a row vector with C<n> components
 whose components are the expression C<expr> evaluated at the integral points
 between 1 and C<n> (identical with C<hvector>).
 
-The library syntax is I<vecteur>{(entree *ep, GEN nmax, char *ch)}.
+The library syntax is X<vecteur>vecteurC<(entree *ep, GEN nmax, char *ch)>.
 
 
 
-=head2 vvectorC<(n,X,expr)>
+=head2 X<vvector>vvectorC<(n,X,expr)>
 
 creates a column vector with C<n> components
 whose components are the expression C<expr> evaluated at the integral points
 between 1 and C<n>.
 
-The library syntax is I<vvecteur>{(entree *ep, GEN nmax, char *ch)}.
+The library syntax is X<vvecteur>vvecteurC<(entree *ep, GEN nmax, char *ch)>.
 
 
 
@@ -6112,19 +6113,19 @@ can be kept in a single file.
 
 
 
-=head2 boxC<(w,x2,y2)>
+=head2 X<box>boxC<(w,x2,y2)>
 
 let C<(x1,y1)> be the current position of
 the virtual cursor. Draw in the rectwindow C<w> the outline of
 the rectangle which is such that the points C<(x1,y1)> and C<(x2,y2)> are 
 opposite corners. Only the part of the rectangle which is in C<w> is drawn.
-The virtual cursor does I<it> move.
+The virtual cursor does I<not> move.
 
 The library syntax is C<rectbox(w,x2,y2)> where C<w> is a C-long integer.
 
 
 
-=head2 cursorC<(w)>
+=head2 X<cursor>cursorC<(w)>
 
 give as a 2-component vector the current
 (scaled) position of the virtual cursor corresponding to the rectwindow C<w>.
@@ -6133,7 +6134,7 @@ The library syntax is C<rectcursor(w)> where C<w> is a C-long integer.
 
 
 
-=head2 drawC<(list)>
+=head2 X<draw>drawC<(list)>
 
 physically draw the rectwindows given in C<list>
 which must be a vector whose number of components is divisible by 3. If
@@ -6144,13 +6145,13 @@ be drawn twice, and the windows are considered transparent.
 
 The library syntax is C<rectdraw(list)>.
 
-Note that in the present version 1.39.3.1{} this function has been written for the 
+Note that in the present version 1.39.3{} this function has been written for the 
 X11-window system (hence also for GUI's based on X11 such as
 Openwindows and Motif), and for Sunview/Suntools.
 
 
 
-=head2 initrectC<(w,x,y)>
+=head2 X<initrect>initrectC<(w,x,y)>
 
 initialize the rectwindow C<w> to width C<x> and
 height C<y>, and position the virtual cursor at C<(0,0)>.
@@ -6160,7 +6161,7 @@ C-long integers.
 
 
 
-=head2 killrectC<(w)>
+=head2 X<killrect>killrectC<(w)>
 
 erase rectwindow C<w> and free the corresponding
 memory. Note that if you want to use the rectwindow C<w> again, you
@@ -6170,7 +6171,7 @@ The library syntax is C<killrect(w)> where C<w> is a C-long integer.
 
 
 
-=head2 lineC<(w,x2,y2)>
+=head2 X<line>lineC<(w,x2,y2)>
 
 let C<(x1,y1)> be the position of the
 virtual cursor. Draw in the rectwindow C<w> the part of the
@@ -6184,7 +6185,7 @@ The library syntax is C<rectline(w,x2,y2)> where C<w> is a C-long integer.
 
 
 
-=head2 linesC<(w,listx,listy)>
+=head2 X<lines>linesC<(w,listx,listy)>
 
 draw on the rectwindow C<w> the polygon
 such that the (x,y)-coordinates of the vertices are in the vectors of equal
@@ -6199,7 +6200,7 @@ C-long integer.
 
 
 
-=head2 moveC<(w,x,y)>
+=head2 X<move>moveC<(w,x,y)>
 
 move the virtual cursor of the rectwindow C<w> to
 position C<(x,y)>.
@@ -6208,32 +6209,32 @@ The library syntax is C<rectmove(w,x,y)> where C<w> is a C-long integer.
 
 
 
-=head2 plotC<(X=a, b, expr)>
+=head2 X<plot>plotC<(X=a, b, expr)>
 
 crude plot of the function represented by
 expression C<expr> from C<a> to C<b>.
 
-The library syntax is I<plot>{(entree *ep, GEN a, GEN b, char *ch)}.
+The library syntax is X<plot>plotC<(entree *ep, GEN a, GEN b, char *ch)>.
 
 
 
-=head2 plothC<(X=a,b,expr)>
+=head2 X<ploth>plothC<(X=a,b,expr)>
 
 high precision plot of the function C<y=f(x)>
 represented by the expression C<expr>, C<x> going from C<a> to C<b>. Since this
 involves around 1000 function calls, it is advised to keep the current
 precision to a minimum (i.e. 9) before calling C<ploth>.
 
-Note that in the present version 1.39.3.1{} this function has been written for the 
+Note that in the present version 1.39.3{} this function has been written for the 
 Macintosh, the X11-window system (hence also for GUI's based on X11 such as
 Openwindows and Motif), and for Sunview/Suntools. An Atari/gem version is also
 available upon request.
 
-The library syntax is I<ploth>{(entree *ep, GEN a, GEN b, char *ch, long int prec)}.
+The library syntax is X<ploth>plothC<(entree *ep, GEN a, GEN b, char *ch, long int prec)>.
 
 
 
-=head2 plothmultC<(X=a,b,[expr1,expr2,...])>
+=head2 X<plothmult>plothmultC<(X=a,b,[expr1,expr2,...])>
 
 high precision plots of the
 functions C<y=f_i(x)> represented by the expressions C<expr_i>, C<x> going from C<
@@ -6241,15 +6242,15 @@ a> to C<b>. Since this involves around 1000 function calls times the number
 of functions, it is advised to keep the current precision to a minimum 
 (i.e. 9) before calling C<ploth>.
 
-Note that in the present version 1.39.3.1{} this function has been written 
+Note that in the present version 1.39.3{} this function has been written 
 only for the X11-window system (hence also for GUI's based on X11 such as
 Openwindows and Motif).
 
-The library syntax is I<plothmult>{(entree *ep, GEN a, GEN b, char *ch, long int prec)}.
+The library syntax is X<plothmult>plothmultC<(entree *ep, GEN a, GEN b, char *ch, long int prec)>.
 
 
 
-=head2 ploth2C<(T=a,b,expr)>
+=head2 X<ploth2>ploth2C<(T=a,b,expr)>
 
 high precision plot of the curve represented
 in parametric form by C<x=f(t),y=g(t)>, represented by the expression C<expr>,
@@ -6257,16 +6258,16 @@ C<t> going from C<a> to C<b>. The expression must be a two-component vector.
 Since this involves around 2000 function calls, it is advised to keep the 
 current precision to a minimum (i.e. 9) before calling C<ploth2>.
 
-Note that in the present version 1.39.3.1{} this function has been written for
+Note that in the present version 1.39.3{} this function has been written for
 the Macintosh, the X11-window system (hence also for GUI's based on X11 such as
 Openwindows and Motif), and for Sunview/Suntools. An Atari/gem version is also
 available upon request.
 
-The library syntax is I<ploth2>{(entree *ep, GEN a, GEN b, char *ch, long int prec)}.
+The library syntax is X<ploth2>ploth2C<(entree *ep, GEN a, GEN b, char *ch, long int prec)>.
 
 
 
-=head2 plothrawC<(listx,listy)>
+=head2 X<plothraw>plothrawC<(listx,listy)>
 
 high precision plot of the points whose
 (x,y)-coordinates are in the vectors of equal length listx and listy. Automatic
@@ -6275,13 +6276,13 @@ C<y>.
 
 The library syntax is C<plothraw(listx,listy)>.
 
-Note that in the present version 1.39.3.1{} this function has been written for
+Note that in the present version 1.39.3{} this function has been written for
 the X11-window system (hence also for GUI's based on X11 such as
 Openwindows and Motif), and for Sunview/Suntools.
 
 
 
-=head2 pointC<(w,x,y)>
+=head2 X<point>pointC<(w,x,y)>
 
 draw the point C<(x,y)> on the rectwindow C<w> (if
 it is inside C<w>), and in any case move the virtual cursor to position C<(x,y)>.
@@ -6290,7 +6291,7 @@ The library syntax is C<rectpoint(w,x,y)> where C<w> is a C-long integer.
 
 
 
-=head2 pointsC<(w,listx,listy)>
+=head2 X<points>pointsC<(w,listx,listy)>
 
 draw on the rectwindow C<w> the points
 whose (x,y)-coordinates are in the vectors of equal length C<listx> and C<listy>
@@ -6303,7 +6304,7 @@ C-long integer.
 
 
 
-=head2 postdrawC<(list)>
+=head2 X<postdraw>postdrawC<(list)>
 
 same as C<draw>, except that the output is
 a postscript program appended to the file C<pari.ps>.
@@ -6312,25 +6313,25 @@ The library syntax is C<postdraw(list)>.
 
 
 
-=head2 postplothC<(X=a,b,expr)>
+=head2 X<postploth>postplothC<(X=a,b,expr)>
 
 same as C<ploth>, except that the 
 output is a postscript program appended to the file C<pari.ps>.
 
-The library syntax is I<postploth>{(entree *ep, GEN a, GEN b, char *ch)}.
+The library syntax is X<postploth>postplothC<(entree *ep, GEN a, GEN b, char *ch)>.
 
 
 
-=head2 postploth2C<(T=a,b,expr)>
+=head2 X<postploth2>postploth2C<(T=a,b,expr)>
 
 same as C<ploth2>, except that the
 output is a postscript program appended to the file C<pari.ps>.
 
-The library syntax is I<postploth2>{(entree *ep, GEN a, GEN b, char *ch)}.
+The library syntax is X<postploth2>postploth2C<(entree *ep, GEN a, GEN b, char *ch)>.
 
 
 
-=head2 postplothrawC<(listx,listy)>
+=head2 X<postplothraw>postplothrawC<(listx,listy)>
 
 same as C<plothraw>, except that
 the output is a postscript program appended to the file C<pari.ps>.
@@ -6339,19 +6340,19 @@ The library syntax is C<postplothraw(listx,listy)>.
 
 
 
-=head2 rboxC<(w,dx,dy)>
+=head2 X<rbox>rboxC<(w,dx,dy)>
 
 draw in the rectwindow C<w> the outline of
 the rectangle which is such that the points C<(x1,y1)> and C<(x1+dx,y1+dy)> are 
 opposite corners, where C<(x1,y1)> is the current position of the cursor.
 Only the part of the rectangle which is in C<w> is drawn. The virtual cursor
-does I<it> move.
+does I<not> move.
 
 The library syntax is C<rectrbox(w,dx,dy)> where C<w> is a C-long integer.
 
 
 
-=head2 rlineC<(w,dx,dy)>
+=head2 X<rline>rlineC<(w,dx,dy)>
 
 draw in the rectwindow C<w> the part of the
 segment C<(x1,y1)-(x1+dx,y1+dy)> which is inside C<w>, where C<(x1,y1)>
@@ -6362,7 +6363,7 @@ The library syntax is C<rectrline(w,dx,dy)> where C<w> is a C-long integer.
 
 
 
-=head2 rmoveC<(w,dx,dy)>
+=head2 X<rmove>rmoveC<(w,dx,dy)>
 
 move the virtual cursor of the rectwindow C<w> to
 position C<(x1+dx,y1+dy)>, where C<(x1,y1)> is the initial position of the cursor
@@ -6372,7 +6373,7 @@ The library syntax is C<rectrmove(w,dx,dy)> where C<w> is a C-long integer.
 
 
 
-=head2 rpointC<(w,dx,dy)>
+=head2 X<rpoint>rpointC<(w,dx,dy)>
 
 draw the point C<(x1+dx,y1+dy)> on the rectwindow
 C<w> (if it is inside C<w>), where C<(x1,y1)> is the current position of the
@@ -6382,7 +6383,7 @@ The library syntax is C<rectrpoint(w,dx,dy)> where C<w> is a C-long integer.
 
 
 
-=head2 scaleC<(w,x1,x2,y1,y2)>
+=head2 X<scale>scaleC<(w,x1,x2,y1,y2)>
 
 scale the local coordinates of the
 rectwindow C<w> so that C<x> goes from C<x1> to C<x2> and C<y> goes from C<y1> to
@@ -6398,7 +6399,7 @@ C-long integer.
 
 
 
-=head2 stringC<(w,x)>
+=head2 X<string>stringC<(w,x)>
 
 draw on the rectwindow C<w> at the current position
 of the cursor the string corresponding to C<x>. C<x> can either be a string
@@ -6416,17 +6417,17 @@ converted into a real number.
 
 
 
-I<programming>
+X<programming>
 
 
 
-=head2 I<Variables> and symbolic expressions.
+=head2 X<Variables>Variables and symbolic expressions.
 
 In GP you can use up to 256 variable names (up to 65536 on 64-bit 
 machines). These names can be any standard identifier names, i.e. they 
 must start with a letter and contain only alphanumeric characters. To
 avoid confusion with other symbols, you must not 
-use non-alphanumeric symbols like '_', 'F<dollar>', or '.'. In addition to the
+use non-alphanumeric symbols like '_', 'F<dollar>', or 'C<.>'. In addition to the
 function names which you must not use (see the list with C<\>c) there
 are exactly three special variable names which you are not allowed to use:
 B<pi> and B<euler>, which represent well known constants, but also 
@@ -6438,11 +6439,11 @@ On the other hand, you will have to get used to calling a loop control variable
 with a name different from C<i>. We realize that this may initially be the cause for
 some confusion, but we do not have any replacement symbol for the square root of C<-1>.
 
-Now the main thing to understand is that PARI/GP is I<sl> a symbolic manipulation
+Now the main thing to understand is that PARI/GP is I<not> a symbolic manipulation
 package, although it shares some of the functionalities. One of the main consequences
 of this fact is that all expressions are evaluated as soon as they are written, they
 never stay in a purely abstract form. As an important example, consider what happens
-when you use a variable name I<sl> assigning a value into it. This is perfectly
+when you use a variable name I<before> assigning a value into it. This is perfectly
 acceptable to GP, who considers this variable in fact as a polynomial of degree 1, with
 coefficients 1 in degree 1, 0 in degree 0, whose variable is the variable name you used.
 
@@ -6454,7 +6455,7 @@ Another consequence is that the variables are numbered in the order
 that they appear, and the main variable of an expression is always
 the lowest numbered variable. Hence if you are working with expressions
 involving several variables and want to have them ordered in a specific manner
-I<sl>, the simplest is just to write down the variables
+I<in the internal representation>, the simplest is just to write down the variables
 one after the other under GP before starting any real computations.
 If you already have started working and want to change the names of the variables
 in an object, use the function C<changevar> (see section 2). If you only want
@@ -6462,7 +6463,7 @@ to have them ordered when the result is printed, you can also use the function
 C<reorder> (see below).
 
 Finally, note that if C<x> is a vector, you can assign a result to C<x[m]> (i.e. write
-something like C<x[k]=expr>). If C<x> is a matrix, you can assign a result to C<x[m,n]>, but I<sl> to C<x[m]>, which is a vector. If you want to assign an
+something like C<x[k]=expr>). If C<x> is a matrix, you can assign a result to C<x[m,n]>, but I<not> to C<x[m]>, which is a vector. If you want to assign an
 expression to the C<m>-th column of a matrix C<x>, use C<x[,m]=expr> instead. Similarly, use C<x[m,]=expr> to assign an expression to the C<m>-th row of C<x>.
 
 % compactarrays(num)=Changes algorithm for assignments to elements of
@@ -6473,21 +6474,21 @@ expression to the C<m>-th column of a matrix C<x>, use C<x[,m]=expr> instead. Si
 
 
 
-=head2 I<Expression>s and I<expression sequence>s.
+=head2 X<Expression>Expressions and X<expression sequence>expression sequences.
 
 An expression is formed by combining the GP operators, functions (including user-defined
 functions) and control statements. It may be preceded by an assignment statement 'C<=>'
 into a variable. It always has a value, which can be any PARI object.
 
 Several expressions can be combined on a single line by separating them with semicolons
-(';') and also with colons (':') for those who are used to BASIC. Such an expression
+('C<;>') and also with colons ('C<:>') for those who are used to BASIC. Such an expression
 sequence will be called simply a C<seq>. A C<seq> also has a value, which is the value
 of the last non-empty expression in the sequence. Under GP, the value of the C<seq> is
 always put on the stack (i.e. it will become the next object C<%n>), and only that value.
 The values of the other expressions in the C<seq> are discarded after the execution of
 the C<seq> is complete, except of course if they were assigned into variables.
 In addition, the value of the C<seq> (or of course of an expression if there is only one)
-is printed if the line does not end with a semicolon (';').
+is printed if the line does not end with a semicolon ('C<;>').
 
 
 
@@ -6502,21 +6503,21 @@ sequence.
 
 
 
-=item forC<(X=a,b,seq)>
+=item X<for>forC<(X=a,b,seq)>
 
 the formal variable C<X> going from C<a> to C<b>,
 the C<seq> is evaluated. Nothing is done if C<aE<gt>b>. C<a> and C<b> must be in C<B<I<R>>>.
 
 
 
-=item fordivC<(n,X,seq)>
+=item X<fordiv>fordivC<(n,X,seq)>
 
 the formal variable C<X> ranging through the
 positive divisors of C<n>, the sequence C<seq> is evaluated. C<n> must be of type integer.
 
 
 
-=item forprimeC<(X=a,b,seq)>
+=item X<forprime>forprimeC<(X=a,b,seq)>
 
 the formal variable C<X> ranging over the prime
 numbers between C<a> to C<b> (including C<a> and C<b> if they are prime),
@@ -6525,7 +6526,7 @@ must be in C<B<I<R>>>.
 
 
 
-=item forstepC<(X=a,b,s,seq)>
+=item X<forstep>forstepC<(X=a,b,s,seq)>
 
 the formal variable C<X> going from C<a> to
 C<b>, in increments of C<s>, the C<seq> is evaluated. Nothing is done if C<sE<gt>0> and 
@@ -6534,7 +6535,7 @@ be non-zero.
 
 
 
-=item forvecC<(X=v,seq)>
+=item X<forvec>forvecC<(X=v,seq)>
 
 C<v> being an C<n>-component vector (where
 C<n> is arbitrary) of two-component vectors C<[a_i,b_i]> for C<1E<lt>= iE<lt>= n>,
@@ -6544,7 +6545,7 @@ with the highest index moves the fastest.
 
 
 
-=item gotoC<(a)>
+=item X<goto>gotoC<(a)>
 
 C<a> being an integer between 0 and 99, go to the
 position in the seq referred to by label C<a>. This can be either a forward skip
@@ -6557,7 +6558,7 @@ In any case, multiple labels in a given seq should be avoided.
 Also, good programming practice implies that the 
 C<goto> instruction should be used only in special cases, such as getting
 out of a deeply nested set of control instructions in one step.
-In fact, in the present version 1.39.3.1, the C<goto> instruction almost always
+In fact, in the present version 1.39.3, the C<goto> instruction almost always
 leads to syntax errors hence should be avoided, except as a means to stop a
 program catastrophically without getting out of GP. This may be corrected in a
 future release.
@@ -6568,7 +6569,7 @@ with an C<a> which is not an absolute constant, but may vary in the seq
 
 
 
-=item ifC<(a,seq1,seq2)>
+=item X<if>ifC<(a,seq1,seq2)>
 
 if C<a> is non-zero, the expression sequence C<seq1>
 is evaluated, otherwise the expression C<seq2> is evaluated. Of course, C<seq1> or C<seq2>
@@ -6578,7 +6579,7 @@ is equal to zero, does nothing otherwise.
 
 
 
-=item labelC<(a)>
+=item X<label>labelC<(a)>
 
 C<a> being an integer between 0 and 99, label this
 position as label number C<a> for use by the C<goto> instruction. Labels
@@ -6586,19 +6587,19 @@ are specific to a given seq.
 
 
 
-=item untilC<(a,seq)>
+=item X<until>untilC<(a,seq)>
 
 evaluate expression sequence C<seq> until C<a> is not
 equal to 0 (i.e. until C<a> is true). If C<a> is initially not equal to 0, C<seq> is
-evaluated once (more generally, the condition on C<a> is tested I<sl> execution of
+evaluated once (more generally, the condition on C<a> is tested I<after> execution of
 the C<seq>, not before as in C<while>).
 
 
 
-=item whileC<(a,seq)>
+=item X<while>whileC<(a,seq)>
 
 while C<a> is non-zero evaluate the expression sequence
-C<seq>. The test is made I<sl> evaluating the C<seq>, hence in particular if C<a>
+C<seq>. The test is made I<before> evaluating the C<seq>, hence in particular if C<a>
 is initially equal to zero the C<seq> will not be evaluated at all.
 
 
@@ -6612,7 +6613,7 @@ which will be of use specifically for GP. They are as follows:
 
 
 
-=item killC<(x)>
+=item X<kill>killC<(x)>
 
 kills the present value of the variable or user-defined
 function C<x>. After C<kill> of a variable, since the variable does not have a value,
@@ -6625,47 +6626,47 @@ commas) either of PARI objects or of character strings between double quotes
 
 
 
-=item pprintC<(list)>
+=item X<pprint>pprintC<(list)>
 
 output C<list> in prettyprint (beautified) format,
 ending with a newline.
 
 
 
-=item pprint1C<(list)>
+=item X<pprint1>pprint1C<(list)>
 
 output C<list> in prettyprint (beautified) format,
 without ending with a newline.
 
 
 
-=item printC<(list)>
+=item X<print>printC<(list)>
 
 output C<list> in raw format, ending with a newline.
 
 
 
-=item print1C<(list)>
+=item X<print1>print1C<(list)>
 
 output C<list> in raw format, without ending with a 
 newline.
 
 
 
-=item readC<()>
+=item X<read>readC<()>
 
 reads a string, interpreted as a GP expression, from
 the input file, usually standard input (i.e. the keyboard). If a sequence of
 expressions is given, the result is the result of the last expression of the
 sequence. When using this instruction, it is useful to prompt for the string
 by using the C<print1> function. Note that in the present version 2.12 of
-C<pari.el>, when using GP under gnuemacs (see section 11) one I<sl>
+C<pari.el>, when using GP under gnuemacs (see section 11) one I<must>
 prompt for the string, with a string which ends with the same prompt as the
-current one (usually a '?').
+current one (usually a 'C<?>').
 
 
 
-=item reorderC<(x)>
+=item X<reorder>reorderC<(x)>
 
 C<x> must be a vector. If C<x> is the empty vector,
 this gives the vector whose components are the existing variables in increasing
@@ -6676,12 +6677,12 @@ order of importance of the variables will be C<[z,y,x]>.
 
 
 
-=item texprintC<(list)>
+=item X<texprint>texprintC<(list)>
 
 outputs C<list> in TeX format. This
 output can then be used in a TeX manuscript. 
 
-Warning: in the present version 1.39.3.1, the printing is done on the standard
+Warning: in the present version 1.39.3, the printing is done on the standard
 output, hence to be able to get the output into a file, you must be either
 in an emacs session or shell (see section 11), in a windowing system (which enables
 you to grab the output with the mouse), under a UNIX script command, or with
@@ -6717,7 +6718,7 @@ with predefined functions is that you can never redefine such a function, while
 you can redefine a user-defined function as many times as you want, without using the
 C<kill> instruction.
 
-In a given session you can give any identifier name to a function, I<sl>
+In a given session you can give any identifier name to a function, I<except>
 those of predefined functions (of course) but also those of any variables that
 have been used, even if they have been killed. On the other hand, if you want
 to use as a variable name the name of a user-defined function, it is enough
@@ -6726,12 +6727,12 @@ to use as a variable name the name of a user-defined function, it is enough
 An amusing example of a user-defined function is the following. It is intended
 to illustrate both the use of
 user-defined functions and the power of the C<sumalt> function. Although
-since version 1.34 the I<Riemann zeta-function> is included in the standard
+since version 1.34 the X<Riemann zeta-function>Riemann zeta-function is included in the standard
 functions, let us assume that this is not the case (or that we want another
 implementation). One way to define it, which is probably the simplest
 (but certainly not the most efficient), is as follows:
 
-I<zeta function>
+X<zeta function>
 C<zet(s,j)=sumalt(j=1,(-1)^(j-1)*j^(-s))/(1-2^(1-s))>
 
 Then this gives reasonably good accuracy and speed as long as you are not too far
@@ -6741,14 +6742,14 @@ done by C<zet(s)>, the variable C<j> must not be given.
 
 
 
-=head2 Special I<editing character>s.
+=head2 Special X<editing character>editing characters.
 
 A GP program can of course have more than
 one line. Since GP executes your commands as soon as you have finished typing them, there
 must be a way to tell it to wait for the next line or lines of input before doing
 anything. There are two ways of doing this.
 
-The first one is simply to use the I<backslash character> 'C<\>' at the end of the
+The first one is simply to use the X<backslash character>backslash character 'C<\>' at the end of the
 line that you are typing, just before hitting C<<>returnC<E<gt>>. This tells GP that what you
 will write on the next line is the physical continuation of what you have just written.
 In other words, it makes GP forget your newline character. For example if you use this
@@ -6764,20 +6765,20 @@ C<4>
 instead of typing C<3+4>.
 
 The second one cannot be used everywhere, but is in general more useful.
-It is the use of braces `C<{>' and  `C<}>'.I<brace characters>
+It is the use of braces `C<{>' and  `C<}>'.X<brace characters>
 When GP sees an opening brace (`C<{>') at the beginning of a line, it
 understands that you are writing a program, and newlines will be ignored
 (but registered, contrary to when you use a backslash) until you type a 
 closing brace `C<}>'. However, there is an important (but easily obeyed) 
 restriction: inside an open brace-close brace pair, all newlines must
-occur after a semicolon (';'), i.e. between two expressions forming a
+occur after a semicolon ('C<;>'), i.e. between two expressions forming a
 C<seq>.
 
 Of course you can combine the use of backslash and braces.
 
 
 
-=head2 The GP/PARI I<programming> language.
+=head2 The GP/PARI X<programming>programming language.
 
 As we have seen, the GP calculator uses a primitive purely interpreted language.
 The structure of this language is in fact more reminiscent of LISP with a functional
@@ -6796,7 +6797,7 @@ for example.
 Each variable has a stack of values, implemented as a linked list. When a new
 scope is entered, during a function call,
 the value of the actual parameter is pushed on the stack. If the parameter is not
-supplied, a special C<0> value called B<I<gnil>> is pushed on the stack
+supplied, a special C<0> value called B<X<gnil>gnil> is pushed on the stack
 (this value is not printed if it is
 returned as the result of a GP expression sequence). Upon exit, the stack decreases.
 You can C<kill> a variable, decreasing the stack yourself. This should be used
@@ -6819,9 +6820,9 @@ the stack at the time of the call. This could be a ``global'' value, or a local
 value belonging to any function higher in the call chain. So, be warned.
 
 B<Implementation note.> For the curious reader, here is how these stacks are
-handled: a I<hashing function> is computed from the identifier, and used as an
-index in C<I<hashtable>>, a table of pointers. Each of these pointers begins
-a linked list of structures (type C<I<entree>>). The linked list is searched
+handled: a X<hashing function>hashing function is computed from the identifier, and used as an
+index in C<X<hashtable>hashtable>, a table of pointers. Each of these pointers begins
+a linked list of structures (type C<X<entree>entree>). The linked list is searched
 linearly for the identifier (each list will have less than 7 components or
 so). When the correct C<entree> is found, it points to the top of the
 stack of values for that identifier if it is a variable, to the function
@@ -6832,7 +6833,7 @@ situation preceding the last call of the main evaluator.
 
 
 
-=head1 Using GP under I<gnuemacs>.
+=head1 Using GP under X<gnuemacs>gnuemacs.
 
 
 
@@ -6844,7 +6845,7 @@ if gnuemacs has been installed on your machine.
 
 To use this, you must include in your C<.emacs> file the following line:
 
-C<(load "I<pari>" nil t)>
+C<(load "X<pari>pari" nil t)>
 
 where C<pari.el> is the name of the file that will have to be loaded by gnuemacs
 (if you have changed the name, or if you have the file in a different directory, you
@@ -6894,7 +6895,7 @@ Note that if for some reason the session crashes (due to a bug in your program
 or in the PARI system), you will usually stay under emacs, but the GP buffer
 will be killed. To recover it, simply type again M-x gp (or C-u M-x gp), and
 a new session of GP will be started after the old one, so you can recover
-what you have typed. Note that this will of course I<sl> work if for some
+what you have typed. Note that this will of course I<not> work if for some
 reason you exited emacs before coming back (except for the C-z temporary
 stopping command).
 

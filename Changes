@@ -29,3 +29,15 @@ after 0.5:
 	 function was wrong;
 	Prototype of Perl function consulted when importing into PARI;
 	Documentation brushed up;
+
+after 0.6:
+	Emulated subroutines for missing interfaces added (77 not ok);
+	substitution 'fun(j=1)' to 'fun(j,1)' in testout (64 not ok);
+	Better conversion of chapter3 (index entries created, literal blocks);
+	Enable tests with print (75 not ok, 106 skip);
+	Massage tests with loops (84 not ok, 78 skip);
+	Massage floats on output to 16 digits (69 not ok, 78 skip);
+	Massage complicated matrix output, +tiny changes (45 not ok, 76 skip);
+	Yet more misc massage (29 not ok - most truely so, 81 skip);
+	4 classes of problems: 
+	   ker(matrix), pari_print inside fordiv, changevar, taylor

@@ -463,6 +463,10 @@ There is no postfix C<~> Perl operator.  Use trans() instead.
 
 There is no postfix C<_> Perl operator.  Use conj() instead.
 
+=item C<'>
+
+There is no postfix C<'> Perl operator.  Use deriv() instead.
+
 =item C<!>
 
 There is no postfix C<!> Perl operator.  Use fact()/ifact() instead
@@ -539,7 +543,7 @@ require Exporter;
 require DynaLoader;
 #use autouse Carp => 'croak';
 
-@ISA = qw(Exporter AutoLoader DynaLoader);
+@ISA = qw(Exporter DynaLoader);
 @Math::Pari::Ep::ISA = qw(Math::Pari);
 
 # Items to export into callers namespace by default
@@ -610,29 +614,14 @@ use overload qw(
    sqrt _sqrt
 );
 
-## Was needed with the old way of overloading
-## foreach (values %OVERLOAD) {$interchange{$_}=$' if /^_/}
-# Against a bug in autoloading
-foreach (keys %OVERLOAD) {$OVERLOAD{$_}= \&{ $OVERLOAD{$_} }}
-
 sub AUTOLOAD {
   $AUTOLOAD =~ /^(?:Math::Pari::)?(.*)/;
-# #   my $name1=$';
-# #   my $name=$name1;
-# #   if ($interchange{$name1}) {
-# #     $name = $interchange{$name1};
-# #     eval <<EOE;
-# #       sub $name1 {
-# # 	\$_[2]? $name(\$_[1],\$_[0]):  $name(\$_[0],\$_[1]);
-# #       }
-# # EOE
-# #   }
-  my $cv=loadPari($1);
+  my $cv = loadPari($1);
   
 #  goto &$cv;
 #  goto &$AUTOLOAD;
 #  &$cv;
-  &{$1}(@_);
+  &$1;
 #  &$AUTOLOAD;
 }
 
@@ -726,6 +715,28 @@ sub O ($;$) {
 }
 
 sub PARImat_tr {trans(PARImat(@_))}
+sub string ($$) {
+  PARI (qq'string($_[0],"$_[1]")');
+}
+
+my $name;
+
+for $name (split /,\s+/, qq(buchimag, buchreal,
+			    buchgen, buchgenforcefu, buchgenfu, buchinit,
+			    buchinitforcefu, buchinitfu,
+			    forstep, forvec, plotterm, rcopy, rlinetype,
+			    rploth, rplothraw, rpointtype, scale, string,
+			    addhelp, kill)) {
+  push @EXPORT_OK, $name;
+  next if defined &$name;
+  if ($name =~ /^for/) {
+    *$name = sub {my $var=shift;local $"=','; PARI("$name($var=@_)")}
+  } else {
+    *$name = sub {local $"=','; PARI("$name(@_)")}
+  }
+}
+
+
 
 1;
 __END__

@@ -15,6 +15,10 @@ extern "C" {
 #  undef coeff
 #endif
 
+#ifdef warner
+#  undef warner
+#endif
+
 #include <pari.h>
 #include <language/anal.h>
 #include <gp/gp.h>			/* init_opts */
@@ -824,6 +828,8 @@ Arr_FETCH(GEN g, I32 n)
     return (GEN)g[n + 1];
 }
 
+#define Arr_FETCHSIZE(g)  (lg(g) - 1)
+
 #define DFT_VAR (GEN)-1
 #define DFT_GEN (GEN)NULL
 
@@ -999,6 +1005,10 @@ Arr_FETCH(g,n)
     long	oldavma=avma;
     GEN g
     I32 n
+
+I32
+Arr_FETCHSIZE(g)
+    GEN g
 
 MODULE = Math::Pari PACKAGE = Math::Pari
 

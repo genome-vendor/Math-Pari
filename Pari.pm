@@ -139,8 +139,6 @@ is equivalent to
 
   print PARI(2)**PARI(1000);
 
-(Not tested yet.)
-
 =back
 
 =head1 Available functions
@@ -497,8 +495,6 @@ is equivalent to
 
   print PARI(2)**PARI(1000);
 
-(Not tested yet.)
-
 =item doubles
 
 Doubles in Perl are of precision approximately 15 digits.  When you
@@ -539,8 +535,6 @@ PARI objects.  Say
 is equivalent to
 
   print atan(PARI('1.'));
-
-(Not tested yet.)
 
 =item array base
 
@@ -765,7 +759,7 @@ sub AUTOLOAD {
 $initmem = $initmem || 4000000;		# How much memory for the stack
 $initprimes = $initprimes || 500000;	# Calculate primes up to this number
 
-$VERSION = '2.0011_01';
+$VERSION = '2.001102';
 
 bootstrap Math::Pari;
 
@@ -825,6 +819,7 @@ sub _hex_cvt {
 
 sub import {
   my $p=shift;
+  my @consts;			# Need to do it outside any block!
   @_ = map {
     if (/^:(?!DEFAULT)(.*)/) {
       my $tag = $1;
@@ -839,8 +834,8 @@ sub import {
       } elsif ($tag =~ /^(int|hex|float)$/) {
 	die "Overloaded constants are not supported in this version of Perl"
 	  if $] < 5.004_69;
-	'overload'->constant($overloaded_const_word{$tag} 
-			     => $overloaded_const{$tag});
+	push @const, $overloaded_const_word{$tag} => $overloaded_const{$tag};
+	# print "Constants: $overloaded_const_word{$tag} => $overloaded_const{$tag} \n";
 	();
       } elsif (defined $tag) {
 	(@pre, listPari($tag));
@@ -851,7 +846,9 @@ sub import {
       ($_);
     }
   } @_;
-  
+
+  overload::constant(splice @const, 0, 2) while @const;  
+
   # print "EXPORT_OK: @EXPORT_OK\n";
   push @EXPORT_OK,
       grep( ($_ ne ':DEFAULT' 

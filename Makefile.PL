@@ -65,7 +65,7 @@ if (@ARGV and $ARGV[0] =~ /^machine=(.*)$/i) {
   $common::machine = process_machine;
 }
 
-$define = "-DDEBUG_PARI";
+$define = "-Dshifts=pari_shifts -DDEBUG_PARI";
 #$libs = "-L$paridir -lpari -lgnuplot -lm";
 $libs = "-lgnuplot -lm";
 

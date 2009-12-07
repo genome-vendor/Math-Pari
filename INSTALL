@@ -173,6 +173,11 @@ Here are the typical failure modes of the tests:
 				limit stacksize 8192
 
 =======================================================
+Sometimes the server ftp://megrez.math.u-bordeaux.fr/pub/pari/unix/
+goes off line for a couple of days (mostly in August).  Then you can try
+downloading from some mirror: google, e.g., for pari-2.1.7.tgz.
+
+=======================================================
 KNOWN PROBLEMS:
       Darwin and other systems where -fno-common gcc flag is used:
         *) Remove the flag from libPARI/Makefile macro CCFLAGS;

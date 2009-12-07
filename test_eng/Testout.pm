@@ -53,7 +53,7 @@ if ($file =~ /plot|graph|all/) {
       @not_yet_defined{qw(
 	plotbox plotcolor plotcursor plotdraw ploth plothraw plotinit plotlines
 	plotmove plotpoints plotrline plotrmove plotrpoint psdraw psploth
-	psplothraw
+	psplothraw plotscale
 	plotkill
       )} = (1) x 10000;
       $skip_gnuplot = 1;
@@ -380,11 +380,14 @@ sub process_test {
       $in =~ s/(^|\G|\W)([-+]?)(\d+(\.\d*)?)(.?)/$1 $2 PARI($3) $5/g;
       # Big integer constants:
       $in =~ s/\bPARI\((\d{10,})\)/PARI('$1')/g;
-    } elsif ($in =~ /\b(elllseries|binomial|mathilbert|intnum|intfuncinit)\b/) { # high precision needed?
+    } elsif ($in =~ /\b(elllseries|binomial|mathilbert|intnum|intfuncinit|intfuncinit)\b/) { # high precision needed?
       # XXXX Primitive!
       # Substitute constants where they are not arguments to functions,
       # (except small half-integers, which should survive conversion)
       $in =~ s/(^|\G|\W)([-+]?)(?!\d{0,6}\.5\b)(\d+\.\d*)/$1 $2 PARI('$3') /g;
+      # Bug in GP???  Too sensitive to precision of 4.5 in intfuncinit(t=[-oo, 4.5],[oo, 4.5], gamma(2+I*t)^3, 1);
+      $in =~ s/(^|\G|\W)([-+]?)(\d+\.\d*)/$1 $2 PARI('$3') /g
+	if $in =~ /intfuncinit/;
       # Big integer constants:
       $in =~ s/\bPARI\((\d{10,})\)/PARI('$1')/g;
     } else {
@@ -402,11 +405,14 @@ sub process_test {
     $in =~ s/\b(|p|tex)print(tex|)\(/ 'my_' . $1 . $2 . 'print(1,' /ge;
     $in =~ s/\b(|p|tex)print1\(/ 'my_' . $1 . 'print(0,'/ge;
     $in =~ s/\b(eval|shift|sort)\(/&$1\(/g; # eval($y)
-    # Recognize variables
+    # Special case -oo (with $oo=[PARI(1)] done earlier;
+    # Having $oo defined without external PARI tests conversions; but it'sn't overloaded
+    $in =~ s/-oo\b/- PARI(\$oo)/ if $seen_now{oo} or 1;
+    # Recognize variables and prepend $ in assignments
     # s/\b(direuler\s*\(\s*\w+\s*),/$1=/;	# direuler
     $in =~ s/\bX\b/PARIvar("X")/g if $in =~ /\bdireuler\b/;
-    $in =~ s/(^|[;(])(\w+)(\s*=\s*)/$seen_now{$2} = '$'; $1 . '$' . $2 . $3/ge; # Assignment
-    # Substitute variables (not before '^' - inside of 'o(x^17)'):
+    $in =~ s/(^\s*|[;(]\s*)(?=(\w+)\s*=\s*)/$seen_now{$2} = '$'; $1 . '$'/ge; # Assignment
+    # Prepend $ to variables (not before '^' - inside of 'o(x^17)'):
     $in =~ s/(^|[^\$])\b([a-zA-Z]\w*)\b(?!\s*[\(^])/
       		($1 || '') . ($seen{$2} || $seen_now{$2} || '') . $2
 	/ge;

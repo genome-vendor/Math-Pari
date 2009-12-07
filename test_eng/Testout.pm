@@ -575,6 +575,7 @@ sub process_test {
       }
       # New wrapping code gets in the way:
       $printout =~ s/\s+/ /g;
+      $rout =~ s/\t,/,/g;
       $rout =~ s/\s+/ /g;
     } else {
       # Special-case several tests in all.t

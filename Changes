@@ -144,3 +144,7 @@ after 2.001103:
 
 All tests successful.
 Files=15,  Tests=1378, 108 secs (86.46 cusr  3.82 csys = 90.28 cpu)
+
+2.001200:
+	new patch for PARI 2.0.12.
+	Allow a LF before comma for my_print* tests.

@@ -9,12 +9,12 @@ to check, and, say
 	perl -MCPAN -e 'install Net::FTP'
 
 to install it if you do not have it), then Makefile.PL may fetch and
-configure PARI for you, so you can skip steps a,b,c in the description
+configure PARI for you, so you can skip steps a,b,c,e in the description
 below.  You need to manually apply patches *after doing*
 
 	perl Makefile.PL
 
-if the PARI distribution is 2.0.11, maybe later too.
+if the PARI distribution is 2.0.11/2.0.12, maybe later too.
 
 If you have a not very old perl (5.003 should do), then
 

@@ -911,10 +911,10 @@ sub _shiftr {
   floor($left / $two**$right);
 }
 
-$initmem = $initmem || 4000000;		# How much memory for the stack
-$initprimes = $initprimes || 500000;	# Calculate primes up to this number
+$initmem ||= 4000000;		# How much memory for the stack
+$initprimes ||= 500000;		# Calculate primes up to this number
 
-$VERSION = '2.010602';
+$VERSION = '2.010603';
 
 bootstrap Math::Pari;
 
@@ -956,15 +956,14 @@ if (pari_version_exp() >= 2000018) {
 }
 
 if (pari_version_exp() >= 2002001) {
-  'overload'->import( qw(
-			 << _gbitshiftl
-			 >> _gbitshiftr
-			) );
+  'overload'->import( qw( << _gbitshiftl ) );
 } else {
-  'overload'->import( qw(
-			 << _shiftl
-			 >> _shiftr
-			) );
+  'overload'->import( qw( << _shiftl ) );
+}
+if (pari_version_exp() >= 2002001 && pari_version_exp() <= 2002007) {
+  'overload'->import( qw( >> _gbitshiftr ) );
+} else {
+  'overload'->import( qw( >> _shiftr ) );
 }
 
 sub AUTOLOAD {

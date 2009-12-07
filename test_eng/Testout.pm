@@ -198,7 +198,7 @@ sub process_test {
   $doprint = 1 if $noans eq 'print';
   my $was_prev = $prev;
   undef $prev;
-  $c++;
+  $current_num++;
   # First a trivial processing:
   $in =~ s/^\s*gettime\s*;//;		# Starting lines of tests...
   $in =~ s/\b(\d+|[a-z]+\(\))\s*\\\s*(\d+(\^\d+)?)/ gdivent($1,$2)/g; # \
@@ -231,13 +231,13 @@ sub process_test {
   } elsif ($in =~ /^\\ps\s*(\d+)/) {		# \\ for division unsupported
     sprec($1);
   } elsif ($in =~ /\\/) {		# \\ for division unsupported
-    $c--;
+    $current_num--;
     process_error($in, $out, '\\');
   } elsif ($in =~ /^(\w+)\s*\([^()]*\)\s*=/ and 0) { # XXXX Not implemented yet
-    $c--;
+    $current_num--;
     process_definition($1, $in);
   } elsif ($in =~ /[!\']/) {	# Factorial
-    print "# `$in'\nok $c # Skipping (ifact/deriv)\n";
+    print "# `$in'\nok $current_num # Skipping (ifact/deriv)\n";
   } else {
     # work with "^", need to treat differently inside o()
     $in =~ s/\^/^^^/g;
@@ -286,19 +286,19 @@ sub process_test {
 	    /process_cond($1, $2, $3, $4, $in)/xge; # if(a,b,c)
  };
     if ($in =~ /\[[^\]]*;/) {	# Matrix
-      print "# `$in'\nok $c # Skipping (matrix notation)\n";
+      print "# `$in'\nok $current_num # Skipping (matrix notation)\n";
       return;
     } elsif ($in =~ /Skip this `(.*)'/) {
-      print "# `$1'\nok $c # Skipping (runaway conversion)\n";
+      print "# `$1'\nok $current_num # Skipping (runaway conversion)\n";
       return;
     } elsif ($in =~ /&for\s*\([^\)]*$/) {	# Special case
-      print "# `$in'\nok $c # Skipping (runaway input line)\n";
+      print "# `$in'\nok $current_num # Skipping (runaway input line)\n";
       return;
     } elsif ($in =~ /(^|[\(=,])%/) {
-      print "# `$in'\nok $c # Skipping (history notation)\n";
+      print "# `$in'\nok $current_num # Skipping (history notation)\n";
       return;
     } elsif ($in =~ /\b(get(heap|stack)|Total time spent.*gettime)\b/) {
-      print "# `$in'\nok $c # Silently skipping: meaningless for Math::Pari\n";
+      print "# `$in'\nok $current_num # Silently skipping: meaningless for Math::Pari\n";
       return;
     } elsif ($in =~ /
 		      (
@@ -340,33 +340,33 @@ sub process_test {
 	print "# Installed function `$4'.\n";
       }
       # It is not clear why changevar gives a different answer in GP
-      print "# `$in'\nok $c # Skipping (converting test for '$1' needs additional work)\n";
+      print "# `$in'\nok $current_num # Skipping (converting test for '$1' needs additional work)\n";
       return;
     } elsif ($userfun
 	     and $in =~ / \b ($userfun) \s* \( /x) {
-      print "# `$in'\nok $c # Skipping (user function)\n";
+      print "# `$in'\nok $current_num # Skipping (user function)\n";
       return;
     } elsif ($installed
 	     and $in =~ / \b ($installed) \s* \( /x) {
-      print "# `$in'\nok $c # Skipping (installed function)\n";
+      print "# `$in'\nok $current_num # Skipping (installed function)\n";
       return;
 #    } elsif ($in =~ / \b ( sizebyte ) \b /x
 #	     and $file !~ /will_fail/) {
 #      # XXXX Will result in a wrong answer, but we moved these tests to a different
-#      print "# `$in'\nok $c # Skipping (would fail, checked in different place)\n";
+#      print "# `$in'\nok $current_num # Skipping (would fail, checked in different place)\n";
 #      return;
-    } elsif ($in =~ /\b(nonesuch now)\b/) {
-      print "# `$in'\nok $c # Skipping (possibly FATAL $1)\n";
+    } elsif ($in =~ /\b(nonesuch now|nfisincl)\b/) {
+      print "# `$in'\nok $current_num # Skipping (possibly FATAL $1)\n";
       return;
     }
     # Convert transposition
     $in =~ s/(\$?\w+(\([^()]*\))?|\[([^\[\]]+(?=[\[\]])|\[[^\[\]]*\])*\])~/mattranspose($1)/g;
     if ($in =~ /~/) {
-      print "# `$in'\nok $c # Skipping (transpose notation)\n";
+      print "# `$in'\nok $current_num # Skipping (transpose notation)\n";
       return;
     }
     if ($in =~ /^\s*alias\s*\(\s*(\w+)\s*,\s*(\w+)\s*\)$/) {
-      print "# Aliasing `$1' ==> `$2'\nok $c\n";
+      print "# Aliasing `$1' ==> `$2'\nok $current_num\n";
       *$1 = \&{$2};
       return;
     }
@@ -407,13 +407,13 @@ sub process_test {
 	/ge;
     # Die if did not substitute variables:
     while ($in =~ /(^|[^\$])\b([a-zA-Z]\w*)\b(?!\s*[\{\(^])/g) {
-      print("# `$in'\nok $c # Skipping: variable `$2' was not set\n"), return
+      print("# `$in'\nok $current_num # Skipping: variable `$2' was not set\n"), return
 	unless $seen{$2} and $seen{$2} eq ' ' or $in =~ /\"/;
       # Let us hope that lines which contain '"' do not contain unset vars
     }
     # Simplify for the following conversion:
     $in =~ s/\brandom\(\)/random/g;
-    # Sub-ify sum,prod,intnum, psploth, ploth etc
+    # Sub-ify sum,prod,intnum* sumnum etc, psploth, ploth etc
     1 while
       $in =~ s/
 		(
@@ -421,7 +421,15 @@ sub process_test {
 		  (?:
 		    sum
 		  |
-		    intnum
+		    intnum(?!init\b)\w*
+		  |
+		    intfuncinit
+		  |
+		    int\w*inv
+		  |
+		    intcirc\w*
+		  |
+		    sumnum(?!init\b)\w*
 		  |
 		    forprime
 		  |
@@ -436,13 +444,17 @@ sub process_test {
 		  \(
 		  (?:
 		     (?:
-		       [^(=,)]+
+		       [^(=,)\[\]]+
 		       (?=
-		         [(=,)]
+		         [=,]
 		       )
-		     |
+		     |		# One level of parenths supported
 		       \( [^()]+ \)
-		     )		# One level of parenths supported
+		     |		# Two levels of brackets supported
+		       \[ [^\[\]]+ \]
+		     |
+		       \[ (?: [^\[\]] | \[ [^\[\]]+ \] )* \]
+		     )
 		  [,=]){3}		# $x,1,100
 	        |
 		  \b
@@ -520,7 +532,7 @@ sub process_test {
 		    ploth (?! raw \b ) \w+
 		  |
 		    # sum \w*
-		    sum (?! alt \b) \w+
+		    sum (?! alt | num \b) \w+
 		  |
 		    # prod \w*
 		    prodinf
@@ -622,6 +634,11 @@ sub process_test {
       $printout =~ s/\s+/ /g;
       $rout =~ s/\t,/,/g;
       $rout =~ s/\s+/ /g;
+
+      $rout =~ s/,\s*/, /g;
+      $printout =~ s/,\s*/, /g;
+      $rout =~ s/\s*([-+])\s*/ $1 /g;
+      $printout =~ s/\s*([-+])\s*/ $1 /g;
     } else {
       # Special-case several tests in all.t
       if (($have_floats or $in =~ /^(sinh?|solve)\b/) and ref $res) {
@@ -632,9 +649,12 @@ sub process_test {
 	  $rout =~ s/,\n/, \n/g; # Spaces were removed
 	  $rout =~ s/\n//g;	# Long wrapped text
 	}
-	if ($rout =~ /\[.*[-+,;]\s/) {
+	if ($rout =~ /\[.*[-+,;]\s/ or $rout =~ /\bQfb\b/) {
 	  $rout =~ s/,*\s+/ /g;
 	  $rres =~ s/,*\s+/ /g if defined $res;
+	  $rres =~ s/,/ /g if defined $res;		# in 2.2.10 ", "
+	  $rout =~ s/;\s*/; /g;				# in 2.2.10 "; "
+	  $rres =~ s/;\s*/; /g if defined $res;		# in 2.2.10 "; "
 	}
 	if ($in =~ /\b(zeta|bin|comprealraw|frac|lseriesell|powrealraw|pollegendre|legendre|suminf|ellinit)\b/) {
 	  $rres = massage_floats $rres, "14f";
@@ -665,12 +685,12 @@ sub process_test {
     if ($@) {
       if ($@ =~ /^Undefined subroutine &main::(\w+)/
 	  and $not_yet_defined{$1}) {
-	print "# in='$in'\nok $c # Skipped: `$1' is known to be undefined\n";
+	print "# in='$in'\nok $current_num # Skipped: `$1' is known to be undefined\n";
       } elsif ($@ =~ /gnuplot-like plotting environment not loaded yet/
 	       and $skip_gnuplot) {
-	print "# in='$in'\nok $c # Skipped: Term::Gnuplot is not loaded\n";
+	print "# in='$in'\nok $current_num # Skipped: Term::Gnuplot is not loaded\n";
       } else {
-	print "not ok $c # in='$in', err='$@'\n";
+	print "not ok $current_num # in='$in', err='$@'\n";
       }
       return;
     }
@@ -678,7 +698,7 @@ sub process_test {
     if (defined $rres and defined $re_out) {
       $cmp = eval { $rres =~ /^$re_out$/ };
       if ($@ and $@ =~ /regexp too big/) {
-	print "ok $c # Skipped: $@\n";
+	print "ok $current_num # Skipped: $@\n";
 	@seen{keys %seen_now} = values %seen_now;
 	$prev = $res;
 	return;
@@ -687,20 +707,20 @@ sub process_test {
     if (not $noans and defined $re_out
 	     and (not defined $rres or not $cmp)) {
       $out->[0] =~ s/\n/\t/g;	# @$out usually has 1 elt
-      print "not ok $c # in='$in'\n#    out='", $rres, "', type='", ref $res,
+      print "not ok $current_num # in='$in'\n#    out='", $rres, "', type='", ref $res,
       "'\n# pari==='", join("\t", @$out), "'\n# re_out='$re_out'\n";
     } elsif (not $noans and defined $re_out) {
-      print "ok $c\n";
+      print "ok $current_num\n";
       @seen{keys %seen_now} = values %seen_now;
       $prev = $res;
     } elsif (not $noans and (not defined $rres or $rres ne $rout)) {
-      print "not ok $c # in='$in'\n#    out='", $rres, "', type='", ref $res,
+      print "not ok $current_num # in='$in'\n#    out='", $rres, "', type='", ref $res,
       "'\n# expect='$rout'\n";
     } elsif ($doprint and $printout ne $rout) {
-      print "not ok $c # in='$in'\n# printout='", $printout,
+      print "not ok $current_num # in='$in'\n# printout='", $printout,
       "'\n#   expect='$rout', type='", ref $res,"'\n";
     } else {
-      print "ok $c\n";
+      print "ok $current_num\n";
       @seen{keys %seen_now} = values %seen_now;
       $prev = $res;
     }
@@ -709,40 +729,40 @@ sub process_test {
 
 sub process_error {
   my ($in, $out, $error) = @_;
-  $c++;
-  print("# `$in'\nok $c # Skipping: test producing error unsupported yet ($error)\n");
+  $current_num++;
+  print("# `$in'\nok $current_num # Skipping: test producing error unsupported yet ($error)\n");
 }
 
 sub process_definition {
   my ($name, $def) = @_;
-  $c++;
+  $current_num++;
   eval "PARI('$def');  import Math::Pari $name;";
   if ($@) {
     chomp $@;
-    print("not ok $c # definition: `$in' error `$@'\n");
+    print("not ok $current_num # definition: `$in' error `$@'\n");
   } else {
-    print("# definition $c: `$in'\nok $c\n");
+    print("# definition $current_num: `$in'\nok $current_num\n");
   }
 }
 
 sub process_set {
   my ($in, $out) = @_;
   return process_test("setprecision($1)", 'noans', '') if $in =~ /^\\p\s*(\d+)$/;
-  $c++;
-  print("# `$in'\nok $c # Skipping setting test\n");
+  $current_num++;
+  print("# `$in'\nok $current_num # Skipping setting test\n");
 }
 
 sub process_print {
   my ($in, @out) = @_;
-  $c++;
-  print("# $c: `$in'\nok $c # Skipping plot() - can't test it yet\n");
+  $current_num++;
+  print("# $current_num: `$in'\nok $current_num # Skipping plot() - can't test it yet\n");
 }
 
 sub process_multi {
   my ($in, $out) = @_;
   my @out = @$out;
-  $c++;
-  print("# `$in'\nok $c # Skipping multiline\n");
+  $current_num++;
+  print("# `$in'\nok $current_num # Skipping multiline\n");
 }
 
 sub my_print {
@@ -772,12 +792,12 @@ sub my_texprint {
 sub prec {
   setprecision($_[0]);
   print "# Setting precision to $_[0] digits.\n";
-  print "ok $c\n" unless $_[1];
+  print "ok $current_num\n" unless $_[1];
 }
 sub sprec {
   setseriesprecision($_[0]);
   print "# Setting series precision to $_[0] digits.\n";
-  print "ok $c\n";
+  print "ok $current_num\n";
 }
 
 # *Need* to convert to PARI, otherwise the arithmetic will propagate

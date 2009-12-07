@@ -600,8 +600,8 @@ EOP
 
 EOP
 
-  my $machine = find_machine_architecture();
-  my $bits64 = ($machine eq 'alpha'
+  my $arch = find_machine_architecture();
+  my $bits64 = ($arch =~ /alpha|ia64/
 		or defined($Config{longsize}) and $Config{longsize} == 8);
   print F <<EOP if $bits64;
 #define LONG_IS_64BIT	1
@@ -624,7 +624,7 @@ EOP
 
 EOP
 
-  print F <<EOP if $machine eq 'port';
+  print F <<EOP if $arch eq 'port';
 #define __HAS_NO_ASM__
 
 EOP
@@ -662,15 +662,17 @@ EOP
 }
 
 # The following two functions are based on the logic in the PARI
-# Configure script:
+# Configure script (updated to 2.2.8's config/arch-osname):
 
 sub process_sparc {
   my $info = shift;
+  #	    *SuperSparc*)   arch=sparcv8_super;;
   #	    *TMS390Z5[05]*) arch=sparcv8_super;; # SuperSparc I or II
-  #	    *CY605*)        arch=sparcv8_super;;
   #	    *MB86934*)      arch=sparcv8_super;; # SparcLite
   #	    *RT625*)        arch=sparcv8_super;; # HyperSparc
-  return 'sparcv8_super' if $info =~ /TMS390Z5[05]|CY605|MB86934|RT625/;
+  #	    *CY605*)        arch=sparcv8_super;;
+  return 'sparcv8_super' if $info =~ /SuperSparc|TMS390Z5[05]|CY605|MB86934|RT625/;
+
   #	    *TMS390S1[05]*) arch=sparcv8_micro;; # MicroSparc I
   #	    *MB86904*)      arch=sparcv8_micro;; # MicroSparc II
   #	    *MB86907*)      arch=sparcv8_micro;; # TurboSparc
@@ -686,12 +688,16 @@ Returns the type of the processor of the current machine.
 
 sub find_machine_architecture () {
   my $os = (split ' ', $Config{myuname})[0];
-  my $machine = $os;
 
-  if ($os =~ /^hp/) {
-    $machine = 'hppa';
-  } elsif ($os eq 'os2' or $os eq 'freebsd') {
-    $machine = 'ix86';
+  my $machine = $os;		# Handles fx2800
+  if ($os =~ /^irix/) {
+    $machine = 'irix';
+  } elsif ($os =~ /^hp/) {
+    $machine = `uname -m` || 'hppa';
+  } elsif ($os eq 'os2' or $os eq 'netbsd'
+	   or $os eq 'freebsd' or $os =~ /^cygwin/) {
+    chomp($machine = `uname -m`);
+    $machine ||= 'ix86';
   } elsif (0 and $os =~ /win32/i and not $Config{gccversion}) {
     # Not needed with rename of kernel1.s to kernel1.c?
     $machine = 'port'; # Win32 compilers would not understand the assmebler anyway
@@ -705,6 +711,7 @@ sub find_machine_architecture () {
     $machine = $ENV{HOSTTYPE};
   } elsif ($os eq 'linux') {
     chomp($machine = `uname -m`);
+    $machine = 'sparcv9' if $machine eq 'sparc64';
     if (-e '/proc/cpuinfo') {
       open IN, '/proc/cpuinfo' or die "open /proc/cpuinfo: $!";
       local $/ = undef;		# Needed?
@@ -716,12 +723,12 @@ sub find_machine_architecture () {
     my $type = (split ' ', $Config{myuname})[4];
     if ($type =~ /^sun3/) {
       $machine = 'm68k';
-    } elsif ($type =~ /^sun4[ce]/) {
+    } elsif ($type =~ /^sun4[ce]?/) {
       $machine = 'sparcv7';
     } elsif ($type =~ /^sun4[dm]/) {
       local $ENV{PATH} = "$ENV{PATH}:/dev/sbin";
       my $info = `(prtconf||devinfo)2>&-`;
-      $info = join ' ', grep /TI,|FMI,|Cypress,|Ross,/, split "\n", $info;
+      $info = join ' ', grep /(TI|FMI|Cypress|Ross),/, split "\n", $info;
       $machine = process_sparc $info, 'sparcv8';
     } elsif ($type eq 'sun4u') {
       $machine = 'sparcv9';
@@ -730,6 +737,9 @@ sub find_machine_architecture () {
     } elsif ((split ' ', $Config{myuname})[3] eq 'sun') {
       $machine = 'm86k';
     }
+  } elsif ($os eq 'gnu') {
+    chomp($machine = `uname -m`);
+    $machine = 'ix86' if $machine =~ /^i386-/;
   }
 
   if ( $machine ne 'alpha'
@@ -760,34 +770,55 @@ sub find_machine_architecture () {
 # Which files to catenate to produce pariinl.h.  Apparently, the only
 # need to go to asm0.h is to undo the effect of ASMINLINE in paricfg.h.
 # Note that we do ASMINLINE from the command line.
-my $sparcv8_inl = ( $Config{osname} =~ /^(linux|nextstep)$/
-		    ? ['none/asm0.h','none/level1.h']
-		    : ['sparcv8/level0.h','none/level1.h'] );
 
-# These files are cat()ed to pariinl.h
-my %inlines = (
+sub sparcv8_inl {
+  my ($asmarch, $pari_version) = (shift, shift);
+  return ['none/asm0.h','none/level1.h']
+    if $Config{osname} =~ /^(linux|nextstep)$/;
+  return ['sparcv8/level0.h','none/level1.h'] if $pari_version < 2002006;
+  return ['sparcv8_micro/level0_common.h','sparcv8_micro/level0.h',
+	  'none/level1.h'] if $asmarch eq 'sparcv8_micro';
+  return ['sparcv8_micro/level0_common.h','none/divll.h',
+	  'none/level1.h'] if $asmarch eq 'sparcv8_super';
+  # No for sparcv8...
+}
+
+sub inline_headers_arr {     # These files are cat()ed to pariinl.h
+  my ($asmarch, $pari_version) = (shift, shift);
+  return sparcv8_inl($asmarch, $pari_version) if $asmarch =~ /^sparcv8/;
+  my %h = (
 	       alpha	      => ['none/asm0.h','none/level1.h'],
 	       hppa	      => ['none/asm0.h','none/level1.h'],
 	       ix86	      => ['ix86/level0.h','none/level1.h'],
-	       m86k	      => ['ix86/level0.h','none/level1.h'],
+	       m86k	      => ['none/level0.h','none/level1.h'],
 	       none	      => ['none/level0.h','none/level1.h'],
 	       # ppc is not done yet (2.0.15)
+	($pari_version > 2002007
+		? (ppc		     => ['ppc/asm0.h', 'none/divll.h'],
+		   ia64		     => ['ia64/asm0.h','ia64/asm1.h'])
+		: ()),
 	       sparcv7	      => ['none/asm0.h','none/level1.h'],
-	       sparcv8	      => $sparcv8_inl,
-	       sparcv8_micro  => $sparcv8_inl,
-	       sparcv8_super  => $sparcv8_inl,
+#	       sparcv8	      => $sparcv8_inl,
+#	       sparcv8_micro  => $sparcv8_inl,
+#	       sparcv8_super  => $sparcv8_inl,
 	       # sparcv9 is not done yet (2.0.15)
-	      );
+  );
+  $h{$asmarch};
+}
 
 sub inline_headers {
   my ($asmarch, $pari_version) = (shift, shift);
-  my $inlines = $inlines{$asmarch} or die "Unknown inlines for '$asmarch'";
+  my $inlines = inline_headers_arr($asmarch, $pari_version)
+	or die "Unknown inlines for '$asmarch'";
   my @inlines = @$inlines;
   unshift @inlines, 'none/int.h' if $pari_version >= 2002005;
+  unshift @inlines, 'none/tune.h' if $pari_version >= 2002008;
   map "\$(PARI_DIR)/src/kernel/$_", @inlines;
 }
 
-sub known_asmarch { exists $inlines{shift()} }
+sub known_asmarch {
+  defined inline_headers_arr(@_);
+}
 
 sub is_gnu_as {
   local $/;
@@ -818,8 +849,8 @@ sub choose_and_report_assembler {
 	      port	   => 'none',
 	      mips	   => 'none',
 	      fx2800	   => 'none',
-	      hppa	   => ($Config{osvers} =~ /^.\.09/
-			       ? 'none' : 'hppa'),
+	      hppa	   => ($Config{osvers} =~ /^.\.10\./
+			       ? 'hppa' : 'none'),
 	     );
   my $asmarch = $asmarch{$machine} || $machine; # Temporary only
   unless (known_asmarch $asmarch) {
@@ -847,14 +878,16 @@ EOW
 
   print <<EOP if $asmarch eq 'hppa';
 ###
-###  Apparently current HPPA assembler files are not relocatable,
-###  thus probably unsuitable for dynamic linking.
+###  Some time ago HPPA assembler files were not relocatable,
+###    if this is still true, they are probably unsuitable for dynamic linking.
 ###  It is advisable to restart Makefile.PL with an extra argument
 ###     machine=port
 ###  if you are planning for dynamic linking of Math::Pari.
 ###
 ###  NOTE:  machine=port results in a significant drop in performance.
-###  For a static build:
+###  For a static build (which makes a new perl executable with the library
+###	  compiled in [and arranges for it to be compiled in when
+###	  other extensions are statically built later]):
 ###    perl Makefile.PL LINKTYPE=static
 ###    make static
 ###    make perl
@@ -869,7 +902,7 @@ EOP
 #   [Which file to compile, whether you need to preprocess it to ./kernel1.s,
 #    Additional file to compile, need? to preprocess it to ./kernel2.s,]
 
-sub kernel_files {
+sub sparcv8_kernel_files_old {
   my ($asmarch, $pari_version, $Using_gnu_as) = (shift, shift, shift);
   my $_ext = (($pari_version < 2000015) ? 's' : 'S');
   my $sparcv8_cvt = $Using_gnu_as || $Config{osname} =~ /^(linux|nextstep)$/;
@@ -884,19 +917,33 @@ sub kernel_files {
     !$Config{gccversion} || $Config{osname} =~ /^(linux|nextstep)$/;
   $sparcv8_kernel = [$sparcv8_kernel->[2], $sparcv8_kernel->[3]]
     unless $sparcv8_need_kernel2;
+  return   $sparcv8_kernel;
+}
+
+sub kernel_files {
+  my ($asmarch, $pari_version, $Using_gnu_as) = (shift, shift, shift);
+
+  return sparcv8_kernel_files_old($asmarch, $pari_version, $Using_gnu_as)
+    if $asmarch =~ /^sparcv8/ and $pari_version < 2002006;
+
+  my $sparcv8_kernel = ["sparcv8_micro/level0_common.S", 1,
+			"$asmarch/level0.S", 1];	# 2.2.* only
 
   # Default ["$asmarch/level0.s", 0]
   my %level0 = (
 		alpha		     => '',
 		hppa		     => '', # was ['none/level0.c', 0] before 2.0015
+	($pari_version > 2002007
+		? (ppc		     => ["none/level0.c", 0],
+		   ia64		     => ["ia64/level0.s", 0])
+		: ()),
 		ix86		     => ['ix86/l0asm.c',  1],
 		m86k		     => ["none/level0.c", 0],
 		none		     => ["none/level0.c", 0],
 		# ppc is not done yet (2.0.15)
 		sun3		     => '',
 		sparcv7		     => '',
-		# Following 2 guys should be fixed on linux/NS
-		sparcv8		     => $sparcv8_kernel,
+#		sparcv8		     => $sparcv8_kernel,
 		sparcv8_micro	     => $sparcv8_kernel,
 		sparcv8_super	     => $sparcv8_kernel,
 		# sparcv9 is not done yet (2.0.15)

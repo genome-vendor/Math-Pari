@@ -362,7 +362,14 @@ test -4794037  == ((-1 . (0 x 100)) >> PARI(310)); # 106
 test PARI(6)**100 == (PARI(3)**100 << 100); # 107
 my $pow3_50 = PARI(3)**50;
 test PARI(6)**50  == ("$pow3_50" << PARI 50); # 108
-test( (2**(PARI(4)/3)) =~ /^2\.5198420997897463295344212/ );	# 109
+
+# This causes spurious errors on 5.6.0
+if ( $] == 5.006 ) {
+    $test++;
+    print "ok $test # Skipped: bug in Perl 5.6.0\n";
+} else {
+  test( (2**(PARI(4)/3)) =~ /^2\.5198420997897463295344212/ );	# 109
+}
 if (do { local $SIG{__WARN__} = sub {};
 	 eval 'local $^W = 0; 0b1001 == 9'}) {
   eval <<'EOE';

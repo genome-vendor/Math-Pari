@@ -491,3 +491,18 @@ os2$(OBJ_EXT): $(PARI_DIR)/src/systems/os2/os2.c pariinl.h paricfg.h
 		created for the function arguments would leak.
 	Two new contributed debugging functions: dumpStack(), dumpHeap()
 		(untested, undocumented).
+
+2.010602:
+	A patch to fix a broken 64-bit ploth test of 2.1.6.
+	A patch to fix broken hiremainder overflow in port kernel (would not
+	   work with -fno-common) of 2.1.6.
+	On 64-bit platforms wrong set of tests was chosen, what would
+	   result in false positives during tests.
+	   Now test errors on 64-bit systems should be considered as
+	   indicators of real failures.
+	Skip 00_Pari.t:109 on 5.6.0 (bug in REx engine).
+	Reasons of most common test errors mentioned in INSTALL.
+	Move generation of the flag __HAS_NO_ASM__ to PariBuild.pm;
+	   keep ASMINLINE in libPARI/Makefile.PL (since PariBuild.pm
+	   knows little about $asmarch), but make it conditional on
+	   $do_configure.  (Avoids warnings with Configure.)

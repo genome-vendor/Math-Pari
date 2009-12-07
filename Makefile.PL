@@ -18,7 +18,7 @@ unless (-t STDOUT) {		# Better reports if run with redirections
 
 
 grep {/^machine=(.*)$/i		 and $common::machine = $1}  @ARGV;
-grep {/^configure$/i		 and $do_configure = 1}	     @ARGV;
+grep {/^configure$/i		 and $common::do_configure = 1}	     @ARGV;
 grep {/^paridir=(.*?)[\/\\]?$/i	 and $paridir = $1}	     @ARGV;
 grep {/^pari_tgz=(.*?)[\/\\]?$/i	 and $parisrc = $1}	     @ARGV;
 grep {/^force_download$/i	 and $force_download = 1}    @ARGV;
@@ -94,7 +94,7 @@ unless ($common::parilib) {
   build_tests $paridir;		# Convert the test suite
   make_pod 'libPARI.pod', '-to_pod', $paridir; # Now the docs
   make_pod 'libPARI.dumb.pod', '-to_dumb_pod', $paridir;
-  %opts = build_paricfg($paridir, $do_configure); # ... and paricfg.h
+  %opts = build_paricfg($paridir, $common::do_configure); # ... and paricfg.h
 
   # Check the correspondence between string interfaces and numeric interfaces
   my %codes;

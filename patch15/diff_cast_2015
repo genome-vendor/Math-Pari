@@ -1,0 +1,88 @@
+From pari-dev-return-547-ilya=math.ohio-state.edu@list.cr.yp.to  Sat May 22 13:01:54 1999
+Received: from muncher.math.uic.edu (muncher.math.uic.edu [131.193.178.181])
+	by mathserv.mps.ohio-state.edu (8.9.2/8.9.2) with SMTP id NAA28367
+	for <ilya@math.ohio-state.edu>; Sat, 22 May 1999 13:01:54 -0400 (EDT)
+Received: (qmail 28716 invoked by uid 1002); 22 May 1999 17:01:31 -0000
+Mailing-List: contact pari-dev-help@list.cr.yp.to; run by ezmlm
+Delivered-To: mailing list pari-dev@list.cr.yp.to
+Received: (qmail 9031 invoked from network); 22 May 1999 17:01:30 -0000
+Received: from abel.math.tsukuba.ac.jp (130.158.120.16)
+  by muncher.math.uic.edu with SMTP; 22 May 1999 17:01:30 -0000
+Received: from localhost (localhost [127.0.0.1])
+	by abel.math.tsukuba.ac.jp (8.9.3/3.7W-99033114) with ESMTP id BAA13772;
+	Sun, 23 May 1999 01:54:40 +0900 (JST)
+To: pari-dev@list.cr.yp.to
+Cc: iwao@sci.toyama-u.ac.jp
+Subject: patch for galconj.c
+From: Iwao KIMURA <iwao@math.tsukuba.ac.jp>
+X-Mailer: Mew version 1.90 on Emacs 19.34  / Mule 2.3 (SUETSUMUHANA)
+X-fingerprint: AF E7 7D F7 76 CE 08 B1  2C D8 D5 16 05 76 A9 E8
+X-URL: http://www.sci.toyama-u.ac.jp/~iwao/
+Mime-Version: 1.0
+Content-Type: Text/Plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
+Message-Id: <19990523015440I.iwao@math.tsukuba.ac.jp>
+Date: Sun, 23 May 1999 01:54:40 +0900
+X-Dispatcher: imput version 970826
+Status: RO
+Content-Length: 1898
+Lines: 57
+
+Hi all,
+
+I built 2.0.15.beta on AIX 4.2 by C Set ++ for AIX (ver3 rel1).
+The following modification was needed (as Igor and Ilya said):
+--------------------
+iwao@math02:/export/home1/math/staff/iwao/pari-csetpp/pari-2.0.15.beta/ 
+{64}% diff -u src/basemath/galconj.c.orig src/basemath/galconj.c
+--- ./src/basemath/galconj.c.orig Sat May 22 23:15:13 1999
++++ ./src/basemath/galconj.c      Sun May 23 01:09:58 1999
+@@ -1313,7 +1313,7 @@
+ GEN
+ a4galoisgen(GEN T,struct test_data *td)
+ {
+-  int ltop=avma,av,av2;
++  long ltop=avma,av,av2;
+   int i,j,k;
+   int n;
+   int N,hop=0;
+@@ -1326,14 +1326,17 @@
+   res=cgetg(4,t_VEC);
+   ry=cgetg(3,t_VEC);
+   res[1]=(long)ry;
+-  (long)pft=ry[1]=lgetg(n+1,t_VECSMALL);
++  ry[1]=lgetg(n+1,t_VECSMALL);
++  pft=(GEN) ry[1];
+   ry[2]=(long)stoi(2);
+   ry=cgetg(3,t_VEC);
+-  (long)pfu=ry[1]=lgetg(n+1,t_VECSMALL);
++  ry[1]=lgetg(n+1,t_VECSMALL);
++  pfu=(GEN)ry[1];
+   ry[2]=(long)stoi(2);
+   res[2]=(long)ry;
+   ry=cgetg(3,t_VEC);
+-  (long)pfv=ry[1]=lgetg(n+1,t_VECSMALL);
++  ry[1]=lgetg(n+1,t_VECSMALL);
++  pfv=(GEN)ry[1];
+   ry[2]=(long)stoi(3);
+   res[3]=(long)ry;
+   av=avma;
+--------------------
+Typecasting in lvalue is allowed in gcc, but would you please recall
+that there are another compiler in the world.  After this
+modification, gp-sta pass the test.
+
+As G. Niklasch wrote in
+http://hasse.mathematik.tu-muenchen.de/ntsw/pari/inst/aix.html
+when one compiles PARI by C Set ++ for AIX, optimization shold not be
+specified (oterwise the binary runs very slow). But when one use gcc
+2.8.1, the optimization flag is important. I compiled PARI by C Set
+++ for AIX and gcc 2.8.1 in many optimization flag, I found that the
+fastest one is that compiled by gcc optimised as `-O2 -DGCC_INLINE
+-mtune=604e' (though the assembler produce many warnigs). I hope this
+helps somebody :-)
+
+	;#	Iwao KIMURA			;#
+	;#	Faculty. Math, Dept. of Sciece	;#
+	;#	Toyama University		;#
+

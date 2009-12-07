@@ -317,6 +317,10 @@ if ($Config{cc} eq 'gcc') {
 
 # These are not needed with newer versions of PARI
 # $mycflags .= ' -Dshifts=pari_shifts'; # Conflict with libnsl
+
+$my_redefines = '-Derr=pari_err';
+$mycflags .= " $my_redefines"; # On linux it can get a wrong dynamic loading
+
 $noexp2 = '';
 
 if ($machine eq 'alpha') {
@@ -382,7 +386,7 @@ WriteMakefile(
 		    ADD_AR_OPT	  => ($add_ar_flags || ''),
 		    CPP		  => $Config{cppstdin},
 		    CPPMINUS	  => $Config{cppminus},
-		    ASSCMD	  => $asscmd,
+		    ASSCMD	  => "$asscmd $my_redefines",
 		    ASFLAGS	  => $assflags{$machine} || '',
 		   },
     DEFINE	=> $mycflags,

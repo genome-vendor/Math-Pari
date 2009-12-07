@@ -558,6 +558,8 @@ sub process_test {
     $in =~ s/\$y=\$x;&eval\b(.*)/PARI('y=x');&eval$1;\$y=\$x/;
     # Workaround for kill:
     $in =~ s/^kill\(\$(\w+)\);/kill('$1');\$$1=PARIvar '$1';/;
+    # Workaround for plothsizes:
+    $in =~ s/\bplothsizes\(/safe_sizes(/;
     print "# eval", ($noans ? "-$noans" : '') ,": $in\n";
     $printout = '';
     my $have_floats = ($in =~ /\d+\.\d*|\d{10,}/ 
@@ -739,3 +741,4 @@ sub sprec {
   print "# Setting series precision to $_[0] digits.\n";
   print "ok $c\n";
 }
+sub safe_sizes { eval {plothsizes()} or [1000,1000,20,20,20,20]}

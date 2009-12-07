@@ -1,11 +1,11 @@
 =====>>> BETA level interface to version 2.0 <<<=======
 
 a) Should be installed inside or near pari-2.* source directory.
-b) Patches to PARI (in `patches11', or 'patch12', or 'patch13'
-   depending on the version of PARI) should be applied (or may be done
+b) Patches to PARI (in `patches11', or 'patch12', etc.
+   depending on the version of PARI) should be applied (or this may be done
    automatically).
 c) paricfg.h should be created beforehand in pari-2,* build directory
-	(run configure to do this) (or may be done automatically).
+	(run configure to do this) (or this may be done automatically).
 d) We skip "compatibility" tests, and do not support "compatibility" mode.
 
 ================================================================
@@ -71,3 +71,5 @@ before install.)
 The version 2.001104 was tested with OS/2 and Solaris, the versions
 2.001200 and 2.001300 with Solaris.  They were tested with the patched
 versions 2.0.11/2.0.12/2.0.13 of the PARI library.
+
+The version 2.001501 was tested with Linux RedHat 6.0 and Solaris

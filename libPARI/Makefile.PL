@@ -4,6 +4,60 @@ use Config '%Config';
 # modified by Babecool 23.7.1993
 # Created by Ilya Zakharevich <ilya@math.ohio-state.edu>
 
+sub process_sparc {
+  my $info = shift;
+  return 'sparcv8_super' if $info =~ /TMS390Z5[05]|CY605/;
+  return 'sparcv8_micro' if $info =~ /TMS390S10|MB8690[47]/;
+  return 'sparcv8_hyper' if $info =~ /RT625/;
+  return shift;
+}
+
+sub process_machine {
+  my $os = (split ' ', $Config{myuname})[0];
+  my $machine = $os;
+  if ($os =~ /^hp/) {
+    $machine = 'hppa';
+  } elsif ($os eq 'os2' or $os eq 'freebsd') {
+    $machine = 'i386';
+  } elsif ($os eq 'ultrix') {
+    $machine = 'mips';
+  } elsif ($os eq 'nextstep' or -d '/NextApps') {
+    chomp($machine = `file /bin/sh | sed 's/.*(for architecture \(.*\))/\1/'`);
+  } elsif ($os eq 'osf1') {
+    $machine = 'alpha' if (split ' ', $Config{myuname})[4] eq 'alpha';
+  } elsif ($os eq 'linux') {
+    chomp($machine = `uname -m`);
+    if (-e '/proc/cpuinfo') {
+      open IN, '/proc/cpuinfo' or die "open /proc/cpuinfo: $!";
+      local $/ = undef;		# Needed?
+      my $info = <IN>;
+      close IN or die "close /proc/cpuinfo: $!";
+      $machine = process_sparc $info, $machine;
+    }
+  } elsif ($os eq 'sunos') {
+    my $type = (split ' ', $Config{myuname})[4];
+    if ($type =~ /^sun3/) {
+      $machine = 'm68k';
+    } elsif ($type =~ /^sun4[ce]/) {
+      $machine = 'sparcv7';
+    } elsif ($type =~ /^sun4[dm]/) {
+      local $ENV{PATH} = "$ENV{PATH}:/dev/sbin";
+      my $info = `(prtconf||devinfo)2>&-`;
+      $info = join ' ', grep /TI,|FMI,|Cypress,|Ross,/, split "\n", $info;
+      $machine = process_sparc $info, $machine;
+    } elsif ($type eq 'sun4u') {
+      $machine = 'sparcv9';
+    }
+  }
+  print "Processor $machine detected\n";
+  # For older PARI:
+  $machine = 'sparcv8super'
+    if $machine eq 'sparcv9' or $machine eq 'sparcv8_hyper'
+       or $machine eq 'sparcv8_super';
+  $machine = 'sparcv8micro' if $machine eq 'sparcv8_micro';
+  return $machine;
+}
+
 %Versions = (
 	     sun3	   => ["version68k.c",'sparc$(OBJ_EXT)'],
 	     sparcv7	   => ["versionsparcv7.c",'sparcv7$(OBJ_EXT)'],
@@ -25,9 +79,13 @@ if (not defined $machine and defined $common::machine) {
   $machine = $common::machine;
 } elsif (not defined $machine and @ARGV and $ARGV[0] =~ /^machine=(.*)$/i) {
   $machine = $1; shift;
-} elsif (not defined $machine 
-	 and $Config{myuname} 
-	 =~ /\b(sun3|sparcv7|sparcv8micro|sparcv8super|alpha|hppa|[ix]\d86)\b/) {
+}
+
+$machine = process_machine unless defined $machine;
+
+if (not defined $machine 
+    and $Config{myuname} 
+    =~ /\b(sun3|sparcv7|sparcv8micro|sparcv8super|alpha|hppa|[ix]\d86)\b/) {
   $machine = $1;  
 } elsif (not defined $machine) {
   chomp($machine = `uname -m`);
@@ -94,8 +152,6 @@ if ($machine eq 'alpha') {
 } elsif ($Config{osname} eq 'os2') {
   $mycflags .= ' -DNOEXP2 -DMALLOC_PROCS -DHAS_STRICMP';
   $add_ar_flags = '-p64';	# Need big library. 32 is OK without debugging
-} elsif ($Config{osname} eq 'port') {
-  $mycflags .= " -D__HAS_NO_ASM__";
 } elsif ($Config{osname} eq 'linux') {
   $mycflags .= ' -DNOEXP2';
 }
@@ -103,9 +159,12 @@ if ($machine eq 'alpha') {
 $mp_cflags = '';
 if ($machine eq 'sun3') {
   $mp_cflags = '\$(CPlPl) \$(NOASM)'; # NOASM seems to be empty
+} elsif ($machine eq 'port') {
+  push @portfiles, 'mp.c';
+  $mycflags .= " -D__HAS_NO_ASM__";
 }
 
-push @cfiles, $Versions{$machine}[0], @plotfiles;
+push @cfiles, $Versions{$machine}[0], @plotfiles, @portfiles;
 @obj_files = map {($a = $_) =~ s/\.c$/\$(OBJ_EXT)/; $a} @cfiles;
 push @obj_files, $Versions{$machine}[1] if defined $Versions{$machine}[1];
 

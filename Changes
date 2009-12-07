@@ -69,3 +69,6 @@ after 0.8:
 	T: Interactive plotting test added (ignored if no Term::Gnuplot);
 	Bug in libPARI/plotport.c corrected;
 	Minor changes to chap3_to_pod;
+after 0.91:
+	Chip recognition code from PARI2.0alpha0 added;
+	Builds on Solaris, gives illegal instruction trap in t/Testout.t:32;

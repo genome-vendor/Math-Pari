@@ -294,5 +294,26 @@ test($var1 eq '15');		# 81
 Math::Pari::changevalue($var, 51);
 test(PARI('var') eq '51');	# 82
 
+my $v = PARI [2,7,11];
+$v->[1] = 17;
+test("$v" eq "[2,17,11]");	# 83
 
-sub last {82}
+my $mat = PARImat [[1,2,3],[4,8,5]];
+$mat->[1][1] = 18;
+test("$mat" eq "[1,4;2,18;3,5]"); # 84
+
+$mat->[0] = [56,67,78];
+test("$mat" eq "[56,4;67,18;78,5]"); # 85
+
+eval {$mat->[0] = [56,67]};
+test($@ =~ /Assignment of a columns into a matrix of incompatible height/); # 86
+
+eval {$mat->[0] = 56};
+test($@ =~ /Not a vector where column of a matrix expected/); # 87
+
+$mat = PARImat [[1,2,3]];
+eval {$mat->[0] = [56,67]};
+test("$mat" eq "[56;67]");	# 88
+
+
+sub last {88}

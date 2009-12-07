@@ -98,7 +98,7 @@ realloc(void *mp, size_t nbytes)
 
 #define setSVpari(sv, in, oldavma) do {				\
     sv_setref_pv(sv, "Math::Pari", (void*)in);			\
-    if (typ(in) >= 17 && SvTYPE(SvRV(sv)) != SVt_PVAV) {	\
+    if (is_matvec_t(typ(in)) && SvTYPE(SvRV(sv)) != SVt_PVAV) {	\
 	make_PariAV(sv);					\
     }								\
     if (isonstack(in)) {					\
@@ -292,7 +292,7 @@ findVariable(SV *sv, int generate)
       if (SvOBJECT(tsv)) {
 	  if (SvSTASH(tsv) == pariStash) {
 	      GEN x = (GEN)SvIV(tsv);
-	      if (typ(x)==10 		/* Polynomial. */
+	      if (typ(x) == t_POL	/* Polynomial. */
 		  && lgef(x)==4		/* 2 terms */
 		  && (gcmp0((GEN)x[2]))	/* Free */
 		  && (gcmp1((GEN)x[3]))) { /* Leading */
@@ -494,7 +494,7 @@ sv2pari(SV* sv)
 	  if (type==SVt_PVAV) {
 	      AV* av=(AV*) tsv;
 	      I32 len=av_len(av);	/* Length-1 */
-	      GEN ret=cgetg(len+2,17);
+	      GEN ret=cgetg(len+2, t_VEC);
 	      int i;
 	      for (i=0;i<=len;i++) {
 		  SV** svp=av_fetch(av,i,0);
@@ -519,23 +519,23 @@ GEN
 sv2parimat(SV* sv)
 {
   GEN in=sv2pari(sv);
-  if (typ(in)==17) {
+  if (typ(in)==t_VEC) {
     long len=lg(in)-1;
     long t;
     long l=lg(in[1]);
     for (;len;len--) {
-      if ((t=typ(in[len])) == 17) {
-	settyp(in[len],18);
-      } else if (t!=18) {
+      if ((t=typ(in[len])) == t_VEC) {
+	settyp(in[len], t_COL);
+      } else if (t != t_COL) {
 	croak("Not a vector where column of a matrix expected");
       }
       if (lg(in[len])!=l) {
 	croak("Columns of input matrix are of different height");
       }
     }
-    settyp(in,19);
+    settyp(in, t_MAT);
     return in;
-  } else if (typ(in)==19) {
+  } else if (typ(in) == t_MAT) {
     return in;
   } else {
     croak("Not a matrix where matrix expected");
@@ -856,7 +856,7 @@ Arr_FETCH(GEN g, I32 n)
 {
     I32 l = lg(g) - 1;
 
-    if (typ(g) < 17)
+    if (!is_matvec_t(typ(g)))
 	croak("Access to elements of not-a-vector");
     if (n >= l || n < 0)
 	croak("Array index %i out of range", n);
@@ -864,6 +864,43 @@ Arr_FETCH(GEN g, I32 n)
     warn("fetching %d-th element of type %d", n, typ((GEN)g[n + 1]));
 #endif
     return (GEN)g[n + 1];
+}
+
+static void
+Arr_STORE(GEN g, I32 n, GEN elt)
+{
+    I32 l = lg(g) - 1, docol = 0;
+    GEN old;
+
+    if (!is_matvec_t(typ(g)))
+	croak("Access to elements of not-a-vector");
+    if (n >= l || n < 0)
+	croak("Array index %i out of range", n);
+#if 0
+    warn("storing %d-th element of type %d", n, typ((GEN)g[n + 1]));
+#endif	/* 0 */
+
+    if (typ(g) == t_MAT) {
+	long len = lg(g);
+	long l   = lg(g[1]);
+	if (typ(elt) != t_COL) {
+	    if (typ(elt) != t_VEC)
+		croak("Not a vector where column of a matrix expected");
+	    docol = 1;
+	}
+	if (lg(elt)!=l && len != 2)
+	    croak("Assignment of a columns into a matrix of incompatible height");
+    }
+    
+    old = (GEN)g[n + 1];
+    /* It is not clear whether we need to clone if the elt is offstack */
+    elt = gclone(elt);
+    if (docol)
+	settyp(elt, t_COL);
+
+    /* anal.c is optimizing inspection away around here... */
+    if (isclone(old)) killbloc0(old, 1);
+    g[n + 1] = (long)elt;
 }
 
 #define Arr_FETCHSIZE(g)  (lg(g) - 1)
@@ -932,6 +969,7 @@ fill_argvect(entree *ep, char *s, long *has_pointer, GEN *argvec,
 		*has_pointer |= (1 << i);
 		argvec[i++] = (GEN) &(ep1->value); 
 		break;
+	    case  'E': /* Input position - subroutine */
 	    case  'I': /* Input position - subroutine */
 		if (SvROK(args[j]) && SvTYPE(SvRV(args[j])) == SVt_PVCV) {
 		    expr = ((char*)&(SvRV(args[j])->sv_flags)) + LSB_in_U32;
@@ -963,7 +1001,7 @@ fill_argvect(entree *ep, char *s, long *has_pointer, GEN *argvec,
 			    j++;
 
 			if ( *s == 'G' || *s == '&' 
-			     || *s == 'I' || *s == 'V') { 
+			     || *s == 'E' || *s == 'I' || *s == 'V') { 
 			    argvec[i++]=DFT_GEN; s++; 
 			    break; 
 			}
@@ -998,7 +1036,7 @@ fill_argvect(entree *ep, char *s, long *has_pointer, GEN *argvec,
 		    }
 		else
 		    if (*s == 'G' || *s == '&' || *s == 'n'
-			|| *s == 'I' || *s == 'V') 
+			|| *s == 'E' || *s == 'I' || *s == 'V') 
 			break;
 		while (*s++ != ',');
 		break;
@@ -1057,6 +1095,13 @@ Arr_FETCH(g,n)
     GEN g
     I32 n
 
+void
+Arr_STORE(g,n,elt)
+    long	oldavma=avma;
+    GEN g
+    I32 n
+    GEN elt
+
 I32
 Arr_FETCHSIZE(g)
     GEN g
@@ -1093,7 +1138,7 @@ pari2num(in)
 long	oldavma=avma;
      GEN	in
    CODE:
-     if (typ(in)==1) {
+     if (typ(in) == t_INT) {
        RETVAL=pari2iv(in);
      } else {
        RETVAL=pari2nv(in);
@@ -1119,7 +1164,7 @@ long	oldavma=avma;
      } else {
 	int i;
 
-	RETVAL=cgetg(items+1,17);
+	RETVAL=cgetg(items+1, t_VEC);
 	for (i=0;i<items;i++) {
 	  RETVAL[i+1]=(long)sv2pari(ST(i));
 	}
@@ -1136,12 +1181,12 @@ long	oldavma=avma;
      } else {
 	int i;
 
-	RETVAL=cgetg(items+1,17);
+	RETVAL=cgetg(items+1, t_VEC);
 	for (i=0;i<items;i++) {
 	  RETVAL[i+1]=(long)sv2pari(ST(i));
 	}
      }
-     settyp(RETVAL,18);
+     settyp(RETVAL, t_COL);
    OUTPUT:
      RETVAL
 
@@ -1154,13 +1199,13 @@ long	oldavma=avma;
      } else {
 	int i;
 
-	RETVAL=cgetg(items+1,17);
+	RETVAL=cgetg(items+1, t_VEC);
 	for (i=0;i<items;i++) {
 	  RETVAL[i+1]=(long)sv2pari(ST(i));
-	  settyp(RETVAL[i+1],18);
+	  settyp(RETVAL[i+1], t_COL);
 	}
      }
-     settyp(RETVAL,19);
+     settyp(RETVAL, t_MAT);
    OUTPUT:
      RETVAL
 

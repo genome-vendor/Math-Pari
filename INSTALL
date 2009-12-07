@@ -48,8 +48,8 @@ I would like to hear about wrong assembler-detection.
 The older versions of Math::Pari were using GP/PARI configuration
 scripts to generate the header file libPARI/paricfg.h needed for the
 compile of the library.  The newer version generate this file
-themselves.  If this new way fails, put the word Configure to the
-Makefile.PL line to generate this file "the old way":
+themselves.  If this new way fails, put the word Configure on the
+Makefile.PL command line to generate this file "the old way":
 
   perl Makefile.PL Configure
 
@@ -61,6 +61,33 @@ directory to libPARI/paricfg.h.
 [libPARI/paricfg.h is not recreated when rerunning Makefile.PL without
 the Configure options.  If you need it to be recreated, rename this
 file before rerunning.]
+
+==================================================================
+If the problems with Math::Pari being unable to build persist, there is
+another way to build it: use a pre-build version of the PARI library.  Put
+the link options on the Makefile.PL command line like this:
+
+  perl Makefile.PL LIBPARI="-L/lib -lpari"
+
+This is a non-yet-supported way to build the library; try it only if anything
+else fails.
+
+	 Known problems:
+		spoofed version;
+		no graphing functions present;
+		bad free() at t/Pari.t line 265
+			(calling installed Perl function from PARI)
+		no PARI tests to convert;
+		no POD to create;
+		no check for ep codes;
+		no patching the source;
+	   [All but the first 3 of the problems can be avoided if one
+	    lets Makefile.PL download and patch PARI, then builds the library
+	    using the downloaded+patched version.]
+	 Possible problems:
+		different sizeof(long);
+		non-compatible threading model;
+		-lpari build with different non-compatible compiler;
 
 ==================================================================
 Here is the manual procedure which is somewhat similar to what

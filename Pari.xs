@@ -1364,15 +1364,24 @@ to_int(GEN in)
 
 typedef int (*FUNC_PTR)();
 typedef void (*TSET_FP)(char *s);
-#if PARI_VERSION_EXP < 2000013
-#  define set_gnuterm(a,b,c) \
-	set_term_funcp((FUNC_PTR)(a),(struct termentry *)(b))
-#else	/* !( PARI_VERSION_EXP < 2000013 ) */ 
-#  define set_gnuterm(a,b,c) \
-	set_term_funcp3((FUNC_PTR)(a),(struct termentry *)(b), (TSET_FP)(c))
-#endif	/* PARI_VERSION_EXP < 2000013 */
 
-#define int_set_term_ftable(a) (v_set_term_ftable((void*)a))
+#ifdef NO_HIGHLEVEL_PARI
+#  define set_gnuterm(a,b,c) croak("This build of Math::Pari has no plotting support")
+#  define int_set_term_ftable(a) croak("This build of Math::Pari has no plotting support")
+#  define have_highlevel()	0
+#else
+#  if PARI_VERSION_EXP < 2000013
+#    define set_gnuterm(a,b,c) \
+	set_term_funcp((FUNC_PTR)(a),(struct termentry *)(b))
+#  else	/* !( PARI_VERSION_EXP < 2000013 ) */ 
+#    define set_gnuterm(a,b,c) \
+	set_term_funcp3((FUNC_PTR)(a),(struct termentry *)(b), (TSET_FP)(c))
+#  endif	/* PARI_VERSION_EXP < 2000013 */
+
+#  define int_set_term_ftable(a) (v_set_term_ftable((void*)a))
+#  define have_highlevel()	1
+#endif
+
 extern  void v_set_term_ftable(void *a);
 
 #define s_type_name(x) type_name(typ(x));
@@ -3090,7 +3099,11 @@ listPari(tag)
 
        while (++i <= 1) {
 	   if (i==1)
+#ifdef NO_HIGHLEVEL_PARI
+	       break;
+#else
 	       table = functions_highlevel;
+#endif
 	   
 	   for(ep = table; ep->name; ep++)  {
 	       valence = EpVALENCE(ep);
@@ -3171,8 +3184,10 @@ BOOT:
    INIT_SIG_off;
    /* These guys are new in 2.0. */
    init_defaults(1);
+#ifndef NO_HIGHLEVEL_PARI
    pari_addfunctions(&pari_modules, functions_highlevel,helpmessages_highlevel);
    init_graph();
+#endif
 
    primelimit = SvIV(pri);
    parisize = SvIV(mem);
@@ -3316,6 +3331,9 @@ int_set_term_ftable(a)
 
 long
 pari_version_exp()
+
+long
+have_highlevel()
 
 # Cannot do this: it is xsubpp which needs the typemap entry for UV,
 # and it needs to convert *all* the branches.

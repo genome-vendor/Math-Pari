@@ -5,6 +5,11 @@ if ($ENV{MP_NOGNUPLOT}) {
   print "1..0\n";
   exit;
 }
+unless (Math::Pari::have_highlevel()) {
+  print STDERR "# This build has no highlevel functions, ignoring the test\n";
+  print "1..0 # skipped: this build has no highlevel functions\n";
+  exit;
+}
 eval { link_gnuplot() };
 if ($@ =~ m%^Can't locate Term/Gnuplot.pm in \@INC%) {
   print STDERR "# Can't locate Term/Gnuplot.pm in \@INC, ignoring the test\n";

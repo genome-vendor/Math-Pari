@@ -17,3 +17,14 @@ On 64-bit even with 'Configure' and fixed IS_64 macro:
    Failed 7/14 test scripts, 50.00% okay. 25/823 subtests failed, 96.96% okay.
 
 ASMINLINE?
+
+*) One scenario to have highremainder problem: cc=gcc, but cpp is not
+   gcc-based; thus  __GNUC__ is not defined when building kernel.o, and
+   wrong code is assembled (Solaris).
+
+     I tried
+       perl Makefile.PL cpp="gcc -E"
+       and
+       perl Makefile.PL CPP="gcc -E"
+     but the correct define for CPP did not make it into the important part of
+     libPARI/Makefile.  With CPP = gcc -E in makefile things build fine.

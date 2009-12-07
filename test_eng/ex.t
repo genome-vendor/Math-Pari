@@ -1,3 +1,4 @@
+#! perl -w
 $file = __FILE__;
 $file =~ m|^(.*)[\\/]([^\\/.]*)\.t$|s or die;
 $dir = $1;

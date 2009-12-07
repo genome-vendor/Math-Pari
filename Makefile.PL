@@ -20,13 +20,14 @@ unless (-t STDOUT) {		# Better reports if run with redirections
 grep {/^machine=(.*)$/i		 and $common::machine = $1}  @ARGV;
 grep {/^configure$/i		 and $do_configure = 1}	     @ARGV;
 grep {/^paridir=(.*?)[\/\\]?$/i	 and $paridir = $1}	     @ARGV;
+grep {/^pari_tgz=(.*?)[\/\\]?$/i	 and $parisrc = $1}	     @ARGV;
 grep {/^force_download$/i	 and $force_download = 1}    @ARGV;
 grep {/^parilib=(.*)$/i		 and $common::parilib = $1}  @ARGV;
 
-@ARGV = grep !/^((machine|paridir|parilib)=.*|configure|force_download)$/i, @ARGV;
+@ARGV = grep !/^((machine|paridir|pari_tgz|parilib)=.*|configure|force_download)$/i, @ARGV;
 
-$paridir   = find_pari_dir() unless defined $paridir or $force_download;
-($paridir) = download_and_patch_pari() if !$paridir or $force_download;
+$paridir   = find_pari_dir() unless defined $paridir or $parisrc or $force_download;
+($paridir) = download_and_patch_pari($parisrc) if !$paridir or $force_download;
 
 die <<EOD  unless $paridir;
 Could not find GP/PARI build directory, please run Makefile.PL

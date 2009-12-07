@@ -464,3 +464,21 @@ PARI:   ***   obsolete function: O(det2($mat))
 os2$(OBJ_EXT): $(PARI_DIR)/src/systems/os2/os2.c pariinl.h paricfg.h
 	$(CCCMD) $(CCCDLFLAGS) $(DEFINE) $(MY_CC_PRE_TARGET)$@ -I $(PARI_DIR)/src/systems/os2 $(PARI_DIR)/src/systems/os2/os2.c
 	Support code 'i' (this finishes support for 2.2.7).
+
+2.010600:
+	Won't work with 5.8.6 (ok with 5.8.5) [the cryterion of AV being
+		empty changed: now it is AvFILLp() == -1; earlier AvFILLp()
+		was not checked unless AvALLOC()].
+	Document force_download option to Makefile.PL.
+	T: make skipped test files emit the reason for skipping.
+	Direct overloading of to-number was disabled: '0+' vs '+0'; actually,
+		pari2num could not take more than 1 arg, so could not be used
+		for overloading...
+	passv() was used instead of pasv() in Net::Ftp interface in PariBuild.
+	Likewise for <> vs <STDIN>.
+	New option pari_tgz=PATH_TO_TAR_GZ to extract a local file and patch
+		(if needed) the resulting directory tree.
+	Now printing of DESTROY-debugging messages is controlled by macro
+		RUN_IF_DEBUG_PARI.  From userland, use PARI_DEBUG(),
+		PARI_DEBUG_set(), and environment variable MATHPARI_DEBUG.
+	Add -w to test scripts.

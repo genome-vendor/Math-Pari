@@ -16,21 +16,24 @@ unless (-t STDOUT) {		# Better reports if run with redirections
     select $odef;
 }
 
-
+my $ok23 = 0;
 grep {/^machine=(.*)$/i		 and $common::machine = $1}  @ARGV;
 grep {/^configure$/i		 and $common::do_configure = 1}	     @ARGV;
 grep {/^paridir=(.*?)[\/\\]?$/i	 and $paridir = $1}	     @ARGV;
 grep {/^pari_tgz=(.*?)[\/\\]?$/i	 and $parisrc = $1}	     @ARGV;
 grep {/^force_download$/i	 and $force_download = 1}    @ARGV;
 grep {/^parilib=(.*)$/i		 and $common::parilib = $1}  @ARGV;
-# REx anchored-matching versions to skip
-$common::skip_versions = '2\.(?:[3-9]|\d\d+)\.';
+grep {/^version23_ok=(.*)$/i	 and $ok23 = $1}  @ARGV;
 
-@ARGV = grep !/^((machine|paridir|pari_tgz|parilib)=.*|configure|force_download)$/i, @ARGV;
+# The REx should anchored-match versions to skip
+$common::skip_versions = $ok23 ? '(?!)' : '2\.(?:[3-9]|\d\d+)\.';
+
+@ARGV = grep !/^((machine|paridir|pari_tgz|parilib|version23_ok)=.*|configure|force_download)$/i, @ARGV;
 
 $paridir   = find_pari_dir() unless defined $paridir or $parisrc or $force_download;
-($paridir) = download_and_patch_pari($parisrc, $force_download)
+($paridir, my @patch_rc) = download_and_patch_pari($parisrc, $force_download)
   if !$paridir or $force_download;
+my %patchrc = (patchrc => $patch_rc[0]) if @patch_rc;
 
 die <<EOD  unless $paridir;
 Could not find GP/PARI build directory, please run Makefile.PL
@@ -168,9 +171,9 @@ my $extra_inc = extra_includes($paridir);
 	       VERSION_FROM  => 'Pari.pm',
 	       DEFINE	     => $define,
 	       dist	     => {COMPRESS=>'gzip -9f', SUFFIX=>'gz'},
-	       clean	     => { FILES => 'pari.ps test_eng/ex.t- libPARI.dumb.pod libPARI.pod t/55_*.t' },
-	       macro	     => {
-				 PARI_DIR	  => $paridir,
+	       clean	     => { FILES => 'pari.ps test_eng/ex.t- libPARI.dumb.pod libPARI.pod t/55_*.t ftp-cmd' },
+	       macro	     => { %patchrc,
+				  PARI_DIR	  => $paridir,
 				},
 	      );
 

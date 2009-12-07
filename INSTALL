@@ -96,6 +96,8 @@ Other recognized options:
   paridir=PATH_TO_DIST_DIR	Use the directory with Pari distribution
   pari_tgz=PATH_TO_TAR_GZ	To extract a local pari*.tar.gz and patch
 		(if needed) the resulting directory tree.
+  version23_ok=NUMBER		If 0 (default), will skip versions 2.3.* of
+		PARI in automatic search (N/A if `paridir' is given).
 
 ==================================================================
 Here is the manual procedure which is somewhat similar to what
@@ -199,7 +201,13 @@ there may be (at least) two reasons:
      on your system) is wrong: either Math::Pari build process is out of sync
      with the GP/PARI one, or Math::Pari::Build is just plain buggy.
 
-If you are completely sure that "a" is not applicable, you can do the
+  c) Additinally, this is may be a problem with "an older version" of GP/PARI;
+     giving option
+	version23_ok=1
+     to Makefile.PL would allow it to search for newer versions of GP/PARI
+     (going to "fresh install directory" may be needed).
+
+If you are completely sure that "a", "c" are not applicable, you can do the
 following to help in fixing this problem:
 
   a) Build GP/PARI (it is not necessary to install it); redirect the output

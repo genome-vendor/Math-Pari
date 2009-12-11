@@ -196,6 +196,13 @@ sub process_cond {
   }
 }
 
+sub nok_print {
+  my ($n, $in) = (CORE::shift, CORE::shift);
+  print(@_), return unless $ENV{AUTOMATED_TESTING};
+  warn("# in = `$in'\n", @_);
+  print("not ok $n\n");
+}
+
 sub process_test {
   my ($in, $noans, $out) = @_;
   my $ini_time = time;
@@ -743,13 +750,6 @@ sub process_test {
       $prev = $res;
     }
   }
-}
-
-sub nok_print {
-  my ($n, $in) = (CORE::shift, CORE::shift);
-  print(@_), return unless $ENV{AUTOMATED_TESTING};
-  warn("# in = `$in'\n", @_);
-  print("not ok $n\n");
 }
 
 sub process_error {

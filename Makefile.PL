@@ -77,7 +77,7 @@ EOP
   ### GP/PARI library version 2.1.* has many problems fixed in versions 2.3.*.
 
   ### Especially important are the problems with symbols `hiremainder' and
-  ### `overflow' - if you build fails and error messages contain these
+  ### `overflow' - if your build fails and error messages contain these
   ### words, updating to 2.3.* might allow your use of fast processor-specific
   ### assembler code.)
 

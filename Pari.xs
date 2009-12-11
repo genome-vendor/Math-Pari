@@ -1,4 +1,5 @@
 #  include <pari.h>
+#  include <graph/rect.h>
 #  include <language/anal.h>
 
 #ifdef HAVE_PARIPRIV
@@ -704,7 +705,7 @@ svErrputs(PUTS_CONST char* p)
 }
 
 void
-svOutflush()
+svOutflush(void)
 {
     /* EMPTY */
 }
@@ -714,7 +715,7 @@ PARI:   ***   obsolete function: O(det2($mat))
                                    ^----------- */
 
 void
-svErrflush()
+svErrflush(void)
 {
     STRLEN l;
     char *s = SvPV(workErrsv, l);
@@ -732,7 +733,7 @@ svErrflush()
 }
 
 void
-svErrdie()
+svErrdie(void)
 {
   SV *errSv = newSVsv(workErrsv);
   STRLEN l;
@@ -856,13 +857,13 @@ sv2pari(SV* sv)
 #endif	/* !defined(PERL_VERSION) || (PERL_VERSION < 6) */
       return dbltor(n);
   }
-  else if (SvPOK(sv)) return lisexpr(SvPV(sv,na));
+  else if (SvPOK(sv))  return lisexpr(SvPV(sv,na));
   else if (SvIOKp(sv)) return PerlInt_to_i(sv);
   else if (SvNOKp(sv)) return dbltor((double)SvNV(sv));
   else if (SvPOKp(sv)) return lisexpr(SvPV(sv,na));
-  else if (!SvOK(sv)) return stoi(0);
-  else
-    croak("Variable in sv2pari is not of known type");  
+  else if (SvOK(sv))   croak("Variable in sv2pari is not of known type");  
+
+  return stoi(0);	/* !SvOK(sv) */
 }
 
 GEN
@@ -884,12 +885,10 @@ sv2parimat(SV* sv)
       }
     }
     settyp(in, t_MAT);
-    return in;
-  } else if (typ(in) == t_MAT) {
-    return in;
-  } else {
+  } else if (typ(in) != t_MAT) {
     croak("Not a matrix where matrix expected");
   }
+  return in;
 }
 
 SV*
@@ -3714,15 +3713,15 @@ BOOT:
 					/* Different order of init required */
 #if PARI_VERSION_EXP <  2003000
    if (!(reboot++)) {
-#ifndef NO_HIGHLEVEL_PARI
-#if PARI_VERSION_EXP >= 2002012
+#  ifndef NO_HIGHLEVEL_PARI
+#    if PARI_VERSION_EXP >= 2002012
        pari_add_module(functions_highlevel);
-#else	/* !( PARI_VERSION_EXP >= 2002012 ) */
+#    else	/* !( PARI_VERSION_EXP >= 2002012 ) */
        pari_addfunctions(&pari_modules,
 			 functions_highlevel, helpmessages_highlevel);
-#endif	/* !( PARI_VERSION_EXP >= 2002012 ) */
+#    endif	/* !( PARI_VERSION_EXP >= 2002012 ) */
        init_graph();
-#endif
+#  endif
    }
 #endif  /* PARI_VERSION_EXP < 2003000 */
    primelimit = SvIV(pri);
@@ -3740,15 +3739,15 @@ BOOT:
 					/* Different order of init required */
 #if PARI_VERSION_EXP >= 2003000
    if (!(reboot++)) {
-#ifndef NO_HIGHLEVEL_PARI
-#if PARI_VERSION_EXP >= 2002012
+#  ifndef NO_HIGHLEVEL_PARI
+#    if PARI_VERSION_EXP >= 2002012
        pari_add_module(functions_highlevel);
-#else	/* !( PARI_VERSION_EXP >= 2002012 ) */
+#    else	/* !( PARI_VERSION_EXP >= 2002012 ) */
        pari_addfunctions(&pari_modules,
 			 functions_highlevel, helpmessages_highlevel);
-#endif	/* !( PARI_VERSION_EXP >= 2002012 ) */
+#    endif	/* !( PARI_VERSION_EXP >= 2002012 ) */
        init_graph();
-#endif
+#  endif
    }
 #endif  /* PARI_VERSION_EXP >= 2003000 */
    PariStack = (SV *) GENfirstOnStack;

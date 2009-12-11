@@ -1,6 +1,6 @@
 package Math::PariBuild;
 
-$VERSION = '2.01080601';
+$VERSION = '2.01080603';
 
 require Exporter;
 @ISA = 'Exporter';
@@ -409,7 +409,7 @@ EOP
       print qq(Downloading `$base_url$file'...\n);
       if ($ftp) {
         $ftp->get($file) or die "Cannot get via FTP (",$ftp->message(),"): $!";
-	$ftp->quit or die "Cannot quit FTP: ", ftp->message();
+	$ftp->quit or warn "Warning: cannot quit FTP: ", $ftp->message();
       } else {
 	my $req = HTTP::Request->new(GET => "$base_url$file");
 	my $resp = $ua->request($req);
@@ -503,22 +503,34 @@ return values of patch commands.
 
 =cut
 
+sub patch_args ($) {
+  return '/' unless $^O =~ /win32/i;
+  my($patch, $p) = (shift, 'utils/inc_h.diff');
+  $p =~ s,/,\\,g;
+  system "$patch --binary < $p"
+    or warn("... Apparently, your patch takes flag --binary...\n"),
+       return ('\\', '--binary');
+  return '\\';
+}
+
 sub patch_pari {
   my ($dir, $version) = (shift, shift);
   $version = get_pari_version($dir) unless defined $version;
   my @patches = patches_for($version) or return;
   print "Patching...\n";
-  my ($rc, $p) = '';
   my $patch = $Config{gnupatch} || 'patch';
+  my ($dir_sep, @args) = patch_args $patch;
+  my ($rc, $p) = join '; ', $dir_sep, @args, '';
   foreach $p (@patches) {
-    my $cmd = "cd $dir ; $patch -p1 < ../$p";
+    (my $pp = "../$p") =~ s,/,$dir_sep,g;
+    my $cmd = "cd $dir && $patch -p1 @args < $pp";
     print "$cmd\n";
     system "$cmd"
       and warn "...Could not patch: \$?=$?, $!; continuing anyway...\n";
-    $rc .= "'$p' => $?, "
+    $rc .= "'$pp' => $?, "
   }
   print "Finished patching...\n";
-  $rc =~ s/,\s+$//;
+  $rc =~ s/,?\s+$//;
   $rc
 }
 
@@ -930,7 +942,7 @@ sub find_machine_architecture () {
     }
   } elsif ($os eq 'gnu') {# Cover GNU/Hurd, GNU/kFreeBSD and other GNU userland
     chomp($machine = `uname -m`);
-    $machine = 'ix86' if $machine =~ /^i386-/;
+    $machine = 'ix86' if $machine =~ /^i\d86-/;
   }
 
   $machine = 'port'		# No assembler for 64bit - unless alpha/ia64
@@ -954,7 +966,7 @@ sub find_machine_architecture () {
   } elsif (not defined $machine) {
     chomp($machine = `uname -m`);
   }
-  $machine =~ s/[ix]\d86/ix86/ if defined $machine;
+  $machine =~ s/[ix]\d86(-\w+)?/ix86/ if defined $machine;	# i686-pc
 
   print "...Processor of family `$machine' detected\n";
   return $machine;
@@ -1325,7 +1337,7 @@ sub build_funclists_ourselves ($) {
 		 );
   }
   for my $outfile (keys %recipies) {
-    next if -r $outfile;
+    next if -r "../$outfile";
     my $append = '>';
     for my $step (@{$recipies{$outfile}}) {
       #warn "Running `$^X @$step pari.desc $append ../$outfile-tmp'...\n";

@@ -4,7 +4,8 @@ use strict;
 $| = 1;
 print "1..1\nok 1\n";	# report success
 
-exit if eval 'use Math::Pari; 1';
+# `centerlift' is usually the first failing symbol detected...
+exit if eval 'use Math::Pari; use Math::Pari "centerlift"; 1';
 
 # If failed, report build parameters
 

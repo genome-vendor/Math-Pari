@@ -794,3 +794,25 @@ os2$(OBJ_EXT): $(PARI_DIR)/src/systems/os2/os2.c pariinl.h paricfg.h
 2.01080602
   If AUTOMATED_TESTING, delete (bogus?) environment variable DISPLAY.
   If AUTOMATED_TESTING, report results of failing tests on STDERR.
+  Make test suite report rough run times for successful subtests.
+
+2.0304_001080602
+  Change the default for $ok23 to 1.
+
+2.01080603
+  Fix misprint and change die() to warn() on failure of $ftp->quit...
+  Add some void's in Pari.xs.
+  UNDONE (wrong): Protect init_graph() by NO_GRAPHICS_PARI (in restart code);
+    include rect.h instead...
+  sv2pari(),sv2parimat(): a stupid compiler might guess we don't return value...
+  when patching, use && instead of ; in the shell command
+  New function Math::PariBuild::patch_args()
+  Math::PariBuild::patch_pari() supports option --binary, \ as directory
+   separator in command processor.
+  Make uname parser recognize i686-pc as ix86.
+  Generator of function descriptors could try to regenerate existing file.
+  nok_print() in Testout.pm was defined too late.
+
+2.0304_01080603
+  Change the default for $ok23 to 1.
+

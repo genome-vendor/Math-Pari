@@ -1,14 +1,14 @@
 Source: libmath-pari-perl
 Section: perl
 Priority: optional
-Build-Depends: debhelper (>= 7), perl
-Maintainer: Randy Hancock <rhancock@>
+Build-Depends: debhelper (>= 7), perl, libgmp-dev
+Maintainer: Anthony Brummett <abrummet@genome.wustl.edu>
 Standards-Version: 3.8.3
 Homepage: http://search.cpan.org/dist/Math-Pari/
 
 Package: libmath-pari-perl
-Architecture: any
-Depends: ${perl:Depends}, ${shlibs:Depends}, ${misc:Depends}
+Architecture: amd64
+Depends: ${perl:Depends}, ${shlibs:Depends}, ${misc:Depends}, libgmp-dev
 Description: Perl interface to PARI.
  This package is a Perl interface to famous library PARI for
  numerical/scientific/number-theoretic calculations. It allows use of most

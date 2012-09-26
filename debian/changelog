@@ -1,3 +1,9 @@
+libmath-pari-perl (2.01080603-2~Ubuntu~precise) unstable; urgency=low
+
+  * Recompile for precise
+
+ -- Anthony Brummett <abrummet@genome.wustl.edu>  Wed, 26 Sep 2012 18:02:00 -0500
+
 libmath-pari-perl (2.01080603-1) unstable; urgency=low
 
   * Initial Release.
